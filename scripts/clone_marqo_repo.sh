@@ -20,4 +20,4 @@ git fetch
 git switch "$2"
 git pull
 
-DOCKER_BUILDKIT=1 docker build . -t marqo_docker_0 || exit 1
+# DOCKER_BUILDKIT=1 docker build . -t marqo_docker_0 || exit 1
