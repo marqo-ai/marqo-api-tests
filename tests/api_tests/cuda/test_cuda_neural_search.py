@@ -11,9 +11,10 @@ from tests.utilities import disallow_environments
 from tests.utilities import allow_environments
 from tests.utilities import classwide_decorate
 
-@classwide_decorate(allow_environments, allowed_configurations=["CUDA_DIND_MARQO_OS"])
+# @classwide_decorate(allow_environments, allowed_configurations=["CUDA_DIND_MARQO_OS"])
 class TestAddDocuments(MarqoTestCase):
 
+    # NOTE: test_search_with_device was removed from these cuda tests
     def setUp(self) -> None:
         self.client = Client(**self.client_settings)
         self.index_name_1 = "my-test-index-1"
@@ -80,6 +81,8 @@ class TestAddDocuments(MarqoTestCase):
         assert d2 == self.strip_marqo_fields(search_res['hits'][0], strip_id=False)
         assert search_res['hits'][0]['_highlights']["field X"] == "this is a solid doc"
 
+    # TODO: remove this
+    @allow_environments(["CUDA_DIND_MARQO_OS"])
     def test_select_lexical(self):
         self.client.create_index(index_name=self.index_name_1)
         d1 = {
@@ -110,27 +113,6 @@ class TestAddDocuments(MarqoTestCase):
         #    but can look for a word
         assert self.client.index(self.index_name_1).search(
             '"captain"', device="cuda")["hits"][0]["_id"] == "123456"
-
-    def test_search_with_device(self):
-        """use default as defined in config unless overridden"""
-        temp_client = copy.deepcopy(self.client)
-        temp_client.config.search_device = "cpu:4"
-        temp_client.config.indexing_device = enums.Devices.cpu
-
-        mock__post = mock.MagicMock()
-        @mock.patch("marqo._httprequests.HttpRequests.post", mock__post)
-        def run():
-            temp_client.index(self.index_name_1).search(q="my search term", device="cuda")
-            temp_client.index(self.index_name_1).search(q="my search term", device="cuda:2")
-            return True
-        assert run()
-        # did we use the defined default device?
-        args, kwargs0 = mock__post.call_args_list[0]
-        # TODO: do we remove this test for cuda?
-        assert "device=cuda" in kwargs0["path"]
-        # did we overrride the default device?
-        args, kwargs1 = mock__post.call_args_list[1]
-        assert "device=cuda2" in kwargs1["path"]
 
     @disallow_environments(["S2SEARCH_OS"])
     def test_prefiltering(self):
