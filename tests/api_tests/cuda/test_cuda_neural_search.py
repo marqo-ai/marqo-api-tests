@@ -126,7 +126,8 @@ class TestAddDocuments(MarqoTestCase):
         assert run()
         # did we use the defined default device?
         args, kwargs0 = mock__post.call_args_list[0]
-        assert "device=cpu4" in kwargs0["path"]
+        # TODO: do we remove this test for cuda?
+        assert "device=cuda" in kwargs0["path"]
         # did we overrride the default device?
         args, kwargs1 = mock__post.call_args_list[1]
         assert "device=cuda2" in kwargs1["path"]
