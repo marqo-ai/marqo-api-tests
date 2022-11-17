@@ -7,6 +7,8 @@ import pprint
 from tests.marqo_test import MarqoTestCase
 import tempfile
 import os
+from tests.utilities import allow_environments
+from tests.utilities import classwide_decorate
 
 @classwide_decorate(allow_environments, allowed_environments=["CUDA_DIND_MARQO_OS"])
 class TestSentenceChunking(MarqoTestCase):
