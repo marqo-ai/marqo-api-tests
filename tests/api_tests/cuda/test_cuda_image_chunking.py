@@ -9,7 +9,7 @@ from tests.marqo_test import MarqoTestCase
 import tempfile
 import os
 
-
+@classwide_decorate(allow_environments, allowed_environments=["CUDA_DIND_MARQO_OS"])
 class TestImageChunking(MarqoTestCase):
     """Test for image chunking as a preprocessing step
     """
@@ -49,15 +49,15 @@ class TestImageChunking(MarqoTestCase):
             'description': 'the image chunking can (optionally) chunk the image into sub-patches (aking to segmenting text) by using either a learned model or simple box generation and cropping',
             'location': temp_file_name}
 
-        client.index(self.index_name).add_documents([document1])
+        client.index(self.index_name).add_documents([document1], device='cuda')
 
         # test the search works
-        results = client.index(self.index_name).search('a')
+        results = client.index(self.index_name).search('a', device="cuda")
         print(results)
         assert results['hits'][0]['location'] == temp_file_name
 
         # search only the image location
-        results = client.index(self.index_name).search('a', searchable_attributes=['location'])
+        results = client.index(self.index_name).search('a', searchable_attributes=['location'], , device="cuda")
         print(results)
         assert results['hits'][0]['location'] == temp_file_name
         # the highlight should be the location
@@ -92,15 +92,15 @@ class TestImageChunking(MarqoTestCase):
             'description': 'the image chunking can (optionally) chunk the image into sub-patches (akin to segmenting text) by using either a learned model or simple box generation and cropping',
             'location': temp_file_name}
 
-        client.index(self.index_name).add_documents([document1])
+        client.index(self.index_name).add_documents([document1], device='cuda')
 
         # test the search works
-        results = client.index(self.index_name).search('a')
+        results = client.index(self.index_name).search('a', device="cuda")
         print(results)
         assert results['hits'][0]['location'] == temp_file_name
 
         # search only the image location
-        results = client.index(self.index_name).search('a', searchable_attributes=['location'])
+        results = client.index(self.index_name).search('a', searchable_attributes=['location'], device="cuda")
         print(results)
         assert results['hits'][0]['location'] == temp_file_name
         # the highlight should be the location
@@ -109,6 +109,6 @@ class TestImageChunking(MarqoTestCase):
         assert all(isinstance(_n, (float, int)) for _n in results['hits'][0]['_highlights']['location'])
 
         # search using the image itself, should return a full sized image as highlight
-        results = client.index(self.index_name).search(temp_file_name)
+        results = client.index(self.index_name).search(temp_file_name, device="cuda")
         print(results)
         assert abs(np.array(results['hits'][0]['_highlights']['location']) - np.array([0, 0, img.size[0], img.size[1]])).sum() < 1e-6

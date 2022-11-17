@@ -24,23 +24,22 @@ def disallow_environments(disallowed_configurations: typing.List[str]):
     return decorator
 
 
-def allow_environments(allowed_configurations: typing.List[str]):
-    """This construct wraps a test to ensure it only runs for allowed
-    testing environments.
+def allow_environments(function, data):
+    # TODO: Document
+    def wrapper(*args, **kwargs):
+        if os.environ["TESTING_CONFIGURATION"] not in data['allowed_environments']:
+            return
+        else:
+            result = function(*args, **kwargs)
+            return result
+    return wrapper
 
-    It figures by examining the "TESTING_CONFIGURATION" environment variable.
 
-    Args:
-        allowed_configurations: if the environment variable
-        "TESTING_CONFIGURATION" matches a configuration in
-        allowed_configurations, then the test will be run
-    """
-    def decorator(function):
-        def wrapper(*args, **kwargs):
-            if os.environ["TESTING_CONFIGURATION"] not in allowed_configurations:
-                return
-            else:
-                result = function(*args, **kwargs)
-                return result
-        return wrapper
-    return decorator
+def classwide_decorate(decorator, **kwargs):
+    # TODO: Document
+    def decorate(cls):
+        for method in dir(cls):
+            if not method.startswith('__'):
+                setattr(cls, method, decorator(getattr(cls, method), kwargs))
+        return cls
+    return decorate

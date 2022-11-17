@@ -9,6 +9,7 @@ import pprint
 from tests.marqo_test import MarqoTestCase
 from tests.utilities import disallow_environments
 
+@classwide_decorate(allow_environments, allowed_environments=["CUDA_DIND_MARQO_OS"])
 class TestAddDocuments(MarqoTestCase):
 
     def setUp(self) -> None:
@@ -43,9 +44,9 @@ class TestAddDocuments(MarqoTestCase):
             The editor-in-chief Katharine Viner succeeded Alan Rusbridger in 2015.[10][11] Since 2018, the paper's main newsprint sections have been published in tabloid format. As of July 2021, its print edition had a daily circulation of 105,134.[4] The newspaper has an online edition, TheGuardian.com, as well as two international websites, Guardian Australia (founded in 2013) and Guardian US (founded in 2011). The paper's readership is generally on the mainstream left of British political opinion,[12][13][14][15] and the term "Guardian reader" is used to imply a stereotype of liberal, left-wing or "politically correct" views.[3] Frequent typographical errors during the age of manual typesetting led Private Eye magazine to dub the paper the "Grauniad" in the 1960s, a nickname still used occasionally by the editors for self-mockery.[16]
             """
         }
-        add_doc_res = self.client.index(self.index_name_1).add_documents([d1])
+        add_doc_res = self.client.index(self.index_name_1).add_documents([d1], device='cuda')
         search_res = self.client.index(self.index_name_1).search(
-            "title about some doc")
+            "title about some doc", device="cuda")
         assert len(search_res["hits"]) == 1
         assert self.strip_marqo_fields(search_res["hits"][0]) == d1
         assert len(search_res["hits"][0]["_highlights"]) > 0
@@ -54,7 +55,7 @@ class TestAddDocuments(MarqoTestCase):
     def test_search_empty_index(self):
         self.client.create_index(index_name=self.index_name_1)
         search_res = self.client.index(self.index_name_1).search(
-            "title about some doc")
+            "title about some doc", device="cuda")
         assert len(search_res["hits"]) == 0
 
     def test_search_multi(self):
@@ -71,9 +72,9 @@ class TestAddDocuments(MarqoTestCase):
         }
         res = self.client.index(self.index_name_1).add_documents([
             d1, d2
-        ])
+        ], device='cuda')
         search_res = self.client.index(self.index_name_1).search(
-            "this is a solid doc")
+            "this is a solid doc", device="cuda")
         assert d2 == self.strip_marqo_fields(search_res['hits'][0], strip_id=False)
         assert search_res['hits'][0]['_highlights']["field X"] == "this is a solid doc"
 
@@ -92,21 +93,21 @@ class TestAddDocuments(MarqoTestCase):
         }
         res = self.client.index(self.index_name_1).add_documents([
             d1, d2
-        ])
+        ], device='cuda')
 
         # Ensure that vector search works
         search_res = self.client.index(self.index_name_1).search(
-            "Examples of leadership", search_method=enums.SearchMethods.TENSOR)
+            "Examples of leadership", search_method=enums.SearchMethods.TENSOR, device="cuda")
         assert d2 == self.strip_marqo_fields(search_res["hits"][0], strip_id=False)
         assert search_res["hits"][0]['_highlights']["doc title"].startswith("The captain bravely lead her followers")
 
         # try it with lexical search:
         #    can't find the above with synonym
         assert len(self.client.index(self.index_name_1).search(
-            "Examples of leadership", search_method=marqo.SearchMethods.LEXICAL)["hits"]) == 0
+            "Examples of leadership", search_method=marqo.SearchMethods.LEXICAL, device="cuda")["hits"]) == 0
         #    but can look for a word
         assert self.client.index(self.index_name_1).search(
-            '"captain"')["hits"][0]["_id"] == "123456"
+            '"captain"', device="cuda")["hits"][0]["_id"] == "123456"
 
     def test_search_with_device(self):
         """use default as defined in config unless overridden"""
@@ -117,7 +118,7 @@ class TestAddDocuments(MarqoTestCase):
         mock__post = mock.MagicMock()
         @mock.patch("marqo._httprequests.HttpRequests.post", mock__post)
         def run():
-            temp_client.index(self.index_name_1).search(q="my search term")
+            temp_client.index(self.index_name_1).search(q="my search term", device="cuda")
             temp_client.index(self.index_name_1).search(q="my search term", device="cuda:2")
             return True
         assert run()
@@ -146,10 +147,11 @@ class TestAddDocuments(MarqoTestCase):
         }
         res = self.client.index(self.index_name_1).add_documents([
             d1, d2
-        ],auto_refresh=True)
+        ], device='cuda',auto_refresh=True)
         search_res = self.client.index(self.index_name_1).search(
             "blah blah",
-            filter_string="(an_int:[0 TO 30] and an_int:2) AND abc-123:(some text)")
+            filter_string="(an_int:[0 TO 30] and an_int:2) AND abc-123:(some text)",
+            device="cuda")
         assert len(search_res["hits"]) == 1
         pprint.pprint(search_res)
         assert search_res["hits"][0]["_id"] == "my-cool-doc"

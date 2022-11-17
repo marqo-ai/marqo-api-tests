@@ -8,7 +8,7 @@ from tests.marqo_test import MarqoTestCase
 import tempfile
 import os
 
-
+@classwide_decorate(allow_environments, allowed_environments=["CUDA_DIND_MARQO_OS"])
 class TestSentenceChunking(MarqoTestCase):
     """Test for sentence chunking
 
@@ -47,10 +47,10 @@ class TestSentenceChunking(MarqoTestCase):
             'description': 'the image chunking. can (optionally) chunk. the image into sub-patches (aking to segmenting text). by using either. a learned model. or simple box generation and cropping.',
             'misc':'sasasasaifjfnonfqeno asadsdljknjdfln'}
 
-        client.index(self.index_name).add_documents([document1])
+        client.index(self.index_name).add_documents([document1], device='cuda')
 
         # test the search works
-        results = client.index(self.index_name).search('a')
+        results = client.index(self.index_name).search('a', device="cuda")
         print(results)
         assert results['hits'][0]['attributes'] == document1['attributes']
 
@@ -80,29 +80,29 @@ class TestSentenceChunking(MarqoTestCase):
             'description': 'the image chunking. can (optionally) chunk. the image into sub-patches (aking to segmenting text). by using either. a learned model. or simple box generation and cropping.',
             'misc':'sasasasaifjfnonfqeno asadsdljknjdfln'}
 
-        client.index(self.index_name).add_documents([document1])
+        client.index(self.index_name).add_documents([document1], device='cuda')
 
         # search with a term we know is an exact chunk and will then show in the highlights
         search_term = 'hello. how are you.'
-        results = client.index(self.index_name).search(search_term)
+        results = client.index(self.index_name).search(search_term, device="cuda")
         print(results)
         assert results['hits'][0]['_highlights']['attributes'] == search_term
 
         # search with a term we know is an exact chunk and will then show in the highlights
         search_term = 'the image into sub-patches (aking to segmenting text). by using either.'
-        results = client.index(self.index_name).search(search_term)
+        results = client.index(self.index_name).search(search_term, device="cuda")
         print(results)
         assert results['hits'][0]['_highlights']['description'] == search_term
 
         # search with a term we know is an exact chunk and will then show in the highlights
         search_term = 'sasasasaifjfnonfqeno asadsdljknjdfln'
-        results = client.index(self.index_name).search(search_term)
+        results = client.index(self.index_name).search(search_term, device="cuda")
         print(results)
         assert results['hits'][0]['_highlights']['misc'] == search_term
 
         # search with a term we know is part of a sub-chunk and verify it is overlapping in the correct sentence
         search_term = 'can (optionally) chunk.'
-        results = client.index(self.index_name).search(search_term)
+        results = client.index(self.index_name).search(search_term, device="cuda")
         print(results)
         assert results['hits'][0]['_highlights']['description'] == 'the image chunking. can (optionally) chunk.'
 
@@ -128,39 +128,39 @@ class TestSentenceChunking(MarqoTestCase):
             'description': 'the image chunking. can (optionally) chunk. the image into sub-patches (aking to segmenting text). by using either. a learned model. or simple box generation and cropping.',
             'misc':'sasasasaifjfnonfqeno asadsdljknjdfln'}
 
-        client.index(self.index_name).add_documents([document1])
+        client.index(self.index_name).add_documents([document1], device='cuda')
 
         # search with a term we know is an exact chunk and will then show in the highlights
         search_term = 'hello. how are you.'
-        results = client.index(self.index_name).search(search_term)
+        results = client.index(self.index_name).search(search_term, device="cuda")
         print(results)
         assert results['hits'][0]['_highlights']['attributes'] == search_term
 
         # search with a term we know is an exact chunk and will then show in the highlights
         search_term = 'the image into sub-patches (aking to segmenting text). by using either.'
-        results = client.index(self.index_name).search(search_term)
+        results = client.index(self.index_name).search(search_term, device="cuda")
         print(results)
         assert results['hits'][0]['_highlights']['description'] == search_term
 
         # search with a term we know is an exact chunk and will then show in the highlights
         search_term = 'sasasasaifjfnonfqeno asadsdljknjdfln'
-        results = client.index(self.index_name).search(search_term)
+        results = client.index(self.index_name).search(search_term, device="cuda")
         print(results)
         assert results['hits'][0]['_highlights']['misc'] == search_term
 
         # search with a term we know is part of a sub-chunk and verify it is overlapping in the correct sentence
         search_term = 'can (optionally) chunk.'
-        results = client.index(self.index_name).search(search_term)
+        results = client.index(self.index_name).search(search_term, device="cuda")
         print(results)
         assert results['hits'][0]['_highlights']['description'] == 'the image chunking. can (optionally) chunk.'
 
         # check overlap
         search_term = "can (optionally) chunk. the image into sub-patches (aking to segmenting text)."
-        results = client.index(self.index_name).search(search_term)
+        results = client.index(self.index_name).search(search_term, device="cuda")
         print(results)
         assert results['hits'][0]['_highlights']['description'] == search_term
 
         search_term = "the image into sub-patches (aking to segmenting text). by using either."
-        results = client.index(self.index_name).search(search_term)
+        results = client.index(self.index_name).search(search_term, device="cuda")
         print(results)
         assert results['hits'][0]['_highlights']['description'] == search_term

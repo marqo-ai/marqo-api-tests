@@ -6,6 +6,7 @@ import string
 import time
 import uuid
 
+@classwide_decorate(allow_environments, allowed_environments=["CUDA_DIND_MARQO_OS"])
 class TestAddDocumentsPara(MarqoTestCase):
 
     def setUp(self) -> None:
@@ -35,7 +36,7 @@ class TestAddDocumentsPara(MarqoTestCase):
         identifiers = self.identifiers
         data = self.data
 
-        res = self.client.index(self.index_name_1).add_documents(data, **self.para_params)
+        res = self.client.index(self.index_name_1).add_documents(data, **self.para_params, device='cuda')
 
         time.sleep(self.sleep)
 
@@ -54,14 +55,14 @@ class TestAddDocumentsPara(MarqoTestCase):
         identifiers = self.identifiers
         data = self.data
 
-        res = self.client.index(self.index_name_1).add_documents(data, **self.para_params)
+        res = self.client.index(self.index_name_1).add_documents(data, **self.para_params, device='cuda')
 
         time.sleep(self.sleep)
 
         # CHECK ALL
         for _id in identifiers:
             text_1 = f'somethingelse{_id}'
-            res = self.client.index(self.index_name_1).search(text_1, search_method='LEXICAL', searchable_attributes=['text', 'other_text'])
+            res = self.client.index(self.index_name_1).search(text_1, search_method='LEXICAL', searchable_attributes=['text', 'other_text'], device="cuda")
             assert res['hits'][0]['text'] == text_1, f"{res}-{text_1}"
 
     def test_add_documents_parallel_no_create_index_search(self) -> None:
@@ -74,7 +75,7 @@ class TestAddDocumentsPara(MarqoTestCase):
         identifiers = self.identifiers
         data = self.data
 
-        res = self.client.index(self.index_name_1).add_documents(data, **self.para_params)
+        res = self.client.index(self.index_name_1).add_documents(data, **self.para_params, device='cuda')
 
         time.sleep(self.sleep)
 
@@ -82,5 +83,5 @@ class TestAddDocumentsPara(MarqoTestCase):
         for _id in identifiers:
             # chceck first and last
             text_1 = f'somethingelse{_id}'
-            res = self.client.index(self.index_name_1).search(text_1, search_method='LEXICAL')
+            res = self.client.index(self.index_name_1).search(text_1, search_method='LEXICAL', device="cuda")
             assert res['hits'][0]['text'] == text_1, f"{res}-{text_1}"
