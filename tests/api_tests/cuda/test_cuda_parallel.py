@@ -8,7 +8,7 @@ import uuid
 from tests.utilities import allow_environments
 from tests.utilities import classwide_decorate
 
-# @classwide_decorate(allow_environments, allowed_environments=["CUDA_DIND_MARQO_OS"])
+@classwide_decorate(allow_environments, allowed_environments=["CUDA_DIND_MARQO_OS"])
 class TestAddDocumentsPara(MarqoTestCase):
 
     def setUp(self) -> None:
