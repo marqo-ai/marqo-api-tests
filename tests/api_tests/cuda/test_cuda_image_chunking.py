@@ -59,7 +59,7 @@ class TestImageChunking(MarqoTestCase):
         assert results['hits'][0]['location'] == temp_file_name
 
         # search only the image location
-        results = client.index(self.index_name).search('a', searchable_attributes=['location'], , device="cuda")
+        results = client.index(self.index_name).search('a', searchable_attributes=['location'], device="cuda")
         print(results)
         assert results['hits'][0]['location'] == temp_file_name
         # the highlight should be the location

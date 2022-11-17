@@ -49,7 +49,7 @@ class TestSentenceChunking(MarqoTestCase):
             'description': 'the image chunking. can (optionally) chunk. the image into sub-patches (aking to segmenting text). by using either. a learned model. or simple box generation and cropping.',
             'misc':'sasasasaifjfnonfqeno asadsdljknjdfln'}
 
-        client.index(self.index_name).add_documents([document1], device='cuda')
+        client.index(self.index_name).add_documents([document1], device="cuda")
 
         # test the search works
         results = client.index(self.index_name).search('a', device="cuda")
@@ -82,7 +82,7 @@ class TestSentenceChunking(MarqoTestCase):
             'description': 'the image chunking. can (optionally) chunk. the image into sub-patches (aking to segmenting text). by using either. a learned model. or simple box generation and cropping.',
             'misc':'sasasasaifjfnonfqeno asadsdljknjdfln'}
 
-        client.index(self.index_name).add_documents([document1], device='cuda')
+        client.index(self.index_name).add_documents([document1], device="cuda")
 
         # search with a term we know is an exact chunk and will then show in the highlights
         search_term = 'hello. how are you.'
@@ -130,7 +130,7 @@ class TestSentenceChunking(MarqoTestCase):
             'description': 'the image chunking. can (optionally) chunk. the image into sub-patches (aking to segmenting text). by using either. a learned model. or simple box generation and cropping.',
             'misc':'sasasasaifjfnonfqeno asadsdljknjdfln'}
 
-        client.index(self.index_name).add_documents([document1], device='cuda')
+        client.index(self.index_name).add_documents([document1], device="cuda")
 
         # search with a term we know is an exact chunk and will then show in the highlights
         search_term = 'hello. how are you.'

@@ -95,7 +95,7 @@ class TestAddDocuments(MarqoTestCase):
         }
         res = self.client.index(self.index_name_1).add_documents([
             d1, d2
-        ], device='cuda')
+        ], device="cuda")
 
         # Ensure that vector search works
         search_res = self.client.index(self.index_name_1).search(
@@ -149,7 +149,7 @@ class TestAddDocuments(MarqoTestCase):
         }
         res = self.client.index(self.index_name_1).add_documents([
             d1, d2
-        ], device='cuda',auto_refresh=True)
+        ], device="cuda",auto_refresh=True)
         search_res = self.client.index(self.index_name_1).search(
             "blah blah",
             filter_string="(an_int:[0 TO 30] and an_int:2) AND abc-123:(some text)",

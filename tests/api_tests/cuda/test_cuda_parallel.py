@@ -38,7 +38,7 @@ class TestAddDocumentsPara(MarqoTestCase):
         identifiers = self.identifiers
         data = self.data
 
-        res = self.client.index(self.index_name_1).add_documents(data, **self.para_params, device='cuda')
+        res = self.client.index(self.index_name_1).add_documents(data, **self.para_params, device="cuda")
 
         time.sleep(self.sleep)
 
@@ -57,7 +57,7 @@ class TestAddDocumentsPara(MarqoTestCase):
         identifiers = self.identifiers
         data = self.data
 
-        res = self.client.index(self.index_name_1).add_documents(data, **self.para_params, device='cuda')
+        res = self.client.index(self.index_name_1).add_documents(data, **self.para_params, device="cuda")
 
         time.sleep(self.sleep)
 
@@ -77,7 +77,7 @@ class TestAddDocumentsPara(MarqoTestCase):
         identifiers = self.identifiers
         data = self.data
 
-        res = self.client.index(self.index_name_1).add_documents(data, **self.para_params, device='cuda')
+        res = self.client.index(self.index_name_1).add_documents(data, **self.para_params, device="cuda")
 
         time.sleep(self.sleep)
 
