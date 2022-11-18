@@ -61,7 +61,7 @@ def allow_environments(allowed_configurations: typing.List[str]):
 def classwide_decorate(decorator, allowed_configurations):
     def decorate(cls):
         for method in dir(cls):
-            if not method.startswith('__'):
+            if method.startswith("test"):
                 setattr(cls, method, (decorator(allowed_configurations))(getattr(cls, method)))
         return cls
     return decorate
