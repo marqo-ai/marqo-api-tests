@@ -15,6 +15,7 @@ from tests.utilities import classwide_decorate
 class TestAddDocuments(MarqoTestCase):
 
     # NOTE: test_search_with_device was removed from these cuda tests
+    @allow_environments(["CUDA_DIND_MARQO_OS"])
     def setUp(self) -> None:
         self.client = Client(**self.client_settings)
         self.index_name_1 = "my-test-index-1"
@@ -23,6 +24,7 @@ class TestAddDocuments(MarqoTestCase):
         except MarqoApiError as s:
             pass
 
+    @allow_environments(["CUDA_DIND_MARQO_OS"])
     @staticmethod
     def strip_marqo_fields(doc, strip_id=True):
         """Strips Marqo fields from a returned doc to get the original doc"""
@@ -37,6 +39,7 @@ class TestAddDocuments(MarqoTestCase):
 
         return copied
 
+    @allow_environments(["CUDA_DIND_MARQO_OS"])
     def test_search_single(self):
         """Searches an index of a single doc.
         Checks the basic functionality and response structure"""
@@ -55,12 +58,14 @@ class TestAddDocuments(MarqoTestCase):
         assert len(search_res["hits"][0]["_highlights"]) > 0
         assert ("Title" in search_res["hits"][0]["_highlights"]) or ("Description" in search_res["hits"][0]["_highlights"])
 
+    @allow_environments(["CUDA_DIND_MARQO_OS"])
     def test_search_empty_index(self):
         self.client.create_index(index_name=self.index_name_1)
         search_res = self.client.index(self.index_name_1).search(
             "title about some doc", device="cuda")
         assert len(search_res["hits"]) == 0
 
+    @allow_environments(["CUDA_DIND_MARQO_OS"])
     def test_search_multi(self):
         self.client.create_index(index_name=self.index_name_1)
         d1 = {
@@ -114,6 +119,7 @@ class TestAddDocuments(MarqoTestCase):
         assert self.client.index(self.index_name_1).search(
             '"captain"', device="cuda")["hits"][0]["_id"] == "123456"
 
+    @allow_environments(["CUDA_DIND_MARQO_OS"])
     @disallow_environments(["S2SEARCH_OS"])
     def test_prefiltering(self):
         self.client.create_index(index_name=self.index_name_1)
