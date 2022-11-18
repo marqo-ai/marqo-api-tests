@@ -23,28 +23,6 @@ def disallow_environments(disallowed_configurations: typing.List[str]):
         return wrapper
     return decorator
 
-# TODO: pick an implementation for the decorator
-"""
-def allow_environments(function, data):
-    # TODO: Document
-    def wrapper(*args, **kwargs):
-        if os.environ["TESTING_CONFIGURATION"] not in data['allowed_environments']:
-            return
-        else:
-            result = function(*args, **kwargs)
-            return result
-    return wrapper
-
-
-def classwide_decorate(decorator, **kwargs):
-    # TODO: Document
-    def decorate(cls):
-        for method in dir(cls):
-            if not method.startswith('__'):
-                setattr(cls, method, decorator(getattr(cls, method), kwargs))
-        return cls
-    return decorate
-"""
 
 def allow_environments(allowed_configurations: typing.List[str]):
     def decorator(function):
