@@ -7,9 +7,8 @@ export MARQO_API_TESTS_ROOT=$(pwd)
 . "${MARQO_API_TESTS_ROOT}/conf"
 export LOCAL_OPENSEARCH_URL="https://localhost:9200"
 
-# NOTE: Removing pwd check.
-# TODO: Maybe implement  $(pwd | grep -v actions-runner/_work)
-if [[ $(pwd | grep -v marqo-api-tests) && $(pwd | grep -v runner/work) ]]; then
+if [[ $(pwd | grep -v marqo-api-tests) ]] && [[ $(pwd | grep -v runner/work) ]] && [[ $(pwd | grep -v actions-runner/_work) ]];
+then
  echo checked pwd, and it does not look the directory is correct
  echo "The current directory is $PWD"
  exit 1
