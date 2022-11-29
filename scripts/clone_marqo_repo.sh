@@ -9,10 +9,10 @@ export LOCAL_OPENSEARCH_URL="https://localhost:9200"
 
 # NOTE: Removing pwd check.
 # TODO: Maybe implement  $(pwd | grep -v actions-runner/_work)
-# if [[ $(pwd | grep -v marqo-api-tests) && $(pwd | grep -v runner/work) ]]; then
-#  echo checked pwd, and it does not look the directory is correct
-#  exit 1
-# fi
+if [[ $(pwd | grep -v marqo-api-tests) && $(pwd | grep -v runner/work) ]]; then
+ echo checked pwd, and it does not look the directory is correct
+ exit 1
+fi
 
 rm -rf "${MARQO_API_TESTS_ROOT}/temp"
 mkdir "${MARQO_API_TESTS_ROOT}/temp"
