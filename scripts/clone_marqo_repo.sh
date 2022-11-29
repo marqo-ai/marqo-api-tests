@@ -11,6 +11,7 @@ export LOCAL_OPENSEARCH_URL="https://localhost:9200"
 # TODO: Maybe implement  $(pwd | grep -v actions-runner/_work)
 if [[ $(pwd | grep -v marqo-api-tests) && $(pwd | grep -v runner/work) ]]; then
  echo checked pwd, and it does not look the directory is correct
+ echo "The current directory is $PWD"
  exit 1
 fi
 
