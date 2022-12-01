@@ -1,7 +1,7 @@
-import pprint
 from marqo.client import Client
 from marqo.errors import MarqoApiError, MarqoError, MarqoWebError
 from tests.marqo_test import MarqoTestCase
+from parameterized import parameterized
 
 
 class TestGenericModelSupport(MarqoTestCase):
@@ -14,8 +14,28 @@ class TestGenericModelSupport(MarqoTestCase):
         except MarqoApiError as s:
             pass
 
-    def test_vector_search_with_custom_model_properties(self):
-        self.client.create_index(index_name=self.index_name_1)
+    @parameterized.expand([
+        ['model_not_in_registry', {"name": "sentence-transformers/multi-qa-MiniLM-L6-cos-v1",
+                                                         "dimensions": 384,
+                                                         "tokens": 128,
+                                                         "type": "sbert"}],
+        ['model_in_registry', {"name": "flax-sentence-embeddings/all_datasets_v4_MiniLM-L6",
+                                                     "dimensions": 384,
+                                                     "tokens": 128,
+                                                     "type": "sbert",
+                                                     "notes": ""}]
+    ])
+    def test_vector_search_with_generic_models(self, name, model_properties):
+
+        settings = {
+            "index_defaults": {
+                "treat_urls_and_pointers_as_images": False,
+                "model": "try-model",
+                "model_properties": model_properties,
+                "normalize_embeddings": True,
+            }
+        }
+        self.client.create_index(index_name=self.index_name_1, settings_dict=settings)
 
         d1 = {
             "doc title": "Cool Document 1",
@@ -30,6 +50,7 @@ class TestGenericModelSupport(MarqoTestCase):
 
         self.client.index(self.index_name_1).add_documents([d1, d2])
 
-        res = self.client.index(self.index_name_1).search("cool document")
+        search_res = self.client.index(self.index_name_1).search("cool document")
 
-        pprint.pprint(res)
+        assert len(search_res["hits"]) == 1
+        assert self.strip_marqo_fields(search_res["hits"][0]) == d1
