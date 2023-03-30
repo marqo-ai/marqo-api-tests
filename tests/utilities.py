@@ -36,10 +36,10 @@ def allow_environments(allowed_configurations: typing.List[str]):
     return decorator
 
 
-def classwide_decorate(decorator, allowed_configurations):
+def classwide_decorate(decorator, configurations):
     def decorate(cls):
         for method in dir(cls):
             if method.startswith("test"):
-                setattr(cls, method, (decorator(allowed_configurations))(getattr(cls, method)))
+                setattr(cls, method, (decorator(configurations))(getattr(cls, method)))
         return cls
     return decorate
