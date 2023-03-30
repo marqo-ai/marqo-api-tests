@@ -95,7 +95,7 @@ class TestDemo(MarqoTestCase):
         assert rneg1["acknowledged"] is True
 
         
-            def test_readme_example_weighted_query(self):
+    def test_readme_example_weighted_query(self):
         import marqo
         mq = marqo.Client(**self.client_settings)
         mq.index("my-weighted-query-index").add_documents([
@@ -125,11 +125,6 @@ class TestDemo(MarqoTestCase):
             "Technology that became prevelant in the 21st century": 1.0,
         }
 
-        if self.IS_MULTI_INSTANCE:
-            self.warm_request(mq.index("my-weighted-query-index").search,
-                q=query, searchable_attributes=["Title", "Description"]
-            )
-
         r2 = mq.index("my-weighted-query-index").search(
             q=query, searchable_attributes=["Title", "Description"]
         )
@@ -142,11 +137,6 @@ class TestDemo(MarqoTestCase):
             "I need to buy a communications device, what should I get?": 1.0,
             "Technology that became prevelant in the 21st century": -1.0,
         }
-
-        if self.IS_MULTI_INSTANCE:
-            self.warm_request(mq.index("my-weighted-query-index").search,
-                q=query, searchable_attributes=["Title", "Description"]
-            )
 
         r3 = mq.index("my-weighted-query-index").search(
             q=query, searchable_attributes=["Title", "Description"]
@@ -170,7 +160,7 @@ class TestDemo(MarqoTestCase):
     def test_readme_example_multimodal_combination_query(self):
         import marqo
         mq = marqo.Client(**self.client_settings)
-        settings = {"treat_urls_and_pointers_as_images": True, "model": "ViT-L/14"}
+        settings = {"treat_urls_and_pointers_as_images": True, "model": "ViT-B/32"}
         mq.create_index("my-first-multimodal-index", **settings)
         mq.index("my-first-multimodal-index").add_documents(
             [
@@ -210,12 +200,6 @@ class TestDemo(MarqoTestCase):
         r1 = mq.index("my-first-multimodal-index").get_stats()
         assert r1["numberOfDocuments"] == 3
 
-        if self.IS_MULTI_INSTANCE:
-            self.warm_request(mq.index("my-first-multimodal-index").search,
-                q="Give me some images of vehicles and modes of transport. I am especially interested in air travel and commercial aeroplanes.",
-                searchable_attributes=["captioned_image"]
-            )
-
         r2 = mq.index("my-first-multimodal-index").search(
             q="Give me some images of vehicles and modes of transport. I am especially interested in air travel and commercial aeroplanes.",
             searchable_attributes=["captioned_image"],
@@ -225,14 +209,6 @@ class TestDemo(MarqoTestCase):
 
         assert r2["hits"][0]["Title"] == "Flying Plane"
 
-        if self.IS_MULTI_INSTANCE:
-            self.warm_request(mq.index("my-first-multimodal-index").search,
-                q={
-                    "What are some vehicles and modes of transport?": 1.0,
-                    "Aeroplanes and other things that fly": -1.0,
-                },
-                searchable_attributes=["captioned_image"]
-            )
         r3 = mq.index("my-first-multimodal-index").search(
             q={
                 "What are some vehicles and modes of transport?": 1.0,
@@ -246,11 +222,6 @@ class TestDemo(MarqoTestCase):
 
         assert r3["hits"][0]["Title"] == "Red Bus"
 
-        if self.IS_MULTI_INSTANCE:
-            self.warm_request(mq.index("my-first-multimodal-index").search,
-                q={"Animals of the Perissodactyla order": -1.0},
-                searchable_attributes=["captioned_image"],
-            )
         r4 = mq.index("my-first-multimodal-index").search(
             q={"Animals of the Perissodactyla order": -1.0},
             searchable_attributes=["captioned_image"],
