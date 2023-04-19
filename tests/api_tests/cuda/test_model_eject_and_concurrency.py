@@ -9,14 +9,15 @@ from unittest import mock
 from tests.utilities import allow_environments
 from tests.utilities import classwide_decorate
 import multiprocessing
+import time
 
 @classwide_decorate(allow_environments, allowed_configurations=["CUDA_DIND_MARQO_OS"])
 class TestModelEjectAndConcurrency(MarqoTestCase):
-
-    # NOTE: The cuda should already have model loaded in the startup
-    def setUp(self) -> None:
-        self.client = Client(**self.client_settings)
-        self.index_model_object = {
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.client = Client(**cls.client_settings)
+        cls.index_model_object = {
             "test_0": 'open_clip/ViT-B-32/laion400m_e31',
             "test_1": 'open_clip/ViT-B-32/laion400m_e32',
             "test_2": 'open_clip/RN50x4/openai',
@@ -32,32 +33,19 @@ class TestModelEjectAndConcurrency(MarqoTestCase):
             "test_12": "onnx16/openai/ViT-L/14",
             "test_13": 'onnx32/open_clip/ViT-B-32-quickgelu/laion400m_e32',
         }
-        for index_name in list(self.index_model_object):
-            try:
-                self.client.delete_index(index_name)
-            except MarqoApiError as s:
-                pass
 
-    def tearDown(self) -> None:
-        for index_name in list(self.index_model_object):
-            try:
-                self.client.delete_index(index_name)
-            except MarqoApiError as s:
-                pass
-
-    def test_model_eject_and_concurrency(self):
-        for index_name, model in self.index_model_object.items():
+        for index_name, model in cls.index_model_object.items():
             settings = {
                 "model": model
             }
             try:
-                self.client.delete_index(index_name)
+                cls.client.delete_index(index_name)
             except:
                 pass
 
-            self.client.create_index(index_name, **settings)
+            cls.client.create_index(index_name, **settings)
 
-            self.client.index(index_name).add_documents([
+            cls.client.index(index_name).add_documents([
                 {
                     "Title": "The Travels of Marco Polo",
                     "Description": "A 13th-century travelogue describing Polo's travels"
@@ -67,27 +55,67 @@ class TestModelEjectAndConcurrency(MarqoTestCase):
                     "Description": "The EMU is a spacesuit that provides environmental protection, "
                                    "mobility, life support, and communications for astronauts",
                     "_id": "article_591"
-                }], device="cuda"
+                }], device = "cuda",
             )
 
+    def setUp(self) -> None:
+        self.client = Client(**self.client_settings)
+
+    def tearDown(self) -> None:
+        pass
+
+    def normal_search(self, index_name, q):
+        # A function will be called in multiprocess
+        res = self.client.index(index_name).search("what is best to wear on the moon?", device = "cuda")
+        if len(res["hits"]) != 2:
+            q.put(AssertionError)
+
+    def racing_search(self, index_name, q):
+        # A function will be called in multiprocess
+        try:
+            res = self.client.index(index_name).search("what is best to wear on the moon?", device = "cuda")
+            q.put(AssertionError)
+        except MarqoWebError as e:
+            if not "another request was updating the model cache at the same time" in e.message:
+                q.put(e)
+            pass
+
+    def test_sequentially_search(self):
+        time.sleep(5)
         for index_name in list(self.index_model_object):
-            self.client.index(index_name).search(q='What is the best outfit to wear on the moon?', device="cuda")
+            self.client.index(index_name).search(q='What is the best outfit to wear on the moon?',device = "cuda")
 
-        # Concurrent search
-        def search(index_name):
-            try:
-                res = self.client.index(index_name).search("what is best to wear on the moon?", device="cuda")
-                assert len(res["hits"]) == 1
-                # Either get the search results or raise MarqoWebError
-            except MarqoWebError as e:
-                assert "another request was updating the model cache at the same time" in e.message
-                pass
+    def test_concurrent_search_with_cache(self):
+        # Search once to make sure the model is in cache
+        test_index = "test_1"
+        res = self.client.index(test_index).search("what is best to wear on the moon?",device = "cuda")
 
+        q = multiprocessing.Queue()
         processes = []
-        for index_name in list(self.index_model_object):
-            p = multiprocessing.Process(target=search, args=(index_name,))
+        for i in range(5):
+            p = multiprocessing.Process(target=self.normal_search, args=(test_index, q))
             processes.append(p)
             p.start()
 
         for p in processes:
             p.join()
+
+        assert q.empty()
+
+    def test_concurrent_search_without_cache(self):
+        # Remove all the cached models
+        super().removeAllModels()
+
+        test_index = "test_3"
+        q = multiprocessing.Queue()
+        processes = []
+        p = multiprocessing.Process(target=self.normal_search, args=(test_index, q))
+        processes.append(p)
+        p.start()
+
+        for i in range(5):
+            p = multiprocessing.Process(target=self.racing_search, args=(test_index, q))
+            processes.append(p)
+            p.start()
+
+        assert q.empty()
