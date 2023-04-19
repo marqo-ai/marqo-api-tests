@@ -66,8 +66,20 @@ setenv =
 
 ## Troubleshooting
 
-1. `pytest` is not found
-    - Make sure you have python3.8 installed and that it is the default python version
-    - Make sure you have pip installed
-    - Make sure you have the requirements installed. Run `pip install -r requirements.txt`
-    - run `pip show pytest` to get the location of the pytest package. Then add the path to the location of pytest to your `PATH environment` variable by running the following command in your terminal: `export PATH=$PATH:<location_of_pytest>`. Replace `<location_of_pytest>` with your path.
+### Issue 1: `pytest` is not found
+
+Follow these steps to resolve this issue:
+
+1. **Ensure Python 3.8 is installed and set as the default version:**
+    - Check your Python version with `python --version`.
+
+2. **Install the required packages:**
+    - Run `pip install -r requirements.txt` to install the required packages.
+
+3. **Locate the pytest package:**
+    - Run `pip show pytest` to get the location of the pytest package.
+
+4. **Update the `PATH` environment variable:**
+    - Add the path to the location of pytest to your `PATH` environment variable by running the following command in your terminal: `export PATH=$PATH:<location_of_pytest>`. Replace `<location_of_pytest>` with the path you obtained in step 3.
+
+If you've followed these steps and the issue persists, please consider [opening an issue](https://github.com/marqo-ai/marqo/issues) on the Marqo repository.
