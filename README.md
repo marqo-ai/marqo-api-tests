@@ -62,3 +62,12 @@ setenv =
 ```
 ### Future work
 * Have a tox var to specify the image name. This allows for remote images to be tested, in addition to local builds `marqo_image_name = marqo_docker_0`
+
+
+## Troubleshooting
+
+1. `pytest` is not found
+    - Make sure you have python3.8 installed and that it is the default python version
+    - Make sure you have pip installed
+    - Make sure you have the requirements installed. Run `pip install -r requirements.txt`
+    - run `pip show pytest` to get the location of the pytest package. Then add the path to the location of pytest to your `PATH environment` variable by running the following command in your terminal: `export PATH=$PATH:<location_of_pytest>`. Replace `<location_of_pytest>` with your path.
