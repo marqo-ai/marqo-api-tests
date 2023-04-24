@@ -6,6 +6,7 @@ from tests.utilities import classwide_decorate
 import threading, queue, multiprocessing
 import time, os
 
+
 @classwide_decorate(allow_environments, allowed_configurations=["CUDA_DIND_MARQO_OS"])
 class TestModelEject(MarqoTestCase):
     '''
@@ -102,12 +103,12 @@ class TestModelEject(MarqoTestCase):
         the test (by adding a sleep) rather than making the ejections stricter (for example, by locking
         the available models dict). 
         """
-        
+
         # this downloads the models if they aren't already downloaded 
         for index_name in list(self.index_model_object):
             self.client.index(index_name).search(q='What is the best outfit to wear on the moon?', device=self.device)
             time.sleep(5)
-            
+
         # this swaps the models from disk to memory
         for index_name in list(self.index_model_object):
             self.client.index(index_name).search(q='What is the best outfit to wear on the moon?', device=self.device)
@@ -148,8 +149,9 @@ class TestConcurrencyRequestsBlock(MarqoTestCase):
             self.client.delete_index(self.index_name)
         except MarqoApiError:
             pass
+
     def normal_search(self, index_name, q):
-        # A function will be called in multiprocess
+        # A function will be called in threading
         try:
             res = self.client.index(index_name).search("what is best to wear on the moon?", device=self.device)
             if len(res["hits"]) == 2:
@@ -160,7 +162,7 @@ class TestConcurrencyRequestsBlock(MarqoTestCase):
             q.put(e)
 
     def racing_search(self, index_name, q):
-        # A function will be called in multiprocess
+        # A function will be called in threading
         try:
             res = self.client.index(index_name).search("what is best to wear on the moon?", device=self.device)
             q.put(AssertionError)
@@ -216,6 +218,3 @@ class TestConcurrencyRequestsBlock(MarqoTestCase):
         assert racing_search_queue.qsize() == 2
         while not racing_search_queue.empty():
             assert racing_search_queue.get() == "racing search get blocked with correct error"
-
-
-
