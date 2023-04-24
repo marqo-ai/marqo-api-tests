@@ -9,14 +9,11 @@ import time, os
 
 @classwide_decorate(allow_environments, allowed_configurations=["CUDA_DIND_MARQO_OS"])
 class TestModelEject(MarqoTestCase):
-    '''
-    Although the test is running in cpu, we restrict it to cuda environments due to its intensive usage of memory.
-    '''
 
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        cls.device = "cpu"
+        cls.device = "cuda"
         if os.environ["TESTING_CONFIGURATION"] not in ["CUDA_DIND_MARQO_OS"]:
             cls.skip_class = True
             return
