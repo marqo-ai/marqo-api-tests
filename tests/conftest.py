@@ -2,7 +2,7 @@ import pytest
 import os
 
 def pytest_configure(config):
-    config.addinivalue_line("markers", "cuda_test: mark test as cuda_test to run")
+    config.addinivalue_line("markers", "cuda_test: mark test as cuda_test to skip")
 
 
 def pytest_collection_modifyitems(items):
