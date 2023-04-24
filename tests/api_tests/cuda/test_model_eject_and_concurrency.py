@@ -5,9 +5,10 @@ from tests.utilities import allow_environments
 from tests.utilities import classwide_decorate
 import threading, queue, multiprocessing
 import time, os
+import pytest
 
 
-@classwide_decorate(allow_environments, allowed_configurations=["CUDA_DIND_MARQO_OS"])
+@pytest.mark.cuda_test
 class TestModelEject(MarqoTestCase):
 
     @classmethod
@@ -113,7 +114,7 @@ class TestModelEject(MarqoTestCase):
 
         return True
 
-@classwide_decorate(allow_environments, allowed_configurations=["CUDA_DIND_MARQO_OS"])
+@pytest.mark.cuda_test
 class TestConcurrencyRequestsBlock(MarqoTestCase):
     def setUp(self) -> None:
         if os.environ["TESTING_CONFIGURATION"] not in ["CUDA_DIND_MARQO_OS"]:
