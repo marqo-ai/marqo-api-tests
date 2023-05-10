@@ -8,5 +8,6 @@ docker rm -f marqo;
 set +x
 # wait for marqo to start
 until [[ $(curl -v --silent --insecure http://localhost:8882 2>&1 | grep Marqo) ]]; do
-    sleep 0.1;
+    sleep 1;    # TODO: change back to 0.1
+    echo "Still waiting for marqo to start";
 done;
