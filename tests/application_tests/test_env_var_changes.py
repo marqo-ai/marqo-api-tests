@@ -1,12 +1,13 @@
 import logging
 import subprocess
+import os
 import time
 from requests import HTTPError
 from tests import marqo_test
 from tests import utilities
 from marqo import Client
 from marqo.errors import MarqoApiError, BackendCommunicationError, MarqoWebError
-
+import pprint
 
 class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
@@ -19,7 +20,8 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
             pass
 
     def test_max_replicas(self):
-
+        print("DEBUG")
+        pprint.pprint(os.environ)
         # Attempt to create index with 4 replicas (should fail, since default max is 1)
         try:
             res_0 = self.client.create_index(index_name=self.index_name_1, settings_dict={
