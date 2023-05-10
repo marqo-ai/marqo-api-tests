@@ -54,7 +54,9 @@ def rerun_marqo_with_env_vars(env_vars: str = ""):
         Returns the console output of all the subprocess calls
     """
     # Stop Marqo
+    print("Attempting to stop marqo.")
     output_1 = subprocess.run(["docker", "stop", "marqo"], check=True, capture_output=True)
+    print("Marqo stopped.")
 
     # Rerun the appropriate start script
     test_config = os.environ["TESTING_CONFIGURATION"]
@@ -70,12 +72,20 @@ def rerun_marqo_with_env_vars(env_vars: str = ""):
     elif test_config == "CUDA_DIND_MARQO_OS":
         start_script_name = "start_cuda_dind_marqo_os.sh"
     full_script_path = f"{os.environ['MARQO_API_TESTS_ROOT']}/scripts/{start_script_name}"
-    
-    output_2 = subprocess.run([
+    print(f"About to run the script: {full_script_path}")
+
+    run_process = subprocess.Popen([
         "bash",                             # command: run
         full_script_path,                   # script to run
         os.environ['MARQO_IMAGE_NAME'],     # arg $1 in script
         env_vars                            # arg $2 in script
-        ], check=True, capture_output=True)
+        ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
     
-    return f"{output_1}\n{output_2}"
+    # For debugging purposes
+    # Read and print the output line by line
+    for line in run_process.stdout:
+        print(line, end='')
+
+    # Wait for the process to complete
+    run_process.wait()
+    # return f"{output_1}\n{output_2}"
