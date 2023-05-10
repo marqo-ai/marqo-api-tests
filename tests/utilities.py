@@ -72,7 +72,7 @@ def rerun_marqo_with_env_vars(env_vars: str = ""):
     full_script_path = f"{os.environ['MARQO_API_TESTS_ROOT']}/scripts/{start_script_name}"
     
     output_2 = subprocess.run([
-        ".",                                # command: run
+        "bash",                             # command: run
         full_script_path,                   # script to run
         os.environ['MARQO_IMAGE_NAME'],     # arg $1 in script
         env_vars                            # arg $2 in script
