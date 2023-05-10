@@ -82,6 +82,7 @@ def rerun_marqo_with_env_vars(env_vars: str = ""):
         ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
     
     # For debugging purposes
+    """
     # Read and print the output line by line
     for line in run_process.stdout:
         print(line, end='')
@@ -90,4 +91,9 @@ def rerun_marqo_with_env_vars(env_vars: str = ""):
     print("Before thread is done.")
     run_process.wait()
     print("Thread is now done.")
+    """
+    # Read the output and wait for the process to complete
+    output, _ = run_process.communicate()
+    print(output)
+
     # return f"{output_1}\n{output_2}"
