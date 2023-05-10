@@ -3,6 +3,7 @@ import subprocess
 import time
 from requests import HTTPError
 from tests import marqo_test
+from tests import utilities
 from marqo import Client
 from marqo.errors import MarqoApiError, BackendCommunicationError, MarqoWebError
 
@@ -35,7 +36,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         # Rerun marqo with new replica count
         max_replicas = 5
         print(f"Attempting to rerun marqo with max replicas: {max_replicas}")
-        rerun_marqo_with_env_vars(
+        utilities.rerun_marqo_with_env_vars(
             env_vars = f"-e MARQO_MAX_CONCURRENT_INDEX='{max_replicas}'"
         )
 
