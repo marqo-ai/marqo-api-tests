@@ -11,3 +11,4 @@ until [[ $(curl -v --silent --insecure http://localhost:8882 2>&1 | grep Marqo) 
     sleep 1;    # TODO: change back to 0.1
     echo "Still waiting for marqo to start";
 done;
+echo "Finished script.";

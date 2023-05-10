@@ -87,5 +87,7 @@ def rerun_marqo_with_env_vars(env_vars: str = ""):
         print(line, end='')
 
     # Wait for the process to complete
+    print("Before thread is done.")
     run_process.wait()
+    print("Thread is now done.")
     # return f"{output_1}\n{output_2}"
