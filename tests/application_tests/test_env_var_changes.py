@@ -58,7 +58,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
     def test_preload_models(self):
         # check preloaded models (should be default)
-        default_models = ["'hf/all_datasets_v4_MiniLM-L6", "ViT-L/14"]
+        default_models = ["hf/all_datasets_v4_MiniLM-L6", "ViT-L/14"]
         res = self.client.get_loaded_models()
         assert set([item["model_name"] for item in res["models"]]) == set(default_models)
 
