@@ -6,9 +6,11 @@ set -x
 docker rm -f marqo;
 # TODO put this back (remove models to preload)
 # docker run --name marqo --gpus all --privileged -p 8882:8882 --add-host host.docker.internal:host-gateway ${2:+"$2"} "$1" &
-docker run -dit --name marqo --gpus all --privileged -p 8882:8882 --add-host host.docker.internal:host-gateway -e MARQO_MODELS_TO_PRELOAD='[]' ${2:+"$2"} "$1" &
-# connect to the container and you can disconnect later using Ctrl+p Ctrl+q (this won't stop the container)
-docker attach marqo
+docker run -d --name marqo --gpus all --privileged -p 8882:8882 --add-host host.docker.internal:host-gateway -e MARQO_MODELS_TO_PRELOAD='[]' ${2:+"$2"} "$1" &
+
+# Follow the logs of the Docker container in the background and capture its PID
+docker logs -f marqo &
+LOGS_PID=$!
 
 # wait for marqo to start
 until [[ $(curl -v --silent --insecure http://localhost:8882 2>&1 | grep Marqo) ]]; do
@@ -16,4 +18,7 @@ until [[ $(curl -v --silent --insecure http://localhost:8882 2>&1 | grep Marqo) 
     echo "Still waiting for marqo to start";
 done;
 
+# Kill the `docker logs` command now that we're done with everything else
+kill $LOGS_PID
+set +x
 echo "Finished script.";
