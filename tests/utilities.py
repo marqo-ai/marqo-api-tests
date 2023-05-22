@@ -81,16 +81,18 @@ def rerun_marqo_with_env_vars(env_vars: str = ""):
         env_vars                            # arg $2 in script
         ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
     
-    # For debugging purposes
-    # Read and print the output line by line
-    for line in run_process.stdout:
-        print("Waiting for a new line")
-        print(line, end='')
-        print("Line has been printed.")
-    
-    print("Escaped loop")
-    # Wait for the process to complete
+    while True:
+        # Read output from pipe
+        output = run_process.stdout.readline()
+        
+        # If the process is done and there's no more output
+        if output == '' and run_process.poll() is not None:
+            break
+
+        if output:
+            print(output.strip())
+
     print("Before thread is done.")
     run_process.wait()
     print("Thread is now done.")
-    # return f"{output_1}\n{output_2}"
+    
