@@ -72,7 +72,6 @@ def rerun_marqo_with_env_vars(env_vars: str = ""):
     elif test_config == "CUDA_DIND_MARQO_OS":
         start_script_name = "start_cuda_dind_marqo_os.sh"
     full_script_path = f"{os.environ['MARQO_API_TESTS_ROOT']}/scripts/{start_script_name}"
-    print(f"About to run the script: {full_script_path}")
 
     run_process = subprocess.Popen([
         "bash",                             # command: run
@@ -81,18 +80,10 @@ def rerun_marqo_with_env_vars(env_vars: str = ""):
         env_vars                            # arg $2 in script
         ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
     
-    while True:
-        # Read output from pipe
-        output = run_process.stdout.readline()
-        
-        # If the process is done and there's no more output
-        if output == '' and run_process.poll() is not None:
-            break
-
-        if output:
-            print(output.strip())
-
-    print("Before thread is done.")
-    run_process.wait()
-    print("Thread is now done.")
+    # Read and print the output line by line (in real time)
+    for line in run_process.stdout:
+        print(line, end='')
     
+    # Wait for the process to complete
+    run_process.wait()
+    return f"{output_1}\n{run_process.stdout}"
