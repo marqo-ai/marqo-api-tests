@@ -86,7 +86,9 @@ def rerun_marqo_with_env_vars(env_vars: str = ""):
     for line in run_process.stdout:
         print("Waiting for a new line")
         print(line, end='')
-
+        print("Line has been printed.")
+    
+    print("Escaped loop")
     # Wait for the process to complete
     print("Before thread is done.")
     run_process.wait()
