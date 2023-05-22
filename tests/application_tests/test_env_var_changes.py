@@ -33,6 +33,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
             })
             raise AssertionError()
         except MarqoWebError as e:
+            print("Marqo Web Error correctly raised")
             pass
         
         # Rerun marqo with new replica count
