@@ -84,6 +84,7 @@ def rerun_marqo_with_env_vars(env_vars: str = ""):
     # For debugging purposes
     # Read and print the output line by line
     for line in run_process.stdout:
+        print("Waiting for a new line")
         print(line, end='')
 
     # Wait for the process to complete
