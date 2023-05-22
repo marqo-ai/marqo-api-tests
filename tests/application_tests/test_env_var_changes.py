@@ -40,7 +40,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         max_replicas = 5
         print(f"Attempting to rerun marqo with max replicas: {max_replicas}")
         utilities.rerun_marqo_with_env_vars(
-            env_vars = f"-e MARQO_MAX_CONCURRENT_INDEX='{max_replicas}'"
+            env_vars = f"-e MARQO_MAX_NUMBER_OF_REPLICAS='{max_replicas}'"
         )
 
         # Attempt to create index with 4 replicas (should succeed)
