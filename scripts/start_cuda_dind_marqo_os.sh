@@ -11,6 +11,7 @@ args=("--name" "marqo" "--gpus" "all" "--privileged" "-p" "8882:8882" "--add-hos
 
 # add $2 env vars if it's set
 if [ -n "$2" ]; then
+    echo "checking arg2: $2"
     # split $2 into an array on spaces
     IFS=' ' read -r -a env_vars <<< "$2"
     # add each item in env_vars to args
