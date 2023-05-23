@@ -89,7 +89,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
             Ensures that rerun_marqo_with_env_vars can work with several different env vars
             at the same time
-            
+
             3 things in the same command:
             1. Load models
             2. set max number of replicas
@@ -99,7 +99,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         # Try invalid number of replicas
         try:
             res_0 = self.client.create_index(index_name=self.index_name_1, settings_dict={
-                "number_of_replicas": 4         # Too large
+                "number_of_replicas": 6         # Too large
             })
             raise AssertionError()
         except MarqoWebError as e:

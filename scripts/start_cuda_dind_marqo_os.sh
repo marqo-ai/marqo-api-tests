@@ -1,7 +1,7 @@
 #!/bin/bash
 # args:
 # $1 : marqo_image_name - name of the image you want to test
-# $2, $3, etc : env_vars - strings representing args to pass docker call
+# $@ : env_vars - strings representing all args to pass docker call
 docker rm -f marqo;
 
 MARQO_DOCKER_IMAGE="$1"
@@ -11,7 +11,8 @@ shift
 # -d detaches docker from process (so subprocess does not wait for it)
 # ${@:+"$@"} adds ALL args (past $1) if any exist.
 set -x
-docker run -d --name marqo --gpus all --privileged -p 8882:8882 --add-host host.docker.internal:host-gateway ${@:+"$@"} "$MARQO_DOCKER_IMAGE"
+docker run -d --name marqo --gpus all --privileged -p 8882:8882 --add-host host.docker.internal:host-gateway \
+    ${@:+"$@"} "$MARQO_DOCKER_IMAGE"
 set +x
 
 # Follow docker logs (since it is detached)
