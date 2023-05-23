@@ -83,9 +83,88 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         res = self.client.get_loaded_models()
         assert set([item["model_name"] for item in res["models"]]) == set(custom_models)
 
+
     def test_multiple_env_vars(self):
         """
-            Load models and set max number of replicas
+
+            Ensures that rerun_marqo_with_env_vars can work with several different env vars
             at the same time
+            
+            3 things in the same command:
+            1. Load models
+            2. set max number of replicas
+            3. set max EF
         """
-        pass
+
+        # Try invalid number of replicas
+        try:
+            res_0 = self.client.create_index(index_name=self.index_name_1, settings_dict={
+                "number_of_replicas": 4         # Too large
+            })
+            raise AssertionError()
+        except MarqoWebError as e:
+            print("Marqo Web Error correctly raised")
+            pass
+
+        # Try invalid EF 
+        try:
+            res_0 = self.client.create_index(index_name=self.index_name_1, settings_dict={
+                "index_defaults": {
+                    "ann_parameters" : {
+                        "space_type": "cosinesimil",
+                        "parameters": {
+                            "ef_construction": 5000,    # Too large
+                            "m": 16
+                        }
+                    }
+                },
+            })
+            raise AssertionError()
+        except MarqoWebError as e:
+            print("Marqo Web Error correctly raised")
+            pass
+        
+        # check preloaded models (should be default)
+        default_models = ["hf/all_datasets_v4_MiniLM-L6", "ViT-L/14"]
+        res = self.client.get_loaded_models()
+        assert set([item["model_name"] for item in res["models"]]) == set(default_models)
+
+        # Restart marqo with new max values
+        max_replicas = 10
+        max_ef = 6000
+        new_models = ["hf/all_datasets_v4_MiniLM-L6"]
+        utilities.rerun_marqo_with_env_vars(
+            env_vars = [
+                "-e", f"MARQO_MAX_NUMBER_OF_REPLICAS={max_replicas}",
+                "-e", f"MARQO_EF_CONSTRUCTION_MAX_VALUE={max_ef}",
+                "-e", f"MARQO_MODELS_TO_PRELOAD={json.dumps(new_models)}"
+            ]
+        )
+
+        # Create index with same number of replicas and EF
+        res_0 = self.client.create_index(index_name=self.index_name_1, settings_dict={
+            "number_of_replicas": 4,         # should be fine now
+            "index_defaults": {
+                "ann_parameters" : {
+                    "space_type": "cosinesimil",
+                    "parameters": {
+                        "ef_construction": 5000,    # should be fine now
+                        "m": 16
+                    }
+                }
+            }
+        })
+
+        # Assert correct replicas
+        # Make sure new index has 4 replicas
+        assert self.client.get_index(self.index_name_1).get_settings() \
+            ["number_of_replicas"] == 4
+        
+        # Assert correct EF const
+        assert self.client.get_index(self.index_name_1).get_settings() \
+            ["index_defaults"]["ann_parameters"]["parameters"]["ef_construction"] == 5000
+
+        # Assert correct models
+        res = self.client.get_loaded_models()
+        assert set([item["model_name"] for item in res["models"]]) == set(new_models)
+
