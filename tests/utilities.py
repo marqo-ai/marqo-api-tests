@@ -46,16 +46,20 @@ def classwide_decorate(decorator, allowed_configurations):
     return decorate
 
 
-def rerun_marqo_with_env_vars(env_vars: str = ""):
+def rerun_marqo_with_env_vars(env_vars: list = []):
     """
-        Given a string of env vars, stop and rerun Marqo using the start script appropriate
+        Given a list of env vars / flags, stop and rerun Marqo using the start script appropriate
         for the current test config
 
-        Returns the console output of all the subprocess calls
+        Ensure that:
+        1. Flags are separate items from variable itself (eg, ['-e', 'MARQO_MODELS_TO_PRELOAD=["hf/all_datasets_v4_MiniLM-L6"]'])
+        2. Strings (individual items in env_vars list) do not contain ' (use " instead)
+        -> single quotes cause some parsing issues and will affect the test outcome
     """
+
     # Stop Marqo
     print("Attempting to stop marqo.")
-    output_1 = subprocess.run(["docker", "stop", "marqo"], check=True, capture_output=True)
+    subprocess.run(["docker", "stop", "marqo"], check=True, capture_output=True)
     print("Marqo stopped.")
 
     # Rerun the appropriate start script
@@ -73,12 +77,16 @@ def rerun_marqo_with_env_vars(env_vars: str = ""):
         start_script_name = "start_cuda_dind_marqo_os.sh"
     full_script_path = f"{os.environ['MARQO_API_TESTS_ROOT']}/scripts/{start_script_name}"
 
-    run_process = subprocess.Popen([
-        "bash",                             # command: run
-        full_script_path,                   # script to run
-        os.environ['MARQO_IMAGE_NAME'],     # arg $1 in script
-        env_vars                            # arg $2 in script
-        ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+    run_process = subprocess.Popen(
+        [
+            "bash",                             # command: run
+            full_script_path,                   # script to run
+            os.environ['MARQO_IMAGE_NAME'],     # arg $1 in script
+        ] + env_vars,                           # args $2 onwards
+        stdout=subprocess.PIPE, 
+        stderr=subprocess.STDOUT, 
+        universal_newlines=True
+    )
     
     # Read and print the output line by line (in real time)
     for line in run_process.stdout:
@@ -86,4 +94,4 @@ def rerun_marqo_with_env_vars(env_vars: str = ""):
     
     # Wait for the process to complete
     run_process.wait()
-    return f"{output_1}\n{run_process.stdout}"
+    return True
