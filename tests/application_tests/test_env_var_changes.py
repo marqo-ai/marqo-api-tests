@@ -25,6 +25,12 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         except MarqoApiError as s:
             pass
 
+    def tearDown(self) -> None:
+        # Ensures that marqo goes back to default state after these tests
+        utilities.rerun_marqo_with_default_config(
+            calling_class=self.__class__.__name__
+        )
+    
     def test_max_replicas(self):
         # Default max is 1
         # Rerun marqo with new replica count
@@ -51,11 +57,6 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
     def test_preload_models(self):
         # Default models are ["hf/all_datasets_v4_MiniLM-L6", "ViT-L/14"]
-        # check preloaded models (should be default)
-        default_models = ["hf/all_datasets_v4_MiniLM-L6", "ViT-L/14"]
-        res = self.client.get_loaded_models()
-        assert set([item["model_name"] for item in res["models"]]) == set(default_models)
-
         # Rerun marqo with new custom model
         open_clip_model_object = {
             "model": "open-clip-1",
@@ -81,7 +82,6 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
     def test_multiple_env_vars(self):
         """
-
             Ensures that rerun_marqo_with_env_vars can work with several different env vars
             at the same time
 
