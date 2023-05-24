@@ -30,6 +30,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         utilities.rerun_marqo_with_default_config(
             calling_class=self.__class__.__name__
         )
+        print("Marqo has been rerun with default env vars!")
     
     def test_max_replicas(self):
         # Default max is 1
