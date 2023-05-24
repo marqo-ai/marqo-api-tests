@@ -46,7 +46,7 @@ def classwide_decorate(decorator, allowed_configurations):
     return decorate
 
 
-def rerun_marqo_with_env_vars(env_vars: list = []):
+def rerun_marqo_with_env_vars(env_vars: list = [], calling_class: str = ""):
     """
         Given a list of env vars / flags, stop and rerun Marqo using the start script appropriate
         for the current test config
@@ -56,6 +56,9 @@ def rerun_marqo_with_env_vars(env_vars: list = []):
         2. Strings (individual items in env_vars list) do not contain ' (use " instead)
         -> single quotes cause some parsing issues and will affect the test outcome
     """
+
+    if calling_class not in ["TestEnvVarChanges"]:
+        raise RuntimeError("Rerun Marqo function should only be called by `TestEnvVarChanges` to ensure other API tests are not affected.")
 
     # Stop Marqo
     print("Attempting to stop marqo.")
@@ -95,3 +98,9 @@ def rerun_marqo_with_env_vars(env_vars: list = []):
     # Wait for the process to complete
     run_process.wait()
     return True
+
+
+def rerun_marqo_with_default_config(calling_class: str = ""):
+    # Do not send any env vars
+    # This should act like running the start script at the beginning
+    rerun_marqo_with_env_vars(env_vars=[], calling_class=calling_class)
