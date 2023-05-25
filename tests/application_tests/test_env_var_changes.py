@@ -24,14 +24,16 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
             self.client.delete_index(self.index_name_1)
         except MarqoApiError as s:
             pass
-
-    def tearDown(self) -> None:
+    
+    @classmethod
+    def tearDownClass(cls) -> None:
+        super().tearDownClass()
         # Ensures that marqo goes back to default state after these tests
         utilities.rerun_marqo_with_default_config(
             calling_class=self.__class__.__name__
         )
         print("Marqo has been rerun with default env vars!")
-    
+
     def test_max_replicas(self):
         # Default max is 1
         # Rerun marqo with new replica count
