@@ -30,7 +30,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         super().tearDownClass()
         # Ensures that marqo goes back to default state after these tests
         utilities.rerun_marqo_with_default_config(
-            calling_class=self.__class__.__name__
+            calling_class=cls.__class__.__name__
         )
         print("Marqo has been rerun with default env vars!")
 
