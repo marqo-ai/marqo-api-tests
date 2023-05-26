@@ -58,7 +58,7 @@ def rerun_marqo_with_env_vars(env_vars: list = [], calling_class: str = ""):
     """
 
     if calling_class not in ["TestEnvVarChanges"]:
-        raise RuntimeError("Rerun Marqo function should only be called by `TestEnvVarChanges` to ensure other API tests are not affected.")
+        raise RuntimeError(f"Rerun Marqo function should only be called by `TestEnvVarChanges` to ensure other API tests are not affected. Given calling class is {calling_class}")
 
     # Stop Marqo
     print("Attempting to stop marqo.")
