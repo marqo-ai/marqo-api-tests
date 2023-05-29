@@ -12,11 +12,10 @@ until [[ $(curl -v --silent --insecure $LOCAL_OPENSEARCH_URL 2>&1 | grep Unautho
     sleep 0.1;
 done;
 
-
-docker rm -f marqo
-
 MARQO_DOCKER_IMAGE="$1"
 shift
+
+docker rm -f marqo
 
 # Explanation:
 # -d detaches docker from process (so subprocess does not wait for it)
