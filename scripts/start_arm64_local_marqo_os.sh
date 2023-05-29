@@ -8,9 +8,19 @@ export LOCAL_OPENSEARCH_URL="https://localhost:9200"
 docker rm -f marqo-os &&
     docker run --name marqo-os -p 9200:9200 -p 9600:9600 -e "discovery.type=single-node" marqoai/marqo-os:0.0.3-arm &
 # wait for marqo-os to start
+# Start the timer
+start=$(date +%s.%N)
 until [[ $(curl -v --silent --insecure $LOCAL_OPENSEARCH_URL 2>&1 | tee /dev/tty | grep Unauthorized) ]]; do
     sleep 0.1;
 done;
+# End the timer
+end=$(date +%s.%N)
+
+# Calculate the elapsed time
+elapsed=$(echo "$end - $start" | bc)
+
+# Print the elapsed time
+echo "Elapsed time for marqo-os to start: $elapsed seconds"
 
 MARQO_DOCKER_IMAGE="$1"
 shift
