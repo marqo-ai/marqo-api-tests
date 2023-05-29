@@ -10,7 +10,7 @@ docker run -id --name marqo-os -p 9200:9200 -p 9600:9600 -e "discovery.type=sing
 
 # wait for marqo-os to start
 
-until [[ $(curl -v --silent --insecure $LOCAL_OPENSEARCH_URL 2>&1 | tee /dev/tty | grep Unauthorized) ]]; do
+until [[ $(curl -v --silent --insecure $LOCAL_OPENSEARCH_URL 2>&1 | grep Unauthorized) ]]; do
     sleep 0.1;
 done;
 
