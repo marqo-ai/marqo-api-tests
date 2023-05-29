@@ -3,6 +3,9 @@
 # $1 : marqo_image_name - name of the image you want to test
 # $@ : env_vars - strings representing all args to pass docker call
 
+export MARQO_API_TESTS_ROOT=$(pwd)
+. "${MARQO_API_TESTS_ROOT}/conf"
+
 MARQO_DOCKER_IMAGE="$1"
 shift
 
