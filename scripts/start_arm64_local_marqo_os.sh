@@ -2,7 +2,7 @@
 # args:
 # $1 : marqo_image_name - name of the image you want to test
 # $@ : env_vars - strings representing all args to pass docker call
-set -x
+
 export LOCAL_OPENSEARCH_URL="https://localhost:9200"
 
 docker rm -f marqo-os
@@ -41,4 +41,3 @@ done;
 
 # Kill the `docker logs` command (so subprocess does not wait for it)
 kill $LOGS_PID
-ps aux
