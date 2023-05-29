@@ -6,7 +6,7 @@ set -x
 export LOCAL_OPENSEARCH_URL="https://localhost:9200"
 
 docker rm -f marqo-os
-docker run -d --name marqo-os -p 9200:9200 -p 9600:9600 -e "discovery.type=single-node" marqoai/marqo-os:0.0.3-arm &
+docker run -id --name marqo-os -p 9200:9200 -p 9600:9600 -e "discovery.type=single-node" marqoai/marqo-os:0.0.3-arm &
 
 # wait for marqo-os to start
 
