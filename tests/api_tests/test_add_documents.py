@@ -241,13 +241,10 @@ class TestAddDocuments(MarqoTestCase):
         for args, kwargs in mock__post.call_args_list:
             assert "device=cuda37" in kwargs["path"]
 
-    def test_add_documents_default_device(self):
-        """do we use the default device defined in the client, if it isn't
-        overridden?
+    def test_add_documents_no_device(self):
+        """No device should be in path if no device is set
         """
         temp_client = copy.deepcopy(self.client)
-        temp_client.config.search_device = enums.Devices.cpu
-        temp_client.config.indexing_device = "cuda:28"
 
         mock__post = mock.MagicMock()
         @mock.patch("marqo._httprequests.HttpRequests.post", mock__post)
@@ -259,7 +256,7 @@ class TestAddDocuments(MarqoTestCase):
         assert run()
 
         args, kwargs = mock__post.call_args
-        assert "device=cuda28" in kwargs["path"]
+        assert "device" not in kwargs["path"]
 
     def test_add_documents_set_refresh(self):
         temp_client = copy.deepcopy(self.client)
