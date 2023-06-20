@@ -249,7 +249,7 @@ class TestAddDocuments(MarqoTestCase):
             }
         }
 
-        self.client.create_index(index_name, settings_dict=index_settings)
+        self.client.create_index(self.index_name_1, settings_dict=index_settings)
 
         self.client.index(self.index_name_1).add_documents([{"_id": "explicit_cpu", "title": "blah"}], device="cpu")
         self.client.index(self.index_name_1).add_documents([{"_id": "explicit_cuda", "title": "blah"}], device="cuda")
