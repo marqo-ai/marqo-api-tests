@@ -12,7 +12,6 @@ from unittest import mock
 @pytest.mark.cuda_test
 class TestAddDocuments(MarqoTestCase):
 
-    # NOTE: test_add_documents_default_device has been removed from these cuda tests
     def setUp(self) -> None:
         self.client = Client(**self.client_settings)
         self.index_name_1 = "my-test-index-1"
@@ -160,8 +159,6 @@ class TestAddDocuments(MarqoTestCase):
 
     def test_add_documents_with_device(self):
         temp_client = copy.deepcopy(self.client)
-        temp_client.config.search_device = enums.Devices.cpu
-        temp_client.config.indexing_device = enums.Devices.cpu
 
         mock__post = mock.MagicMock()
         @mock.patch("marqo._httprequests.HttpRequests.post", mock__post)
@@ -177,8 +174,6 @@ class TestAddDocuments(MarqoTestCase):
 
     def test_add_documents_with_device_batching(self):
         temp_client = copy.deepcopy(self.client)
-        temp_client.config.search_device = enums.Devices.cpu
-        temp_client.config.indexing_device = enums.Devices.cpu
 
         mock__post = mock.MagicMock()
         @mock.patch("marqo._httprequests.HttpRequests.post", mock__post)
@@ -194,8 +189,6 @@ class TestAddDocuments(MarqoTestCase):
 
     def test_add_documents_set_refresh(self):
         temp_client = copy.deepcopy(self.client)
-        temp_client.config.search_device = enums.Devices.cpu
-        temp_client.config.indexing_device = enums.Devices.cpu
 
         mock__post = mock.MagicMock()
         @mock.patch("marqo._httprequests.HttpRequests.post", mock__post)

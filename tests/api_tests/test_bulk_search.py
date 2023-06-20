@@ -148,11 +148,9 @@ class TestBulkSearch(MarqoTestCase):
         assert self.client.index(self.index_name_1).search(
             '"captain"')["hits"][0]["_id"] == "123456"
 
-    def test_search_with_device(self):
-        """use default as defined in config unless overridden"""
+    def test_search_with_no_device(self):
+        """device should not be in path"""
         temp_client = copy.deepcopy(self.client)
-        temp_client.config.search_device = "cpu:4"
-        temp_client.config.indexing_device = enums.Devices.cpu
 
         mock__post = mock.MagicMock()
         @mock.patch("marqo._httprequests.HttpRequests.post", mock__post)
@@ -168,10 +166,10 @@ class TestBulkSearch(MarqoTestCase):
             return True
         assert run()
 
-        # did we use the defined default device?
+        # make sure we did not send any device
         args, _ = mock__post.call_args_list[0]
-        assert "device=cpu4" in args[0]
-        # did we overrride the default device?
+        assert "device" not in args[0]
+        # make sure we do send device explicitly
         args, _ = mock__post.call_args_list[1]
         assert "device=cuda2" in args[0]
 
