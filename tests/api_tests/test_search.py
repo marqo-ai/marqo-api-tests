@@ -9,7 +9,7 @@ import pprint
 from tests.marqo_test import MarqoTestCase
 from tests.utilities import disallow_environments
 
-class TestAddDocuments(MarqoTestCase):
+class TestSearch(MarqoTestCase):
 
     def setUp(self) -> None:
         self.client = Client(**self.client_settings)
@@ -119,10 +119,10 @@ class TestAddDocuments(MarqoTestCase):
             temp_client.index(self.index_name_1).search(q="my search term", device="cuda:2")
             return True
         assert run()
-        # did we use the defined default device?
+        # no device in path when device is not set
         args, kwargs0 = mock__post.call_args_list[0]
         assert "device" not in kwargs0["path"]
-        # did we overrride the default device?
+        # device in path if it is set
         args, kwargs1 = mock__post.call_args_list[1]
         assert "device=cuda2" in kwargs1["path"]
 

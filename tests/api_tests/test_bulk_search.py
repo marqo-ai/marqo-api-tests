@@ -169,7 +169,7 @@ class TestBulkSearch(MarqoTestCase):
         # make sure we did not send any device
         args, _ = mock__post.call_args_list[0]
         assert "device" not in args[0]
-        # make sure we do send device explicitly
+        # make sure we do send device (if explicitly set)
         args, _ = mock__post.call_args_list[1]
         assert "device=cuda2" in args[0]
 
