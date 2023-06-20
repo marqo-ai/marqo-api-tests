@@ -235,8 +235,8 @@ class TestAddDocuments(MarqoTestCase):
 
         args, kwargs = mock__post.call_args
         assert "processes=12" not in kwargs["path"]
-    
-     def test_add_documents_defaults_to_cuda(self):
+
+    def test_add_documents_defaults_to_cuda(self):
         """
             Ensures that when cuda is available, when we send an add docs request with no device,
             cuda is selected as default and used for this.
