@@ -252,3 +252,32 @@ class TestSearch(MarqoTestCase):
 
         self.assertEqual(custom_score, original_score)
         
+@pytest.mark.cpu_only_test
+class TestSearchCPUOnly(MarqoTestCase):
+
+    def setUp(self) -> None:
+        self.client = Client(**self.client_settings)
+        self.index_name_1 = "my-test-index-1"
+        try:
+            self.client.delete_index(self.index_name_1)
+        except MarqoApiError as s:
+            pass
+
+    def tearDown(self) -> None:
+        try:
+            self.client.delete_index(self.index_name_1)
+        except MarqoApiError as s:
+            pass
+
+    def test_search_device_not_available(self):
+        """
+            Ensures that when cuda is NOT available, an error is thrown when trying to use cuda
+        """
+        self.client.create_index(self.index_name_1, settings_dict=index_settings)
+
+        # Add docs with CUDA must fail if CUDA is not available
+        try:
+            self.client.index(self.index_name_1).search(q="blah", device="cuda")
+            raise AssertionError
+        except MarqoWebError:
+            pass

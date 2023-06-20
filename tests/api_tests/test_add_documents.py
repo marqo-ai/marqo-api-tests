@@ -304,7 +304,7 @@ class TestAddDocuments(MarqoTestCase):
         assert "processes=12" not in kwargs["path"]
 
 
-@pytest.mark.non_cuda_test
+@pytest.mark.cpu_only_test
 class TestAddDocumentsCPUOnly(MarqoTestCase):
 
     def setUp(self) -> None:
@@ -320,6 +320,11 @@ class TestAddDocumentsCPUOnly(MarqoTestCase):
             self.client.delete_index(self.index_name_1)
         except MarqoApiError as s:
             pass
+
+    @classmethod
+    def tearDownClass(self):
+        pass
+        # eject models
 
     def test_add_documents_defaults_to_cpu(self):
         """
@@ -338,13 +343,6 @@ class TestAddDocumentsCPUOnly(MarqoTestCase):
 
         self.client.index(self.index_name_1).add_documents([{"_id": "explicit_cpu", "title": "blah"}], device="cpu")
         self.client.index(self.index_name_1).add_documents([{"_id": "default_device", "title": "blah"}])
-
-        # Add docs with CUDA must fail if CUDA is not available
-        try:
-            self.client.index(self.index_name_1).add_documents([{"_id": "explicit_cuda", "title": "blah"}], device="cuda")
-            raise AssertionError
-        except MarqoWebError:
-            pass
         
         cpu_vec = self.client.index(self.index_name_1).get_document(document_id="explicit_cpu", expose_facets=True)['_tensor_facets'][0]["_embedding"]
         default_vec = self.client.index(self.index_name_1).get_document(document_id="default_device", expose_facets=True)['_tensor_facets'][0]["_embedding"]
@@ -352,3 +350,16 @@ class TestAddDocumentsCPUOnly(MarqoTestCase):
         # Confirm that CPU was used by default.
         # CPU-computed vectors are slightly different from CUDA-computed vectors
         assert np.allclose(np.array(cpu_vec), np.array(default_vec), atol=1e-5)
+
+    def test_add_documents_device_not_available(self):
+        """
+            Ensures that when cuda is NOT available, an error is thrown when trying to use cuda
+        """
+        self.client.create_index(self.index_name_1, settings_dict=index_settings)
+
+        # Add docs with CUDA must fail if CUDA is not available
+        try:
+            self.client.index(self.index_name_1).add_documents([{"_id": "explicit_cuda", "title": "blah"}], device="cuda")
+            raise AssertionError
+        except MarqoWebError:
+            pass

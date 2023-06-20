@@ -330,3 +330,36 @@ class TestBulkSearch(MarqoTestCase):
             # the poodle doc should be lower ranked than the irrelevant doc
             for hit_position, _ in enumerate(res['hits']):
                 assert res['hits'][hit_position]['_id'] == expected_ordering[hit_position]
+
+@pytest.mark.cpu_only_test
+class TestBulkSearchCPUOnly(MarqoTestCase):
+
+    def setUp(self) -> None:
+        self.client = Client(**self.client_settings)
+        self.index_name_1 = "my-test-index-1"
+        try:
+            self.client.delete_index(self.index_name_1)
+        except MarqoApiError as s:
+            pass
+
+    def tearDown(self) -> None:
+        try:
+            self.client.delete_index(self.index_name_1)
+        except MarqoApiError as s:
+            pass
+
+    def test_bulk_search_device_not_available(self):
+        """
+            Ensures that when cuda is NOT available, an error is thrown when trying to use cuda
+        """
+        self.client.create_index(self.index_name_1, settings_dict=index_settings)
+
+        # Add docs with CUDA must fail if CUDA is not available
+        try:
+            self.client.bulk_search([{
+                "index": self.index_name_1,
+                "q": "title about some doc"
+            }], device="cuda")
+            raise AssertionError
+        except MarqoWebError:
+            pass
