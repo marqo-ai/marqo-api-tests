@@ -349,7 +349,6 @@ class TestAddDocumentsCPUOnly(MarqoTestCase):
         except MarqoWebError:
             pass
         
-        
         default_vec = self.client.index(self.index_name_1).get_document(document_id="default_device", expose_facets=True)['_tensor_facets'][0]["_embedding"]
 
         # Confirm that CPU was used by default.
