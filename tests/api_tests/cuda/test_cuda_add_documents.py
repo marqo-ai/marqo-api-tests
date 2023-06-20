@@ -259,11 +259,8 @@ class TestAddDocuments(MarqoTestCase):
         cuda_vec = self.client.index(self.index_name_1).get_document(document_id="explicit_cuda", expose_facets=True)['_tensor_facets'][0]["_embedding"]
         default_vec = self.client.index(self.index_name_1).get_document(document_id="default_device", expose_facets=True)['_tensor_facets'][0]["_embedding"]
 
-        print(f"cpu_vec: {cpu_vec[:5]}")
-        print(f"cuda_vec: {cuda_vec[:5]}")
-        print(f"default_vec: {default_vec[:5]}")
-
         # Confirm that CUDA was used by default.
+        # CUDA-computed vectors are slightly different from CPU-computed vectors
         assert not np.allclose(np.array(cpu_vec), np.array(default_vec), atol=1e-5)
         assert np.allclose(np.array(cuda_vec), np.array(default_vec), atol=1e-5)
 

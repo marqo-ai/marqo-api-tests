@@ -6,7 +6,7 @@ import unittest
 from tests.marqo_test import MarqoTestCase
 from marqo import enums
 from unittest import mock
-
+import numpy as np
 
 class TestAddDocuments(MarqoTestCase):
 
@@ -301,3 +301,49 @@ class TestAddDocuments(MarqoTestCase):
 
         args, kwargs = mock__post.call_args
         assert "processes=12" not in kwargs["path"]
+
+
+@pytest.mark.non_cuda_test
+class TestAddDocumentsCPUOnly(MarqoTestCase):
+
+    def setUp(self) -> None:
+        self.client = Client(**self.client_settings)
+        self.index_name_1 = "my-test-index-1"
+        try:
+            self.client.delete_index(self.index_name_1)
+        except MarqoApiError as s:
+            pass
+
+    def tearDown(self) -> None:
+        try:
+            self.client.delete_index(self.index_name_1)
+        except MarqoApiError as s:
+            pass
+
+    def test_add_documents_defaults_to_cpu(self):
+        """
+            Ensures that when cuda is NOT available, when we send an add docs request with no device,
+            cuda is selected as default and used for this.
+        """
+        index_settings = {
+            "index_defaults": {
+                # model was chosen due to bigger difference between cuda and cpu vectors
+                "model": "open_clip/ViT-B-32-quickgelu/laion400m_e31",
+                "normalize_embeddings": True
+            }
+        }
+
+        self.client.create_index(self.index_name_1, settings_dict=index_settings)
+
+        self.client.index(self.index_name_1).add_documents([{"_id": "explicit_cpu", "title": "blah"}], device="cpu")
+        self.client.index(self.index_name_1).add_documents([{"_id": "explicit_cuda", "title": "blah"}], device="cuda")
+        self.client.index(self.index_name_1).add_documents([{"_id": "default_device", "title": "blah"}])
+
+        cpu_vec = self.client.index(self.index_name_1).get_document(document_id="explicit_cpu", expose_facets=True)['_tensor_facets'][0]["_embedding"]
+        cuda_vec = self.client.index(self.index_name_1).get_document(document_id="explicit_cuda", expose_facets=True)['_tensor_facets'][0]["_embedding"]
+        default_vec = self.client.index(self.index_name_1).get_document(document_id="default_device", expose_facets=True)['_tensor_facets'][0]["_embedding"]
+
+        # Confirm that CUDA was used by default.
+        # CUDA-computed vectors are slightly different from CPU-computed vectors
+        assert not np.allclose(np.array(cpu_vec), np.array(default_vec), atol=1e-5)
+        assert np.allclose(np.array(cuda_vec), np.array(default_vec), atol=1e-5)
