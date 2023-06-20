@@ -337,18 +337,16 @@ class TestAddDocumentsCPUOnly(MarqoTestCase):
         self.client.create_index(self.index_name_1, settings_dict=index_settings)
 
         self.client.index(self.index_name_1).add_documents([{"_id": "explicit_cpu", "title": "blah"}], device="cpu")
-        self.client.index(self.index_name_1).add_documents([{"_id": "explicit_cuda", "title": "blah"}], device="cuda")
         self.client.index(self.index_name_1).add_documents([{"_id": "default_device", "title": "blah"}])
 
-        cpu_vec = self.client.index(self.index_name_1).get_document(document_id="explicit_cpu", expose_facets=True)['_tensor_facets'][0]["_embedding"]
-        
         # Add docs with CUDA must fail if CUDA is not available
         try:
-            cuda_vec = self.client.index(self.index_name_1).get_document(document_id="explicit_cuda", expose_facets=True)['_tensor_facets'][0]["_embedding"]
+            self.client.index(self.index_name_1).add_documents([{"_id": "explicit_cuda", "title": "blah"}], device="cuda")
             raise AssertionError
         except MarqoWebError:
             pass
         
+        cpu_vec = self.client.index(self.index_name_1).get_document(document_id="explicit_cpu", expose_facets=True)['_tensor_facets'][0]["_embedding"]
         default_vec = self.client.index(self.index_name_1).get_document(document_id="default_device", expose_facets=True)['_tensor_facets'][0]["_embedding"]
 
         # Confirm that CPU was used by default.
