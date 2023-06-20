@@ -7,6 +7,7 @@ from tests.marqo_test import MarqoTestCase
 from marqo import enums
 from unittest import mock
 import numpy as np
+import pytest
 
 class TestAddDocuments(MarqoTestCase):
 
