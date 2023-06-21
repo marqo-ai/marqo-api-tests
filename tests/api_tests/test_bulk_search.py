@@ -3,7 +3,7 @@ import marqo
 from marqo import enums
 from unittest import mock
 from marqo.client import Client
-from marqo.errors import MarqoApiError
+from marqo.errors import MarqoApiError, MarqoWebError
 import requests
 import random
 import math
