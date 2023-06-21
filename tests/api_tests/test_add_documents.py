@@ -321,11 +321,6 @@ class TestAddDocumentsCPUOnly(MarqoTestCase):
         except MarqoApiError as s:
             pass
 
-    @classmethod
-    def tearDownClass(self):
-        pass
-        # eject models
-
     def test_add_documents_defaults_to_cpu(self):
         """
             Ensures that when cuda is NOT available, when we send an add docs request with no device,
