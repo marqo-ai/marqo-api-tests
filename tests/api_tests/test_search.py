@@ -274,7 +274,7 @@ class TestSearchCPUOnly(MarqoTestCase):
         """
             Ensures that when cuda is NOT available, an error is thrown when trying to use cuda
         """
-        self.client.create_index(self.index_name_1, settings_dict=index_settings)
+        self.client.create_index(self.index_name_1)
 
         # Add docs with CUDA must fail if CUDA is not available
         try:
