@@ -8,6 +8,7 @@ import unittest
 import pprint
 from tests.marqo_test import MarqoTestCase
 from tests.utilities import disallow_environments
+import pytest
 
 class TestSearch(MarqoTestCase):
 

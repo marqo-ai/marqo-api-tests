@@ -8,7 +8,7 @@ import requests
 import random
 import math
 from tests.marqo_test import MarqoTestCase
-
+import pytest
 
 class TestBulkSearch(MarqoTestCase):
 
