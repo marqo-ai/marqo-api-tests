@@ -241,6 +241,10 @@ class TestAddDocuments(MarqoTestCase):
             Ensures that when cuda is available, when we send an add docs request with no device,
             cuda is selected as default and used for this.
         """
+
+        # Remove all the cached models to make sure the test is accurate
+        self.removeAllModels()
+
         index_settings = {
             "index_defaults": {
                 # model was chosen due to bigger difference between cuda and cpu vectors
@@ -251,17 +255,9 @@ class TestAddDocuments(MarqoTestCase):
 
         self.client.create_index(self.index_name_1, settings_dict=index_settings)
 
-        self.client.index(self.index_name_1).add_documents([{"_id": "explicit_cpu", "title": "blah"}], device="cpu")
-        self.client.index(self.index_name_1).add_documents([{"_id": "explicit_cuda", "title": "blah"}], device="cuda")
         self.client.index(self.index_name_1).add_documents([{"_id": "default_device", "title": "blah"}])
 
-        cpu_vec = self.client.index(self.index_name_1).get_document(document_id="explicit_cpu", expose_facets=True)['_tensor_facets'][0]["_embedding"]
-        cuda_vec = self.client.index(self.index_name_1).get_document(document_id="explicit_cuda", expose_facets=True)['_tensor_facets'][0]["_embedding"]
-        default_vec = self.client.index(self.index_name_1).get_document(document_id="default_device", expose_facets=True)['_tensor_facets'][0]["_embedding"]
-
-        # Confirm that CUDA was used by default.
-        # CUDA-computed vectors are slightly different from CPU-computed vectors
-        assert not np.allclose(np.array(cpu_vec), np.array(default_vec), atol=1e-5)
-        assert np.allclose(np.array(cuda_vec), np.array(default_vec), atol=1e-5)
-
-        
+        loaded_model = self.client.get_loaded_models().get("models")
+        assert len(loaded_model) == 1
+        assert loaded_model[0]["model_name"] == "open_clip/ViT-B-32-quickgelu/laion400m_e31"
+        assert loaded_model[0]["device"] == "cuda"
