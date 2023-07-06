@@ -39,10 +39,11 @@ class TestAsync (marqo_test.MarqoTestCase):
         assert self.client.index(self.index_name_1).get_stats()['numberOfDocuments'] == 1
 
         def significant_ingestion():
-            docs = [{"Title": " ".join(random.choices(population=vocab, k=10)),
+            res =docs = [{"Title": " ".join(random.choices(population=vocab, k=10)),
                           "Description": " ".join(random.choices(population=vocab, k=25)),
                           } for _ in range(num_docs)]
             self.client.index(self.index_name_1).add_documents(documents=docs, auto_refresh=False)
+            print(res)
 
         cache_update_thread = threading.Thread(
             target=significant_ingestion)
