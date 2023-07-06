@@ -39,11 +39,10 @@ class TestAsync (marqo_test.MarqoTestCase):
         assert self.client.index(self.index_name_1).get_stats()['numberOfDocuments'] == 1
 
         def significant_ingestion():
-            res =docs = [{"Title": " ".join(random.choices(population=vocab, k=10)),
+            docs = [{"Title": " ".join(random.choices(population=vocab, k=10)),
                           "Description": " ".join(random.choices(population=vocab, k=25)),
                           } for _ in range(num_docs)]
             self.client.index(self.index_name_1).add_documents(documents=docs, auto_refresh=False)
-            print(res)
 
         cache_update_thread = threading.Thread(
             target=significant_ingestion)
@@ -51,18 +50,15 @@ class TestAsync (marqo_test.MarqoTestCase):
         time.sleep(3)
         refresh_res = self.client.index(self.index_name_1).refresh()
         time.sleep(0.5)
-        cache_update_thread.join()
-        print(self.client.index(self.index_name_1).get_stats()['numberOfDocuments'])
+        assert cache_update_thread.is_alive()
+        assert self.client.index(self.index_name_1).get_stats()['numberOfDocuments'] > 1
+        assert cache_update_thread.is_alive()
+        assert self.client.index(self.index_name_1).get_stats()['numberOfDocuments'] < 251
+
+        while cache_update_thread.is_alive():
+            time.sleep(1)
+
+        self.client.index(self.index_name_1).refresh()
         assert self.client.index(self.index_name_1).get_stats()['numberOfDocuments'] == 501
-        # assert cache_update_thread.is_alive()
-        # assert self.client.index(self.index_name_1).get_stats()['numberOfDocuments'] > 1
-        # assert cache_update_thread.is_alive()
-        # assert self.client.index(self.index_name_1).get_stats()['numberOfDocuments'] < 251
-        #
-        # while cache_update_thread.is_alive():
-        #     time.sleep(1)
-        #
-        # self.client.index(self.index_name_1).refresh()
-        # assert self.client.index(self.index_name_1).get_stats()['numberOfDocuments'] == 501
 
 
