@@ -43,7 +43,6 @@ class TestAsync (marqo_test.MarqoTestCase):
                           "Description": " ".join(random.choices(population=vocab, k=25)),
                           } for _ in range(num_docs)]
             self.client.index(self.index_name_1).add_documents(documents=docs, auto_refresh=True)
-            return True
 
         cache_update_thread = threading.Thread(
             target=significant_ingestion)
