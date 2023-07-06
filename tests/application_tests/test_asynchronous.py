@@ -44,7 +44,6 @@ class TestAsync (marqo_test.MarqoTestCase):
                           } for _ in range(num_docs)]
             res = self.client.index(self.index_name_1).add_documents(
                 auto_refresh=True, documents=docs)
-            print(res)
 
         cache_update_thread = threading.Thread(
             target=significant_ingestion)
