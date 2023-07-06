@@ -51,6 +51,7 @@ class TestAsync (marqo_test.MarqoTestCase):
         refresh_res = self.client.index(self.index_name_1).refresh()
         time.sleep(0.5)
         cache_update_thread.join()
+        print(self.client.index(self.index_name_1).get_stats()['numberOfDocuments'])
         # assert cache_update_thread.is_alive()
         # assert self.client.index(self.index_name_1).get_stats()['numberOfDocuments'] > 1
         # assert cache_update_thread.is_alive()
