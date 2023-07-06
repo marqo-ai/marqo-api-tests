@@ -48,7 +48,7 @@ class TestAsync (marqo_test.MarqoTestCase):
         cache_update_thread = threading.Thread(
             target=significant_ingestion)
         cache_update_thread.start()
-        time.sleep(6)
+        time.sleep(3)
         refresh_res = self.client.index(self.index_name_1).refresh()
         time.sleep(0.5)
         assert cache_update_thread.is_alive()
