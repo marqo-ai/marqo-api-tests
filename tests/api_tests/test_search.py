@@ -184,7 +184,7 @@ class TestSearch(MarqoTestCase):
                 "int_for_filtering": 1,
             }
         ]
-        res = self.client.index(self.index_name_1).add_documents([docs],auto_refresh=True)
+        res = self.client.index(self.index_name_1).add_documents(docs,auto_refresh=True)
 
         test_cases = (
             {   # filter string only (str)
