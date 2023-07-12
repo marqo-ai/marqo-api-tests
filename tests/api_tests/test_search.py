@@ -235,7 +235,7 @@ class TestSearch(MarqoTestCase):
             search_res = self.client.index(self.index_name_1).search(
                 case["query"],
                 filter_string=case.get("filter_string", ""),
-                searchable_attributes=[]
+                searchable_attributes=case.get("searchable_attributes", None)
             )
             assert len(search_res["hits"]) == len(case["expected"])
             assert [hit["_id"] for hit in search_res["hits"]] == case["expected"]
