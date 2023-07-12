@@ -8,6 +8,8 @@ from marqo import enums
 from unittest import mock
 import numpy as np
 import pytest
+import requests
+import json
 
 class TestAddDocuments(MarqoTestCase):
 
@@ -270,6 +272,60 @@ class TestAddDocuments(MarqoTestCase):
 
         args, kwargs = mock__post.call_args
         assert "processes=12" not in kwargs["path"]
+
+    def test_add_documents_depreciated_query_parameters_and_new_api(self):
+        """This test is to ensure that the new API does not accept old query parameters"""
+        self.client.create_index(self.index_name_1)
+        url = f'http://localhost:8882/indexes/{self.index_name_1}/documents?use_existing_tensors=true' # depreciated query parameter
+        headers = {'Content-type': 'application/json'}
+
+        data = {
+            "documents": [
+                {
+                    "Title": "The Travels of Marco Polo",
+                    "Description": "A 13th-century travelogue describing the travels of Polo",
+                    "Genre": "History"
+                },
+                {
+                    "Title": "Extravehicular Mobility Unit (EMU)",
+                    "Description": "The EMU is a spacesuit that provides environmental protection",
+                    "_id": "article_591",
+                    "Genre": "Science"
+                }
+            ],
+            "nonTensorFields": ["Title", "Genre"]
+        }
+
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        assert response.status_code.startswith("4")
+        self.assertIn("Marqo is not accepting any of the following parameters in the query string", response.json()["message"])
+
+    def test_add_documents_depreciated_query_parameters_and_new_api(self):
+        """This test is to ensure that the new API does not accept old query parameters"""
+        self.client.create_index(self.index_name_1)
+        url = f'http://localhost:8882/indexes/{self.index_name_1}/documents'
+        headers = {'Content-type': 'application/json'}
+
+        data = {
+            "documents": [
+                {
+                    "Title": "The Travels of Marco Polo",
+                    "Description": "A 13th-century travelogue describing the travels of Polo",
+                    "Genre": "History"
+                },
+                {
+                    "Title": "Extravehicular Mobility Unit (EMU)",
+                    "Description": "The EMU is a spacesuit that provides environmental protection",
+                    "_id": "article_591",
+                    "Genre": "Science"
+                }
+            ],
+            "non_TensorFields": ["Title", "Genre"]  # not permitted field
+        }
+
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        assert response.status_code.startswith("4")
+        self.assertIn("extra fields not permitted", response.json()["msg"])
 
 
 @pytest.mark.cpu_only_test
