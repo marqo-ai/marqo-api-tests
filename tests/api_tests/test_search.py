@@ -130,30 +130,6 @@ class TestSearch(MarqoTestCase):
     @disallow_environments(["S2SEARCH_OS"])
     def test_filter_string_and_searchable_attributes(self):
         self.client.create_index(index_name=self.index_name_1)
-        """
-        d1 = {
-            "doc title": "Very heavy, dense metallic lead.",
-            "abc-123": "some text",
-            "an_int": 2,
-            "_id": "my-cool-doc"
-        }
-        d2 = {
-            "doc title": "The captain bravely lead her followers into battle."
-                         " She directed her soldiers to and fro.",
-            "field X": "this is a solid doc",
-            "field1": "other things",
-            "_id": "123456"
-        }
-        res = self.client.index(self.index_name_1).add_documents([
-            d1, d2
-        ],auto_refresh=True)
-        search_res = self.client.index(self.index_name_1).search(
-            "blah blah",
-            filter_string="(an_int:[0 TO 30] and an_int:2) AND abc-123:(some text)")
-        assert len(search_res["hits"]) == 1
-        pprint.pprint(search_res)
-        assert search_res["hits"][0]["_id"] == "my-cool-doc"
-        """
         docs = [
             {
                 "_id": "0",                     # content in field_a
@@ -230,16 +206,13 @@ class TestSearch(MarqoTestCase):
         )
 
         for case in test_cases:
-            print(f"beginning case {case}")
             search_res = self.client.index(self.index_name_1).search(
                 case["query"],
                 filter_string=case.get("filter_string", ""),
                 searchable_attributes=case.get("searchable_attributes", None)
             )
-            print(search_res)
             assert len(search_res["hits"]) == len(case["expected"])
             assert set([hit["_id"] for hit in search_res["hits"]]) == set(case["expected"])
-
 
         
     def test_escaped_non_tensor_field(self):
