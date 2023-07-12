@@ -158,13 +158,11 @@ class TestSearch(MarqoTestCase):
             {
                 "_id": "0",                     # content in field_a
                 "field_a": "random content",
-                "field_b": "",
                 "str_for_filtering": "apple",
                 "int_for_filtering": 0,
             },
             {
                 "_id": "1",                     # content in field_b
-                "field_a": "",
                 "field_b": "random content",
                 "str_for_filtering": "banana",
                 "int_for_filtering": 0,
