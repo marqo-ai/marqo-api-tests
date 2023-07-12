@@ -232,6 +232,7 @@ class TestSearch(MarqoTestCase):
         )
 
         for case in test_cases:
+            print(f"beginning case {case}")
             search_res = self.client.index(self.index_name_1).search(
                 case["query"],
                 filter_string=case.get("filter_string", ""),
