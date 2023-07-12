@@ -297,7 +297,7 @@ class TestAddDocuments(MarqoTestCase):
         }
 
         response = requests.post(url, headers=headers, data=json.dumps(data))
-        assert response.status_code.startswith("4")
+        assert str(response.status_code).startswith("4")
         self.assertIn("Marqo is not accepting any of the following parameters in the query string", response.json()["message"])
 
     def test_add_documents_extra_field(self):
@@ -324,7 +324,7 @@ class TestAddDocuments(MarqoTestCase):
         }
 
         response = requests.post(url, headers=headers, data=json.dumps(data))
-        assert response.status_code.startswith("4")
+        assert str(response.status_code).startswith("4")
         self.assertIn("extra fields not permitted", response.json()["msg"])
 
 
