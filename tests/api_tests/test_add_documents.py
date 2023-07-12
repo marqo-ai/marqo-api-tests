@@ -300,7 +300,7 @@ class TestAddDocuments(MarqoTestCase):
         assert response.status_code.startswith("4")
         self.assertIn("Marqo is not accepting any of the following parameters in the query string", response.json()["message"])
 
-    def test_add_documents_depreciated_query_parameters_and_new_api(self):
+    def test_add_documents_extra_field(self):
         """This test is to ensure that the new API does not accept old query parameters"""
         self.client.create_index(self.index_name_1)
         url = f'http://localhost:8882/indexes/{self.index_name_1}/documents'
