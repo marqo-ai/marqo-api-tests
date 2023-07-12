@@ -223,7 +223,7 @@ class TestSearch(MarqoTestCase):
             },
             {   # filter string and searchable attributes (both)
                 "query": "random content",
-                "filter_string": "str_for_filtering:banana and int_for_filtering:0",
+                "filter_string": "str_for_filtering:banana AND int_for_filtering:0",
                 "searchable_attributes": ["field_a"],
                 "expected": []
             }
