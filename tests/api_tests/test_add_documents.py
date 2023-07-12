@@ -298,7 +298,7 @@ class TestAddDocuments(MarqoTestCase):
 
         response = requests.post(url, headers=headers, data=json.dumps(data))
         assert str(response.status_code).startswith("4")
-        self.assertIn("Marqo is not accepting any of the following parameters in the query string", response.json()["message"])
+        self.assertIn("Marqo is not accepting any of the following parameters in the query string", str(response.json()))
 
     def test_add_documents_extra_field(self):
         """This test is to ensure that the new API does not accept old query parameters"""
