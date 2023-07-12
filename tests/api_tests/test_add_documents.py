@@ -273,10 +273,10 @@ class TestAddDocuments(MarqoTestCase):
         args, kwargs = mock__post.call_args
         assert "processes=12" not in kwargs["path"]
 
-    def test_add_documents_depreciated_query_parameters_and_new_api(self):
+    def test_add_documents_deprecated_query_parameters_and_new_api(self):
         """This test is to ensure that the new API does not accept old query parameters"""
         self.client.create_index(self.index_name_1)
-        url = f'http://localhost:8882/indexes/{self.index_name_1}/documents?use_existing_tensors=true' # depreciated query parameter
+        url = f'http://localhost:8882/indexes/{self.index_name_1}/documents?use_existing_tensors=true' # deprecated query parameter
         headers = {'Content-type': 'application/json'}
 
         data = {
