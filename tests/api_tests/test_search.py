@@ -238,6 +238,7 @@ class TestSearch(MarqoTestCase):
                 filter_string=case.get("filter_string", ""),
                 searchable_attributes=case.get("searchable_attributes", None)
             )
+            print(search_res)
             assert len(search_res["hits"]) == len(case["expected"])
             assert [hit["_id"] for hit in search_res["hits"]] == case["expected"]
 
