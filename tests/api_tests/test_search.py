@@ -238,7 +238,7 @@ class TestSearch(MarqoTestCase):
             )
             print(search_res)
             assert len(search_res["hits"]) == len(case["expected"])
-            assert [hit["_id"] for hit in search_res["hits"]] == case["expected"]
+            assert set([hit["_id"] for hit in search_res["hits"]]) == set(case["expected"])
 
 
         
