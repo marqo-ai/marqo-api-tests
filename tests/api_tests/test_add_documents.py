@@ -325,7 +325,7 @@ class TestAddDocuments(MarqoTestCase):
 
         response = requests.post(url, headers=headers, data=json.dumps(data))
         assert str(response.status_code).startswith("4")
-        self.assertIn("extra fields not permitted", response.json()["msg"])
+        self.assertIn("extra fields not permitted", str(response.json()))
 
 
 @pytest.mark.cpu_only_test
