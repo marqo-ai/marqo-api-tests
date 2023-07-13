@@ -337,22 +337,6 @@ class TestAddDocuments(MarqoTestCase):
         assert str(response.status_code).startswith("4")
         self.assertIn("extra fields not permitted", str(response.json()))
 
-
-class TestAddDocumentsImageDownloadHeaders(MarqoTestCase):
-    def setUp(self) -> None:
-        self.client = Client(**self.client_settings)
-        self.index_name_1 = "my-test-index-1"
-        try:
-            self.client.delete_index(self.index_name_1)
-        except MarqoApiError as s:
-            pass
-
-    def tearDown(self) -> None:
-        try:
-            self.client.delete_index(self.index_name_1)
-        except MarqoApiError as s:
-            pass
-
     def test_add_docs_image_download_headers(self):
         mock__post = mock.MagicMock()
 
