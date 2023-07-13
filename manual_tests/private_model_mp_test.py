@@ -46,7 +46,7 @@ def _get_base_index_settings():
     return {
         "index_defaults": {
             "treat_urls_and_pointers_as_images": True,
-            "model": 'my_model2',
+            "model": 'my_model3',
             "normalize_embeddings": True,
             # notice model properties aren't here. Each test has to add it
         }
@@ -83,8 +83,6 @@ def run_s3_test():
             auto_refresh=True, documents=[
                 {'title': f'rock {i} bread', '_id': f'id_{i}'} for i in range(20)
             ],
-            processes=2,
-            server_batch_size=5,
             model_auth={'s3': {"aws_access_key_id" : acc_key, "aws_secret_access_key": sec_acc_key}}
         )
     )
@@ -97,7 +95,14 @@ def run_s3_test():
     )
 
 print(mq.get_marqo())
-print(mq.get_loaded_models())
+
+mods = mq.get_loaded_models()
+for m in mods['models']:
+    if m['model_name'] not in ['my_model3']:
+        print ('ejecting', m)
+        print(mq.eject_model(model_name=m['model_name'], model_device=m['model_device']))
+
+print(f'loaded models {mods}')
 clean_up()
 run_s3_test()
 clean_up()
