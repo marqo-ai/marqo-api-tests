@@ -54,4 +54,4 @@ class TestGetStats(MarqoTestCase):
         with self.assertRaises(MarqoWebError) as cm:
             self.client.index(self.index_name).get_stats()
 
-        self. assertIn("index_not_found", cm.exception.message)
+        self. assertIn("index_not_found", str(cm.exception.message))
