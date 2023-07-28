@@ -1,5 +1,5 @@
 from tests.marqo_test import MarqoTestCase
-from marqo.errors import IndexNotFoundError
+from marqo.errors import IndexNotFoundError, MarqoWebError
 from marqo.client import Client
 
 class TestGetStats(MarqoTestCase):
@@ -51,5 +51,7 @@ class TestGetStats(MarqoTestCase):
         assert res["numberOfVectors"] == expected_number_of_vectors
 
     def test_get_status_error(self):
-        with self.assertRaises(IndexNotFoundError):
+        with self.assertRaises(MarqoWebError) as cm:
             self.client.index(self.index_name).get_stats()
+
+        self. assertIn("index_not_found", cm.exception.message)
