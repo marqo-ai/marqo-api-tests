@@ -50,5 +50,6 @@ class TestGetStats(MarqoTestCase):
         assert res["numberOfDocuments"] == expected_number_of_documents
         assert res["numberOfVectors"] == expected_number_of_vectors
 
-
-
+    def test_get_status_error(self):
+        with self.assertRaises(IndexNotFoundError):
+            self.client.index(self.index_name).get_stats()
