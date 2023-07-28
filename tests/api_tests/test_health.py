@@ -6,7 +6,7 @@ import requests
 from marqo.errors import BackendTimeoutError, BackendCommunicationError, BadRequestError, MarqoApiError
 
 
-class TestClient(MarqoTestCase):
+class TestHealth(MarqoTestCase):
 
 
     def setUp(self) -> None:
