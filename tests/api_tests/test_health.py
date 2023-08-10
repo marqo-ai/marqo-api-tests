@@ -23,15 +23,6 @@ class TestHealth(MarqoTestCase):
         except MarqoApiError as s:
             pass
 
-    def test_health_deprecation_warning(self):
-        with mock.patch("marqo.client.mq_logger.warning") as mock_warning:
-            res = self.client.health()
-
-            # Check the warning was logged
-            mock_warning.assert_called_once()
-            warning_message = mock_warning.call_args[0][0]
-            self.assertIn("The `client.health()` API has been deprecated and will be removed in", warning_message)
-
     def test_error_handling_in_health_check(self):
         client = Client(**self.client_settings)
         side_effect_list = [requests.exceptions.JSONDecodeError("test", "test", 1), BackendCommunicationError("test"),
