@@ -51,7 +51,7 @@ class TestImageReranking(MarqoTestCase):
             'description': 'the imo segmenting text) by using either a learned model or simple box generation and cropping'},
             {'_id': '3', # '_id' can be provided but is not required
             'description': 'ing either a learned model or simple box generation and cropping. brain',
-            'location': 'https://raw.githubusercontent.com/marqo-ai/marqo-api-tests/mainline/assets/ai_hippo_statue.png'},
+            'location': 'https://marqo-assets.s3.amazonaws.com/tests/images/ai_hippo_statue.png'},
         ]
 
         client.index(self.index_name).add_documents(documents, non_tensor_fields=[])
@@ -122,7 +122,7 @@ class TestImageReranking(MarqoTestCase):
             'description': 'the imo segmenting text) by using either a learned model or simple box generation and cropping'},
             {'_id': '3', # '_id' can be provided but is not required
             'description': 'ing either a learned model or simple box generation and cropping. brain',
-            'location': 'https://raw.githubusercontent.com/marqo-ai/marqo-api-tests/mainline/assets/ai_hippo_statue.png'},
+            'location': 'https://marqo-assets.s3.amazonaws.com/tests/images/ai_hippo_statue.png'},
         ]
 
         client.index(self.index_name).add_documents(documents, non_tensor_fields=[])
@@ -162,7 +162,7 @@ class TestImageReranking(MarqoTestCase):
             'description': 'the imo segmenting text) by using either a learned model or simple box generation and cropping'},
             {'_id': '3', # '_id' can be provided but is not required
             'description': 'ing either a learned model or simple box generation and cropping. brain',
-            'location': 'https://raw.githubusercontent.com/marqo-ai/marqo-api-tests/mainline/assets/ai_hippo_statue.png'},
+            'location': 'https://marqo-assets.s3.amazonaws.com/tests/images/ai_hippo_statue.png'},
         ]
 
         res = client.index(self.index_name).add_documents(documents, non_tensor_fields=[])
@@ -205,7 +205,7 @@ class TestImageReranking(MarqoTestCase):
             'description': 'the imo segmenting text) by using either a learned model or simple box generation and cropping'},
             {'_id': '3', # '_id' can be provided but is not required
             'description': 'ing either a learned model or simple box generation and cropping. brain',
-            'location': 'https://raw.githubusercontent.com/marqo-ai/marqo-api-tests/mainline/assets/ai_hippo_statue.png'},
+            'location': 'https://marqo-assets.s3.amazonaws.com/tests/images/ai_hippo_statue.png'},
         ]
 
         client.index(self.index_name).add_documents(documents, non_tensor_fields=[])

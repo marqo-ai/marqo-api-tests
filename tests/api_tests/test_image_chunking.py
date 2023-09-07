@@ -133,7 +133,7 @@ class TestImageChunking(MarqoTestCase):
         client.create_index(self.index_name, **settings)
         
         temp_file_name_1 = 'https://avatars.githubusercontent.com/u/13092433?v=4' #brain
-        temp_file_name_2 = 'https://raw.githubusercontent.com/marqo-ai/marqo-api-tests/mainline/assets/ai_hippo_statue.png' #hippo
+        temp_file_name_2 = 'https://marqo-assets.s3.amazonaws.com/tests/images/ai_hippo_statue.png' #hippo
 
         img = Image.open(requests.get(temp_file_name_1, stream=True).raw)
         
