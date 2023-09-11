@@ -138,24 +138,6 @@ class TestAddDocuments(MarqoTestCase):
         self.client.index(self.index_name_1).add_documents([d2], non_tensor_fields=[])
         assert d2 == self.client.index(self.index_name_1).get_document("56")
 
-    def test_add_batched_documents(self):
-        self.client.create_index(index_name=self.index_name_1)
-        ix = self.client.index(index_name=self.index_name_1)
-        doc_ids = [str(num) for num in range(0, 100)]
-        docs = [
-            {"Title": f"The Title of doc {doc_id}",
-             "Generic text": "some text goes here...",
-             "_id": doc_id}
-            for doc_id in doc_ids]
-
-        ix.add_documents(docs, non_tensor_fields=[])
-        ix.refresh()
-        # TODO we should do a count in here...
-        # takes too long to search for all
-        for _id in [0, 19, 20, 99]:
-            original_doc = docs[_id].copy()
-            assert ix.get_document(document_id=str(_id)) == original_doc
-
     def test_add_documents_long_fields(self):
         """TODO
         """
@@ -270,6 +252,17 @@ class TestAddDocuments(MarqoTestCase):
 
         args, kwargs = mock__post.call_args
         assert "processes=12" not in kwargs["path"]
+    
+    def test_add_documents_empty(self):
+        """
+        Test that adding an empty list of documents fails with bad_request
+        """
+        self.client.create_index(index_name=self.index_name_1)
+        try:
+            self.client.index(self.index_name_1).add_documents(documents=[], non_tensor_fields=[])
+            raise AssertionError
+        except MarqoWebError as e:
+            assert "bad_request" == e.code
 
 
 @pytest.mark.cpu_only_test

@@ -133,3 +133,43 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         # Assert correct models
         res = self.client.get_loaded_models()
         assert set([item["model_name"] for item in res["models"]]) == set(new_models)
+
+
+    def test_max_add_docs_count(self):
+        """
+        Test that MARQO_MAX_ADD_DOCS_COUNT works as expected. Trying to add more documents than the limit should fail.
+        """
+        counts_to_test = [10, 50, 100]
+        for count in counts_to_test:
+
+            # Restart marqo with new max values
+            utilities.rerun_marqo_with_env_vars(
+                env_vars = [
+                    "-e", f"MARQO_MAX_ADD_DOCS_COUNT={count}",
+                ],
+                calling_class=self.__class__.__name__
+            )
+
+            # Add 1 less document than the maximum
+            self.client.index(self.index_name_1).add_documents(documents=[
+                {"d1": "blah"} for _ in range(count-1)
+            ], device="cpu", non_tensor_fields=[])
+
+            # Add exactly the maximum number of docs
+            self.client.index(self.index_name_1).add_documents(documents=[
+                {"d1": "blah"} for _ in range(count)
+            ], device="cpu", non_tensor_fields=[])
+
+            # Add more than the maximum but BATCHED (should succeed)
+            self.client.index(self.index_name_1).add_documents(documents=[
+                {"d1": "blah"} for _ in range(count+1)
+            ], device="cpu", non_tensor_fields=[], batch_size=count//2)
+
+            # Add more than the maximum (should fail with bad request)
+            try:
+                self.client.index(self.index_name_1).add_documents(documents=[
+                    {"d1": "blah"} for _ in range(count+1)
+                ], device="cpu", non_tensor_fields=[])
+                raise AssertionError("Add docs call should have failed with bad request")
+            except MarqoWebError as e:
+                assert e.code == "bad_request"
