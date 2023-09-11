@@ -140,9 +140,6 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         Test that MARQO_MAX_ADD_DOCS_COUNT works as expected. Trying to add more documents than the limit should fail.
         """
 
-        # Create the index
-        self.client.create_index(index_name=self.index_name_1)
-
         counts_to_test = [10, 50, 100]
         for count in counts_to_test:
             # Restart marqo with new max values
@@ -152,6 +149,9 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
                 ],
                 calling_class=self.__class__.__name__
             )
+
+            # Create the index
+            self.client.create_index(index_name=self.index_name_1)
 
             # Add 1 less document than the maximum
             self.client.index(self.index_name_1).add_documents(documents=[
