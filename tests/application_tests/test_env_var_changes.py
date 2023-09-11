@@ -166,7 +166,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
             # Add more than the maximum but BATCHED (should succeed)
             self.client.index(self.index_name_1).add_documents(documents=[
                 {"d1": "blah"} for _ in range(count+1)
-            ], device="cpu", non_tensor_fields=[], batch_size=count//2)
+            ], device="cpu", non_tensor_fields=[], client_batch_size=count//2)
 
             # Add more than the maximum (should fail with bad request)
             try:
