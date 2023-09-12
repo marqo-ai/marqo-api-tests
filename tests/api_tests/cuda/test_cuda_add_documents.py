@@ -71,6 +71,24 @@ class TestAddDocuments(MarqoTestCase):
         assert retrieved_d0 == d1 or retrieved_d0 == d2
         assert retrieved_d1 == d1 or retrieved_d1 == d2
 
+    def test_add_batched_documents(self):
+        self.client.create_index(self.index_name_1)
+        ix = self.client.index(index_name=self.index_name_1)
+        doc_ids = [str(num) for num in range(0, 100)]
+        docs = [
+            {"Title": f"The Title of doc {doc_id}",
+             "Generic text": "some text goes here...",
+             "_id": doc_id}
+            for doc_id in doc_ids]
+
+        ix.add_documents(docs, device="cuda", client_batch_size=10, tensor_fields=["Title", "Generic text"])
+        ix.refresh()
+        # TODO we should do a count in here...
+        # takes too long to search for all
+        for _id in [0, 19, 20, 99]:
+            original_doc = docs[_id].copy()
+            assert ix.get_document(document_id=str(_id)) == original_doc
+
     def test_add_documents_with_ids_twice(self):
         self.client.create_index(index_name=self.index_name_1)
         d1 = {
