@@ -35,7 +35,7 @@ class TestAsync (marqo_test.MarqoTestCase):
             "_id": "56"
         }
         self.client.create_index(self.index_name_1)
-        self.client.index(self.index_name_1).add_documents([d1], non_tensor_fields=[])
+        self.client.index(self.index_name_1).add_documents([d1], non_tensor_fields=[], auto_refresh=True)
         assert self.client.index(self.index_name_1).get_stats()['numberOfDocuments'] == 1
 
         def significant_ingestion():

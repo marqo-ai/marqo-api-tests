@@ -119,13 +119,11 @@ class TestAddDocuments(MarqoTestCase):
         self.client.index(self.index_name_1).add_documents([
             {"abc": "wow camel", "_id": "123"},
             {"abc": "camels are cool", "_id": "foo"}
-        ], device="cuda", non_tensor_fields=[])
+        ], device="cuda", non_tensor_fields=[], auto_refresh=True)
         res0 = self.client.index(self.index_name_1).search("wow camel", device="cuda")
-        print("res0res0")
-        pprint.pprint(res0)
         assert res0['hits'][0]["_id"] == "123"
         assert len(res0['hits']) == 2
-        self.client.index(self.index_name_1).delete_documents(["123"])
+        self.client.index(self.index_name_1).delete_documents(["123"], auto_refresh=True)
         res1 = self.client.index(self.index_name_1).search("wow camel", device="cuda")
         assert res1['hits'][0]["_id"] == "foo"
         assert len(res1['hits']) == 1
