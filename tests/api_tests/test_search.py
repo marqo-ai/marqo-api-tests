@@ -44,7 +44,7 @@ class TestSearch(MarqoTestCase):
             The editor-in-chief Katharine Viner succeeded Alan Rusbridger in 2015.[10][11] Since 2018, the paper's main newsprint sections have been published in tabloid format. As of July 2021, its print edition had a daily circulation of 105,134.[4] The newspaper has an online edition, TheGuardian.com, as well as two international websites, Guardian Australia (founded in 2013) and Guardian US (founded in 2011). The paper's readership is generally on the mainstream left of British political opinion,[12][13][14][15] and the term "Guardian reader" is used to imply a stereotype of liberal, left-wing or "politically correct" views.[3] Frequent typographical errors during the age of manual typesetting led Private Eye magazine to dub the paper the "Grauniad" in the 1960s, a nickname still used occasionally by the editors for self-mockery.[16]
             """
         }
-        add_doc_res = self.client.index(self.index_name_1).add_documents([d1], non_tensor_fields=[])
+        add_doc_res = self.client.index(self.index_name_1).add_documents([d1], non_tensor_fields=[], auto_refresh=True)
         search_res = self.client.index(self.index_name_1).search(
             "title about some doc")
         assert len(search_res["hits"]) == 1
@@ -72,7 +72,7 @@ class TestSearch(MarqoTestCase):
         }
         res = self.client.index(self.index_name_1).add_documents([
             d1, d2
-        ], non_tensor_fields=[])
+        ], non_tensor_fields=[], auto_refresh=True)
         search_res = self.client.index(self.index_name_1).search(
             "this is a solid doc")
         assert d2 == self.strip_marqo_fields(search_res['hits'][0], strip_id=False)
@@ -93,7 +93,7 @@ class TestSearch(MarqoTestCase):
         }
         res = self.client.index(self.index_name_1).add_documents([
             d1, d2
-        ], non_tensor_fields=[])
+        ], non_tensor_fields=[], auto_refresh=True)
 
         # Ensure that vector search works
         search_res = self.client.index(self.index_name_1).search(
@@ -158,7 +158,7 @@ class TestSearch(MarqoTestCase):
                 "int_for_filtering": 1,
             }
         ]
-        res = self.client.index(self.index_name_1).add_documents(docs,auto_refresh=True, non_tensor_fields=[])
+        res = self.client.index(self.index_name_1).add_documents(docs, non_tensor_fields=[], auto_refresh=True)
 
         test_cases = (
             {   # filter string only (str)
@@ -286,7 +286,7 @@ class TestSearch(MarqoTestCase):
                     "Description": "A history of household pets",
                     "_id": "d2"
                 }
-            ], non_tensor_fields=[]
+            ], non_tensor_fields=[], auto_refresh=True
         )
         query = {
             "What are the best pets": 1
