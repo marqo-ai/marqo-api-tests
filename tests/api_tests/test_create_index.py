@@ -26,7 +26,7 @@ class TestCreateIndex(MarqoTestCase):
             client.create_index('bulk')
             raise AssertionError('created index with illegal name `bulk`!')
         except MarqoWebError as e:
-            assert e.code == 400
+            assert e.code == 'invalid_index_name'
         # ensure the index was not accidentally created despite the error:
         assert 'bulk' not in [ix.index_name for ix in client.get_indexes()['results']]
         # but an index name with 'bulk' as a substring should appear as expected:
