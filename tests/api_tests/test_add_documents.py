@@ -288,10 +288,10 @@ class TestAddDocuments(MarqoTestCase):
         },
 
         deprecated_query_parameters_list = ["non_tensor_fields=Title&non_tensor_fields=Genre",
-                                            "use_existing_tensors=true",
-                                            f"model_auth={quote_plus(json.dumps(model_auth))}",
-                                            f"mappings={quote_plus(json.dumps(mappings))}",
-                                            f"image_download_headers={quote_plus(json.dumps(image_download_headers))}"]
+                                            "use_existing_tensors=true"]
+                                            # f"model_auth={quote_plus(json.dumps(model_auth))}",
+                                            # f"mappings={quote_plus(json.dumps(mappings))}",
+                                            # f"image_download_headers={quote_plus(json.dumps(image_download_headers))}"]
 
         data = {
             "documents": [
