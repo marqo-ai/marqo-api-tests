@@ -311,12 +311,11 @@ class TestAddDocuments(MarqoTestCase):
         }
 
         for deprecated_query_parameters in deprecated_query_parameters_list:
-            url = f"{self.authorized_url}/indexes/{self.index_name_1}/{deprecated_query_parameters}"
+            url = f"{self.authorized_url}/indexes/{self.index_name_1}/documents?{deprecated_query_parameters}"
             headers = {'Content-type': 'application/json'}
 
             response = requests.post(url, headers=headers, data=json.dumps(data))
             assert str(response.status_code).startswith("4")
-            print(response.json())
             self.assertIn("Marqo is not accepting any of the following parameters in the query string",
                           str(response.json()))
 
