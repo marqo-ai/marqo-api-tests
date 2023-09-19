@@ -349,7 +349,7 @@ class TestAddDocuments(MarqoTestCase):
     def test_add_documents_unknown_query_parameter(self):
         """This test is to ensure that the new API does not accept unknown query parameters"""
         self.client.create_index(self.index_name_1)
-        url = f'{self.authorized_url}/{self.index_name_1}/documents?rando_parameter=true'
+        url = f'{self.authorized_url}/{self.index_name_1}/documents?random_parameter=true'
         headers = {'Content-type': 'application/json'}
 
         data = {
@@ -366,7 +366,6 @@ class TestAddDocuments(MarqoTestCase):
                     "Genre": "Science"
                 }
             ],
-            "non_TensorFields": ["Title", "Genre"]  # not permitted field
         }
 
         response = requests.post(url, headers=headers, data=json.dumps(data))
