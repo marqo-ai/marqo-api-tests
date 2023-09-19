@@ -353,7 +353,8 @@ class TestAddDocuments(MarqoTestCase):
         def run():
             image_download_headers = {"Authentication": "my-secret-key"}
             self.client.index(index_name=self.index_name_1).add_documents(
-                documents=[{"some": "data"}], image_download_headers=image_download_headers)
+                documents=[{"some": "data"}], image_download_headers=image_download_headers,
+            non_tensor_fields=[])
             args, kwargs = mock__post.call_args
             assert "imageDownloadHeaders" in kwargs['body']
             assert kwargs['body']['imageDownloadHeaders'] == image_download_headers
