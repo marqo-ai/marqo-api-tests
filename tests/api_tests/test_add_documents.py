@@ -316,6 +316,7 @@ class TestAddDocuments(MarqoTestCase):
 
             response = requests.post(url, headers=headers, data=json.dumps(data))
             assert str(response.status_code).startswith("4")
+            print(response.json())
             self.assertIn("Marqo is not accepting any of the following parameters in the query string",
                           str(response.json()))
 
