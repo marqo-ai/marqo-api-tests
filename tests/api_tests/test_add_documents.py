@@ -1,5 +1,6 @@
 import copy
 import pprint
+from urllib.parse import quote_plus
 from marqo.client import Client
 from marqo.errors import MarqoApiError, MarqoError, MarqoWebError
 import unittest
@@ -264,8 +265,33 @@ class TestAddDocuments(MarqoTestCase):
     def test_add_documents_deprecated_query_parameters_and_new_api(self):
         """This test is to ensure that the new API does not accept old query parameters"""
         self.client.create_index(self.index_name_1)
-        url = f'http://localhost:8882/indexes/{self.index_name_1}/documents?use_existing_tensors=true'  # deprecated query parameter
-        headers = {'Content-type': 'application/json'}
+        model_auth = {
+            's3': {
+                "aws_access_key_id": "<SOME ACCESS KEY ID>",
+                "aws_secret_access_key": "<SOME SECRET ACCESS KEY>"
+            }
+        }
+
+        mappings = {
+            "combo_text_image":
+                {"type": "multimodal_combination",
+                 "weights":
+                     {
+                         "my_text_attribute_1": 0.5,
+                         "my_image_attribute_1": 0.5,
+                     }
+                 }
+        }
+
+        image_download_headers = {
+            "my-image-store-api-key": "some-super-secret-image-store-key"
+        },
+
+        deprecated_query_parameters_list = ["non_tensor_fields=Title&non_tensor_fields=Genre",
+                                            "use_existing_tensors=true",
+                                            f"model_auth={quote_plus(json.dumps(model_auth))}",
+                                            f"mappings={quote_plus(json.dumps(mappings))}",
+                                            f"image_download_headers={quote_plus(json.dumps(image_download_headers))}"]
 
         data = {
             "documents": [
@@ -284,15 +310,19 @@ class TestAddDocuments(MarqoTestCase):
             "nonTensorFields": ["Title", "Genre"]
         }
 
-        response = requests.post(url, headers=headers, data=json.dumps(data))
-        assert str(response.status_code).startswith("4")
-        self.assertIn("Marqo is not accepting any of the following parameters in the query string",
-                      str(response.json()))
+        for deprecated_query_parameters in deprecated_query_parameters_list:
+            url = f"{self.authorized_url}/indexes/{self.index_name_1}/{deprecated_query_parameters}"
+            headers = {'Content-type': 'application/json'}
+
+            response = requests.post(url, headers=headers, data=json.dumps(data))
+            assert str(response.status_code).startswith("4")
+            self.assertIn("Marqo is not accepting any of the following parameters in the query string",
+                          str(response.json()))
 
     def test_add_documents_extra_field(self):
-        """This test is to ensure that the new API does not accept old query parameters"""
+        """This test is to ensure that the new API does not accept extra body parameters"""
         self.client.create_index(self.index_name_1)
-        url = f'http://localhost:8882/indexes/{self.index_name_1}/documents'
+        url = f'{self.authorized_url}/{self.index_name_1}/documents'
         headers = {'Content-type': 'application/json'}
 
         data = {
