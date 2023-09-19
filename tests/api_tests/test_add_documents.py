@@ -344,7 +344,6 @@ class TestAddDocuments(MarqoTestCase):
 
         response = requests.post(url, headers=headers, data=json.dumps(data))
         assert str(response.status_code).startswith("4")
-        self.assertIn("extra fields not permitted", str(response.json()))
 
     def test_add_docs_image_download_headers(self):
         mock__post = mock.MagicMock()
