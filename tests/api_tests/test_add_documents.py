@@ -345,6 +345,32 @@ class TestAddDocuments(MarqoTestCase):
         response = requests.post(url, headers=headers, data=json.dumps(data))
         assert str(response.status_code).startswith("4")
 
+    def test_add_documents_unknown_query_parameter(self):
+        """This test is to ensure that the new API does not accept unknown query parameters"""
+        self.client.create_index(self.index_name_1)
+        url = f'{self.authorized_url}/{self.index_name_1}/documents?rando_parameter=true'
+        headers = {'Content-type': 'application/json'}
+
+        data = {
+            "documents": [
+                {
+                    "Title": "The Travels of Marco Polo",
+                    "Description": "A 13th-century travelogue describing the travels of Polo",
+                    "Genre": "History"
+                },
+                {
+                    "Title": "Extravehicular Mobility Unit (EMU)",
+                    "Description": "The EMU is a spacesuit that provides environmental protection",
+                    "_id": "article_591",
+                    "Genre": "Science"
+                }
+            ],
+            "non_TensorFields": ["Title", "Genre"]  # not permitted field
+        }
+
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        assert str(response.status_code).startswith("4")
+
     def test_add_docs_image_download_headers(self):
         mock__post = mock.MagicMock()
 
