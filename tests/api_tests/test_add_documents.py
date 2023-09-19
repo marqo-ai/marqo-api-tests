@@ -98,6 +98,8 @@ class TestAddDocuments(MarqoTestCase):
         ])
         retrieved_d1 = self.client.index(self.index_name_1).get_document(
             document_id="e197e580-0393-4f4e-90e9-8cdf4b17e339")
+        ], non_tensor_fields=[])
+        retrieved_d1 = self.client.index(self.index_name_1).get_document(document_id="e197e580-0393-4f4e-90e9-8cdf4b17e339")
         assert retrieved_d1 == d1
         retrieved_d2 = self.client.index(self.index_name_1).get_document(document_id="123456")
         assert retrieved_d2 == d2
@@ -110,10 +112,10 @@ class TestAddDocuments(MarqoTestCase):
             "field 1": "some extra info"
         }
         d2 = {
-            "doc title": "Just Your Average Doc",
-            "field X": "this is a solid doc"
-        }
-        res = self.client.index(self.index_name_1).add_documents([d1, d2])
+                "doc title": "Just Your Average Doc",
+                "field X": "this is a solid doc"
+            }
+        res = self.client.index(self.index_name_1).add_documents([d1, d2], non_tensor_fields=[])
         ids = [item["_id"] for item in res["items"]]
         assert len(ids) == 2
         assert ids[0] != ids[1]
@@ -124,25 +126,8 @@ class TestAddDocuments(MarqoTestCase):
         assert retrieved_d0 == d1 or retrieved_d0 == d2
         assert retrieved_d1 == d1 or retrieved_d1 == d2
 
-    def test_add_documents_with_ids_twice(self):
-        self.client.create_index(index_name=self.index_name_1)
-        d1 = {
-            "doc title": "Just Your Average Doc",
-            "field X": "this is a solid doc",
-            "_id": "56"
-        }
-        self.client.index(self.index_name_1).add_documents([d1])
-        assert d1 == self.client.index(self.index_name_1).get_document("56")
-        d2 = {
-            "_id": "56",
-            "completely": "different doc.",
-            "field X": "this is a solid doc"
-        }
-        self.client.index(self.index_name_1).add_documents([d2])
-        assert d2 == self.client.index(self.index_name_1).get_document("56")
-
     def test_add_batched_documents(self):
-        self.client.create_index(index_name=self.index_name_1)
+        self.client.create_index(self.index_name_1)
         ix = self.client.index(index_name=self.index_name_1)
         doc_ids = [str(num) for num in range(0, 100)]
         docs = [
@@ -151,13 +136,30 @@ class TestAddDocuments(MarqoTestCase):
              "_id": doc_id}
             for doc_id in doc_ids]
 
-        ix.add_documents(docs)
+        ix.add_documents(docs, client_batch_size=10, tensor_fields=["Title", "Generic text"])
         ix.refresh()
         # TODO we should do a count in here...
         # takes too long to search for all
         for _id in [0, 19, 20, 99]:
             original_doc = docs[_id].copy()
             assert ix.get_document(document_id=str(_id)) == original_doc
+
+    def test_add_documents_with_ids_twice(self):
+        self.client.create_index(index_name=self.index_name_1)
+        d1 = {
+            "doc title": "Just Your Average Doc",
+            "field X": "this is a solid doc",
+            "_id": "56"
+        }
+        self.client.index(self.index_name_1).add_documents([d1], non_tensor_fields=[])
+        assert d1 == self.client.index(self.index_name_1).get_document("56")
+        d2 = {
+            "_id": "56",
+            "completely": "different doc.",
+            "field X": "this is a solid doc"
+        }
+        self.client.index(self.index_name_1).add_documents([d2], non_tensor_fields=[])
+        assert d2 == self.client.index(self.index_name_1).get_document("56")
 
     def test_add_documents_long_fields(self):
         """TODO
@@ -205,7 +207,7 @@ class TestAddDocuments(MarqoTestCase):
 
     def test_add_documents_missing_index_fails(self):
         with pytest.raises(MarqoWebError) as ex:
-            self.client.index(self.index_name_1).add_documents([{"abd": "efg"}])
+            self.client.index(self.index_name_1).add_documents([{"abd": "efg"}], non_tensor_fields=[])
 
         assert "index_not_found" == ex.value.code
 
@@ -218,7 +220,7 @@ class TestAddDocuments(MarqoTestCase):
         def run():
             temp_client.index(self.index_name_1).add_documents(documents=[
                 {"d1": "blah"}, {"d2", "some data"}
-            ], device="cuda:45")
+            ], device="cuda:45", non_tensor_fields=[])
             return True
 
         assert run()
@@ -237,7 +239,7 @@ class TestAddDocuments(MarqoTestCase):
         def run():
             temp_client.index(self.index_name_1).add_documents(documents=[
                 {"d1": "blah"}, {"d2", "some data"}
-            ])
+            ], non_tensor_fields=[])
             return True
 
         assert run()
@@ -254,10 +256,10 @@ class TestAddDocuments(MarqoTestCase):
         def run():
             temp_client.index(self.index_name_1).add_documents(documents=[
                 {"d1": "blah"}, {"d2", "some data"}
-            ], auto_refresh=False)
+            ], auto_refresh=False, non_tensor_fields=[])
             temp_client.index(self.index_name_1).add_documents(documents=[
                 {"d1": "blah"}, {"d2", "some data"}
-            ], auto_refresh=True)
+            ], auto_refresh=True, non_tensor_fields=[])
             return True
 
         assert run()
@@ -274,13 +276,24 @@ class TestAddDocuments(MarqoTestCase):
         def run():
             self.client.index(self.index_name_1).add_documents(documents=[
                 {"d1": "blah"}, {"d2", "some data"}
-            ])
+            ], non_tensor_fields=[])
             return True
 
         assert run()
 
         args, kwargs = mock__post.call_args
         assert "processes=12" not in kwargs["path"]
+
+    def test_add_documents_empty(self):
+        """
+        Test that adding an empty list of documents fails with bad_request
+        """
+        self.client.create_index(index_name=self.index_name_1)
+        try:
+            self.client.index(self.index_name_1).add_documents(documents=[], non_tensor_fields=[])
+            raise AssertionError
+        except MarqoWebError as e:
+            assert "bad_request" == e.code
 
     def test_add_documents_deprecated_query_parameters_and_new_api(self):
         """This test is to ensure that the new API does not accept old query parameters"""
@@ -386,14 +399,13 @@ class TestAddDocumentsCPUOnly(MarqoTestCase):
 
         self.client.create_index(self.index_name_1, settings_dict=index_settings)
 
-        self.client.index(self.index_name_1).add_documents([{"_id": "explicit_cpu", "title": "blah"}], device="cpu")
-        self.client.index(self.index_name_1).add_documents([{"_id": "default_device", "title": "blah"}])
-
-        cpu_vec = self.client.index(self.index_name_1).get_document(document_id="explicit_cpu", expose_facets=True)[
-            '_tensor_facets'][0]["_embedding"]
-        default_vec = \
-        self.client.index(self.index_name_1).get_document(document_id="default_device", expose_facets=True)[
-            '_tensor_facets'][0]["_embedding"]
+        self.client.index(self.index_name_1).add_documents([{"_id": "explicit_cpu", "title": "blah"}], device="cpu",
+                                                           non_tensor_fields=[])
+        self.client.index(self.index_name_1).add_documents([{"_id": "default_device", "title": "blah"}],
+                                                           non_tensor_fields=[])
+        
+        cpu_vec = self.client.index(self.index_name_1).get_document(document_id="explicit_cpu", expose_facets=True)['_tensor_facets'][0]["_embedding"]
+        default_vec = self.client.index(self.index_name_1).get_document(document_id="default_device", expose_facets=True)['_tensor_facets'][0]["_embedding"]
 
         # Confirm that CPU was used by default.
         # CPU-computed vectors are slightly different from CUDA-computed vectors
@@ -408,7 +420,7 @@ class TestAddDocumentsCPUOnly(MarqoTestCase):
         # Add docs with CUDA must fail if CUDA is not available
         try:
             self.client.index(self.index_name_1).add_documents([{"_id": "explicit_cuda", "title": "blah"}],
-                                                               device="cuda")
+                                                               device="cuda", non_tensor_fields=[])
             raise AssertionError
         except MarqoWebError:
             pass
