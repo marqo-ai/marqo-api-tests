@@ -1,13 +1,7 @@
-import logging
-import subprocess
-import os
-import time
-from requests import HTTPError
 from tests import marqo_test
 from tests import utilities
 from marqo import Client
 from marqo.errors import MarqoApiError, BackendCommunicationError, MarqoWebError
-import pprint
 import json
 
 class TestEnvVarChanges(marqo_test.MarqoTestCase):
