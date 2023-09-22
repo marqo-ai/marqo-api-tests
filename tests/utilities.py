@@ -75,7 +75,10 @@ def run_marqo_process_with_env_vars(env_vars: list = [], calling_class: str = ""
 
     Returns the subprocess Popen object
     """
-    if calling_class not in ["TestEnvVarChanges"]:
+    if calling_class not in [
+        "TestEnvVarChanges",
+        "TestLogOutPut"
+    ]:
         raise RuntimeError(
             f"Rerun Marqo function should only be called by `TestEnvVarChanges` to ensure other API tests are not affected. Given calling class is {calling_class}")
 
