@@ -200,6 +200,25 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         res = self.client.get_loaded_models()
         assert set([item["model_name"] for item in res["models"]]) == set(new_models)
 
+        # ## Testing log output when LEVEL=debug ##
+        #    we want to ensure that, in debug mode, no information is hidden
+        utilities.check_logs(
+            log_wide_checks=[
+                lambda log_blob:
+                ("Unverified HTTPS request is being made to host 'host.docker.internal'. "
+                 "Adding certificate verification is strongly advised." in log_blob) or
+                ("Unverified HTTPS request is being made to host 'localhost'. "
+                 "Adding certificate verification is strongly advised." in log_blob),
+                # check presence of pip freeze:
+                lambda log_blob: 'torch==' in log_blob,
+                lambda log_blob: 'Status: Downloaded newer image for marqoai/marqo-os' in log_blob,
+                lambda log_blob: 'FutureWarning: Importing `GenerationMixin`' in log_blob,
+                lambda log_blob: 'Called redis-server command' in log_blob,
+            ],
+            container_name='marqo'
+        )
+        # ## End log output tests ##
+
     def test_max_add_docs_count(self):
         """
         Test that MARQO_MAX_ADD_DOCS_COUNT works as expected. Trying to add more documents than the limit should fail.
