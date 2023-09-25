@@ -155,7 +155,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         max_replicas = 10
         max_ef = 6000
         new_models = ["hf/all_datasets_v4_MiniLM-L6"]
-        lines = utilities.rerun_marqo_with_env_vars(
+        utilities.rerun_marqo_with_env_vars(
             env_vars=[
                 "-e", f"MARQO_MAX_NUMBER_OF_REPLICAS={max_replicas}",
                 "-e", f"MARQO_EF_CONSTRUCTION_MAX_VALUE={max_ef}",
