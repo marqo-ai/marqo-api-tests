@@ -44,7 +44,7 @@ class TestSearch(MarqoTestCase):
             The editor-in-chief Katharine Viner succeeded Alan Rusbridger in 2015.[10][11] Since 2018, the paper's main newsprint sections have been published in tabloid format. As of July 2021, its print edition had a daily circulation of 105,134.[4] The newspaper has an online edition, TheGuardian.com, as well as two international websites, Guardian Australia (founded in 2013) and Guardian US (founded in 2011). The paper's readership is generally on the mainstream left of British political opinion,[12][13][14][15] and the term "Guardian reader" is used to imply a stereotype of liberal, left-wing or "politically correct" views.[3] Frequent typographical errors during the age of manual typesetting led Private Eye magazine to dub the paper the "Grauniad" in the 1960s, a nickname still used occasionally by the editors for self-mockery.[16]
             """
         }
-        add_doc_res = self.client.index(self.index_name_1).add_documents([d1])
+        add_doc_res = self.client.index(self.index_name_1).add_documents([d1], non_tensor_fields=[], auto_refresh=True)
         search_res = self.client.index(self.index_name_1).search(
             "title about some doc")
         assert len(search_res["hits"]) == 1
@@ -72,7 +72,7 @@ class TestSearch(MarqoTestCase):
         }
         res = self.client.index(self.index_name_1).add_documents([
             d1, d2
-        ])
+        ], non_tensor_fields=[], auto_refresh=True)
         search_res = self.client.index(self.index_name_1).search(
             "this is a solid doc")
         assert d2 == self.strip_marqo_fields(search_res['hits'][0], strip_id=False)
@@ -93,7 +93,7 @@ class TestSearch(MarqoTestCase):
         }
         res = self.client.index(self.index_name_1).add_documents([
             d1, d2
-        ])
+        ], non_tensor_fields=[], auto_refresh=True)
 
         # Ensure that vector search works
         search_res = self.client.index(self.index_name_1).search(
@@ -128,30 +128,92 @@ class TestSearch(MarqoTestCase):
         assert "device=cuda2" in kwargs1["path"]
 
     @disallow_environments(["S2SEARCH_OS"])
-    def test_prefiltering(self):
+    def test_filter_string_and_searchable_attributes(self):
         self.client.create_index(index_name=self.index_name_1)
-        d1 = {
-            "doc title": "Very heavy, dense metallic lead.",
-            "abc-123": "some text",
-            "an_int": 2,
-            "_id": "my-cool-doc"
-        }
-        d2 = {
-            "doc title": "The captain bravely lead her followers into battle."
-                         " She directed her soldiers to and fro.",
-            "field X": "this is a solid doc",
-            "field1": "other things",
-            "_id": "123456"
-        }
-        res = self.client.index(self.index_name_1).add_documents([
-            d1, d2
-        ],auto_refresh=True)
-        search_res = self.client.index(self.index_name_1).search(
-            "blah blah",
-            filter_string="(an_int:[0 TO 30] and an_int:2) AND abc-123:(some text)")
-        assert len(search_res["hits"]) == 1
-        pprint.pprint(search_res)
-        assert search_res["hits"][0]["_id"] == "my-cool-doc"
+        docs = [
+            {
+                "_id": "0",                     # content in field_a
+                "field_a": "random content",
+                "str_for_filtering": "apple",
+                "int_for_filtering": 0,
+            },
+            {
+                "_id": "1",                     # content in field_b
+                "field_b": "random content",
+                "str_for_filtering": "banana",
+                "int_for_filtering": 0,
+            },
+            {
+                "_id": "2",                     # content in both
+                "field_a": "random content",
+                "field_b": "random content",
+                "str_for_filtering": "apple",
+                "int_for_filtering": 1,
+            },
+            {
+                "_id": "3",                     # content in both
+                "field_a": "random content",
+                "field_b": "random content",
+                "str_for_filtering": "banana",
+                "int_for_filtering": 1,
+            }
+        ]
+        res = self.client.index(self.index_name_1).add_documents(docs, non_tensor_fields=[], auto_refresh=True)
+
+        test_cases = (
+            {   # filter string only (str)
+                "query": "random content", 
+                "filter_string": "str_for_filtering:apple", 
+                "searchable_attributes": None,
+                "expected": ["0", "2"]
+            },  
+            {   # filter string only (int)
+                "query": "random content", 
+                "filter_string": "int_for_filtering:0", 
+                "searchable_attributes": None,
+                "expected": ["0", "1"]
+            },  
+            {   # filter string only (str and int)
+                "query": "random content", 
+                "filter_string": "str_for_filtering:banana AND int_for_filtering:1", 
+                "searchable_attributes": None,
+                "expected": ["3"]
+            },  
+            {   # searchable attributes only (one)
+                "query": "random content", 
+                "filter_string": None,
+                "searchable_attributes": ["field_b"], 
+                "expected": ["1", "2", "3"]
+            },   
+            {   # searchable attributes only (both)
+                "query": "random content", 
+                "filter_string": None,
+                "searchable_attributes": ["field_a", "field_b"], 
+                "expected": ["0", "1", "2", "3"]
+            },         
+            {   # filter string and searchable attributes (one)
+                "query": "random content",
+                "filter_string": "str_for_filtering:apple",
+                "searchable_attributes": ["field_b"],
+                "expected": ["2"]
+            },
+            {   # filter string and searchable attributes (both)
+                "query": "random content",
+                "filter_string": "str_for_filtering:banana AND int_for_filtering:0",
+                "searchable_attributes": ["field_a"],
+                "expected": []
+            }
+        )
+
+        for case in test_cases:
+            search_res = self.client.index(self.index_name_1).search(
+                case["query"],
+                filter_string=case.get("filter_string", ""),
+                searchable_attributes=case.get("searchable_attributes", None)
+            )
+            assert len(search_res["hits"]) == len(case["expected"])
+            assert set([hit["_id"] for hit in search_res["hits"]]) == set(case["expected"])
+
         
     def test_escaped_non_tensor_field(self):
         """We need to make sure non tensor field escaping works properly.
@@ -172,9 +234,9 @@ class TestSearch(MarqoTestCase):
     def test_multi_queries(self):
         docs = [
             {
-                "loc a": "https://raw.githubusercontent.com/marqo-ai/marqo-api-tests/mainline/assets/ai_hippo_realistic.png",
+                "loc a": "https://marqo-assets.s3.amazonaws.com/tests/images/ai_hippo_realistic.png",
                 "_id": 'realistic_hippo'},
-            {"loc b": "https://raw.githubusercontent.com/marqo-ai/marqo-api-tests/mainline/assets/ai_hippo_statue.png",
+            {"loc b": "https://marqo-assets.s3.amazonaws.com/tests/images/ai_hippo_statue.png",
              "_id": 'artefact_hippo'}
         ]
         image_index_config = {
@@ -185,15 +247,15 @@ class TestSearch(MarqoTestCase):
         }
         self.client.create_index(index_name=self.index_name_1, settings_dict=image_index_config)
         self.client.index(index_name=self.index_name_1).add_documents(
-            documents=docs, auto_refresh=True
+            documents=docs, auto_refresh=True, non_tensor_fields=[]
         )
         queries_expected_ordering = [
             ({"Nature photography": 2.0, "Artefact": -2}, ['realistic_hippo', 'artefact_hippo']),
             ({"Nature photography": -1.0, "Artefact": 1.0}, ['artefact_hippo', 'realistic_hippo']),
-            ({"https://raw.githubusercontent.com/marqo-ai/marqo-api-tests/mainline/assets/ai_hippo_statue.png": -1.0,
+            ({"https://marqo-assets.s3.amazonaws.com/tests/images/ai_hippo_statue.png": -1.0,
               "blah": 1.0}, ['realistic_hippo', 'artefact_hippo']),
-            ({"https://raw.githubusercontent.com/marqo-ai/marqo-api-tests/mainline/assets/ai_hippo_statue.png": 2.0,
-              "https://raw.githubusercontent.com/marqo-ai/marqo-api-tests/mainline/assets/ai_hippo_realistic.png": -1.0},
+            ({"https://marqo-assets.s3.amazonaws.com/tests/images/ai_hippo_statue.png": 2.0,
+              "https://marqo-assets.s3.amazonaws.com/tests/images/ai_hippo_realistic.png": -1.0},
              ['artefact_hippo', 'realistic_hippo']),
         ]
         for query, expected_ordering in queries_expected_ordering:
@@ -224,7 +286,7 @@ class TestSearch(MarqoTestCase):
                     "Description": "A history of household pets",
                     "_id": "d2"
                 }
-            ]
+            ], non_tensor_fields=[], auto_refresh=True
         )
         query = {
             "What are the best pets": 1

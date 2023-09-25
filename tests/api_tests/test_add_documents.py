@@ -1,5 +1,6 @@
 import copy
 import pprint
+from urllib.parse import quote_plus
 from marqo.client import Client
 from marqo.errors import MarqoApiError, MarqoError, MarqoWebError
 import unittest
@@ -8,6 +9,9 @@ from marqo import enums
 from unittest import mock
 import numpy as np
 import pytest
+import requests
+import json
+
 
 class TestAddDocuments(MarqoTestCase):
 
@@ -47,14 +51,13 @@ class TestAddDocuments(MarqoTestCase):
             }
         })
         assert self.client.get_index(self.index_name_1).get_settings() \
-            ["index_defaults"]["ann_parameters"]["parameters"]["m"] == 24
+                   ["index_defaults"]["ann_parameters"]["parameters"]["m"] == 24
 
         # Ensure non-specified values are in default
         assert self.client.get_index(self.index_name_1).get_settings() \
-            ["index_defaults"]["ann_parameters"]["parameters"]["ef_construction"] == 128
+                   ["index_defaults"]["ann_parameters"]["parameters"]["ef_construction"] == 128
         assert self.client.get_index(self.index_name_1).get_settings() \
-            ["index_defaults"]["ann_parameters"]["space_type"] == "cosinesimil"
-
+                   ["index_defaults"]["ann_parameters"]["space_type"] == "cosinesimil"
 
     # Delete index tests:
 
@@ -82,18 +85,18 @@ class TestAddDocuments(MarqoTestCase):
     def test_add_documents_with_ids(self):
         self.client.create_index(index_name=self.index_name_1)
         d1 = {
-                "doc title": "Cool Document 1",
-                "field 1": "some extra info",
-                "_id": "e197e580-0393-4f4e-90e9-8cdf4b17e339"
-            }
+            "doc title": "Cool Document 1",
+            "field 1": "some extra info",
+            "_id": "e197e580-0393-4f4e-90e9-8cdf4b17e339"
+        }
         d2 = {
-                "doc title": "Just Your Average Doc",
-                "field X": "this is a solid doc",
-                "_id": "123456"
+            "doc title": "Just Your Average Doc",
+            "field X": "this is a solid doc",
+            "_id": "123456"
         }
         res = self.client.index(self.index_name_1).add_documents([
             d1, d2
-        ])
+        ], non_tensor_fields=[])
         retrieved_d1 = self.client.index(self.index_name_1).get_document(document_id="e197e580-0393-4f4e-90e9-8cdf4b17e339")
         assert retrieved_d1 == d1
         retrieved_d2 = self.client.index(self.index_name_1).get_document(document_id="123456")
@@ -103,14 +106,14 @@ class TestAddDocuments(MarqoTestCase):
         """indexes the documents and retrieves the documents with the generated IDs"""
         self.client.create_index(index_name=self.index_name_1)
         d1 = {
-                "doc title": "Cool Document 1",
-                "field 1": "some extra info"
-            }
+            "doc title": "Cool Document 1",
+            "field 1": "some extra info"
+        }
         d2 = {
                 "doc title": "Just Your Average Doc",
                 "field X": "this is a solid doc"
             }
-        res = self.client.index(self.index_name_1).add_documents([d1, d2])
+        res = self.client.index(self.index_name_1).add_documents([d1, d2], non_tensor_fields=[])
         ids = [item["_id"] for item in res["items"]]
         assert len(ids) == 2
         assert ids[0] != ids[1]
@@ -121,25 +124,8 @@ class TestAddDocuments(MarqoTestCase):
         assert retrieved_d0 == d1 or retrieved_d0 == d2
         assert retrieved_d1 == d1 or retrieved_d1 == d2
 
-    def test_add_documents_with_ids_twice(self):
-        self.client.create_index(index_name=self.index_name_1)
-        d1 = {
-            "doc title": "Just Your Average Doc",
-            "field X": "this is a solid doc",
-            "_id": "56"
-        }
-        self.client.index(self.index_name_1).add_documents([d1])
-        assert d1 == self.client.index(self.index_name_1).get_document("56")
-        d2 = {
-            "_id": "56",
-            "completely": "different doc.",
-            "field X": "this is a solid doc"
-        }
-        self.client.index(self.index_name_1).add_documents([d2])
-        assert d2 == self.client.index(self.index_name_1).get_document("56")
-
     def test_add_batched_documents(self):
-        self.client.create_index(index_name=self.index_name_1)
+        self.client.create_index(self.index_name_1)
         ix = self.client.index(index_name=self.index_name_1)
         doc_ids = [str(num) for num in range(0, 100)]
         docs = [
@@ -148,7 +134,7 @@ class TestAddDocuments(MarqoTestCase):
              "_id": doc_id}
             for doc_id in doc_ids]
 
-        ix.add_documents(docs, server_batch_size=20)
+        ix.add_documents(docs, client_batch_size=10, tensor_fields=["Title", "Generic text"])
         ix.refresh()
         # TODO we should do a count in here...
         # takes too long to search for all
@@ -156,42 +142,29 @@ class TestAddDocuments(MarqoTestCase):
             original_doc = docs[_id].copy()
             assert ix.get_document(document_id=str(_id)) == original_doc
 
+    def test_add_documents_with_ids_twice(self):
+        self.client.create_index(index_name=self.index_name_1)
+        d1 = {
+            "doc title": "Just Your Average Doc",
+            "field X": "this is a solid doc",
+            "_id": "56"
+        }
+        self.client.index(self.index_name_1).add_documents([d1], non_tensor_fields=[])
+        assert d1 == self.client.index(self.index_name_1).get_document("56")
+        d2 = {
+            "_id": "56",
+            "completely": "different doc.",
+            "field X": "this is a solid doc"
+        }
+        self.client.index(self.index_name_1).add_documents([d2], non_tensor_fields=[])
+        assert d2 == self.client.index(self.index_name_1).get_document("56")
+
     def test_add_documents_long_fields(self):
         """TODO
         """
+
     def test_update_docs_updates_chunks(self):
         """TODO"""
-
-    # delete documents tests:
-
-    def test_delete_docs(self):
-        self.client.create_index(index_name=self.index_name_1)
-        self.client.index(self.index_name_1).add_documents([
-            {"abc": "wow camel", "_id": "123"},
-            {"abc": "camels are cool", "_id": "foo"}
-        ])
-        res0 = self.client.index(self.index_name_1).search("wow camel")
-        print("res0res0")
-        pprint.pprint(res0)
-        assert res0['hits'][0]["_id"] == "123"
-        assert len(res0['hits']) == 2
-        self.client.index(self.index_name_1).delete_documents(["123"])
-        res1 = self.client.index(self.index_name_1).search("wow camel")
-        assert res1['hits'][0]["_id"] == "foo"
-        assert len(res1['hits']) == 1
-
-    def test_delete_docs_empty_ids(self):
-        self.client.create_index(index_name=self.index_name_1)
-        self.client.index(self.index_name_1).add_documents([{"abc": "efg", "_id": "123"}])
-        try:
-            self.client.index(self.index_name_1).delete_documents([])
-            raise AssertionError
-        except MarqoWebError as e:
-            assert "can't be empty" in str(e) or "value_error.missing" in str (e)
-        res = self.client.index(self.index_name_1).get_document("123")
-        print(res)
-        assert "abc" in res
-
     # get documents tests :
 
     def test_get_document(self):
@@ -201,7 +174,7 @@ class TestAddDocuments(MarqoTestCase):
 
     def test_add_documents_missing_index_fails(self):
         with pytest.raises(MarqoWebError) as ex:
-            self.client.index(self.index_name_1).add_documents([{"abd": "efg"}])
+            self.client.index(self.index_name_1).add_documents([{"abd": "efg"}], non_tensor_fields=[])
 
         assert "index_not_found" == ex.value.code
 
@@ -209,31 +182,18 @@ class TestAddDocuments(MarqoTestCase):
         temp_client = copy.deepcopy(self.client)
 
         mock__post = mock.MagicMock()
+
         @mock.patch("marqo._httprequests.HttpRequests.post", mock__post)
         def run():
             temp_client.index(self.index_name_1).add_documents(documents=[
                 {"d1": "blah"}, {"d2", "some data"}
-            ], device="cuda:45")
+            ], device="cuda:45", non_tensor_fields=[])
             return True
+
         assert run()
 
         args, kwargs = mock__post.call_args
         assert "device=cuda45" in kwargs["path"]
-
-    def test_add_documents_with_device_batching(self):
-        temp_client = copy.deepcopy(self.client)
-
-        mock__post = mock.MagicMock()
-        @mock.patch("marqo._httprequests.HttpRequests.post", mock__post)
-        def run():
-            temp_client.index(self.index_name_1).add_documents(documents=[
-                {"d1": "blah"}, {"d2", "some data"}, {"d2331": "blah"}, {"45d2", "some data"}
-            ], server_batch_size=2, device="cuda:37")
-            return True
-        assert run()
-        assert len(mock__post.call_args_list) == 1
-        for args, kwargs in mock__post.call_args_list:
-            assert "device=cuda37" in kwargs["path"]
 
     def test_add_documents_no_device(self):
         """No device should be in path if no device is set
@@ -241,12 +201,14 @@ class TestAddDocuments(MarqoTestCase):
         temp_client = copy.deepcopy(self.client)
 
         mock__post = mock.MagicMock()
+
         @mock.patch("marqo._httprequests.HttpRequests.post", mock__post)
         def run():
             temp_client.index(self.index_name_1).add_documents(documents=[
                 {"d1": "blah"}, {"d2", "some data"}
-            ])
+            ], non_tensor_fields=[])
             return True
+
         assert run()
 
         args, kwargs = mock__post.call_args
@@ -256,35 +218,23 @@ class TestAddDocuments(MarqoTestCase):
         temp_client = copy.deepcopy(self.client)
 
         mock__post = mock.MagicMock()
+
         @mock.patch("marqo._httprequests.HttpRequests.post", mock__post)
         def run():
             temp_client.index(self.index_name_1).add_documents(documents=[
                 {"d1": "blah"}, {"d2", "some data"}
-            ], auto_refresh=False)
+            ], auto_refresh=False, non_tensor_fields=[])
             temp_client.index(self.index_name_1).add_documents(documents=[
                 {"d1": "blah"}, {"d2", "some data"}
-            ], auto_refresh=True)
+            ], auto_refresh=True, non_tensor_fields=[])
             return True
+
         assert run()
 
         args, kwargs0 = mock__post.call_args_list[0]
         assert "refresh=false" in kwargs0["path"]
         args, kwargs1 = mock__post.call_args_list[1]
         assert "refresh=true" in kwargs1["path"]
-
-    def test_add_documents_with_processes(self):
-        mock__post = mock.MagicMock()
-
-        @mock.patch("marqo._httprequests.HttpRequests.post", mock__post)
-        def run():
-            self.client.index(self.index_name_1).add_documents(documents=[
-                {"d1": "blah"}, {"d2", "some data"}
-            ], processes=12)
-            return True
-        assert run()
-
-        args, kwargs = mock__post.call_args
-        assert "processes=12" in kwargs["path"]
 
     def test_add_documents_with_no_processes(self):
         mock__post = mock.MagicMock()
@@ -293,12 +243,151 @@ class TestAddDocuments(MarqoTestCase):
         def run():
             self.client.index(self.index_name_1).add_documents(documents=[
                 {"d1": "blah"}, {"d2", "some data"}
-            ])
+            ], non_tensor_fields=[])
             return True
+
         assert run()
 
         args, kwargs = mock__post.call_args
         assert "processes=12" not in kwargs["path"]
+
+    def test_add_documents_empty(self):
+        """
+        Test that adding an empty list of documents fails with bad_request
+        """
+        self.client.create_index(index_name=self.index_name_1)
+        try:
+            self.client.index(self.index_name_1).add_documents(documents=[], non_tensor_fields=[])
+            raise AssertionError
+        except MarqoWebError as e:
+            assert "bad_request" == e.code
+
+    def test_add_documents_deprecated_query_parameters_and_new_api(self):
+        """This test is to ensure that the new API does not accept old query parameters"""
+        self.client.create_index(self.index_name_1)
+        model_auth = {
+            's3': {
+                "aws_access_key_id": "<SOME ACCESS KEY ID>",
+                "aws_secret_access_key": "<SOME SECRET ACCESS KEY>"
+            }
+        }
+
+        mappings = {
+            "combo_text_image":
+                {"type": "multimodal_combination",
+                 "weights":
+                     {
+                         "my_text_attribute_1": 0.5,
+                         "my_image_attribute_1": 0.5,
+                     }
+                 }
+        }
+
+        image_download_headers = {
+            "my-image-store-api-key": "some-super-secret-image-store-key"
+        },
+
+        deprecated_query_parameters_list = ["non_tensor_fields=Title&non_tensor_fields=Genre",
+                                            "use_existing_tensors=true",
+                                            f"model_auth={quote_plus(json.dumps(model_auth))}",
+                                            f"mappings={quote_plus(json.dumps(mappings))}",
+                                            f"image_download_headers={quote_plus(json.dumps(image_download_headers))}"]
+
+        data = {
+            "documents": [
+                {
+                    "Title": "The Travels of Marco Polo",
+                    "Description": "A 13th-century travelogue describing the travels of Polo",
+                    "Genre": "History"
+                },
+                {
+                    "Title": "Extravehicular Mobility Unit (EMU)",
+                    "Description": "The EMU is a spacesuit that provides environmental protection",
+                    "_id": "article_591",
+                    "Genre": "Science"
+                }
+            ],
+            "nonTensorFields": ["Title", "Genre"]
+        }
+
+        for deprecated_query_parameters in deprecated_query_parameters_list:
+            url = f"{self.authorized_url}/indexes/{self.index_name_1}/documents?{deprecated_query_parameters}"
+            headers = {'Content-type': 'application/json'}
+
+            response = requests.post(url, headers=headers, data=json.dumps(data))
+            assert str(response.status_code).startswith("4")
+            self.assertIn("Marqo is not accepting any of the following parameters in the query string",
+                          str(response.json()))
+
+    def test_add_documents_extra_field(self):
+        """This test is to ensure that the new API does not accept extra body parameters"""
+        self.client.create_index(self.index_name_1)
+        url = f'{self.authorized_url}/{self.index_name_1}/documents'
+        headers = {'Content-type': 'application/json'}
+
+        data = {
+            "documents": [
+                {
+                    "Title": "The Travels of Marco Polo",
+                    "Description": "A 13th-century travelogue describing the travels of Polo",
+                    "Genre": "History"
+                },
+                {
+                    "Title": "Extravehicular Mobility Unit (EMU)",
+                    "Description": "The EMU is a spacesuit that provides environmental protection",
+                    "_id": "article_591",
+                    "Genre": "Science"
+                }
+            ],
+            "non_TensorFields": ["Title", "Genre"]  # not permitted field
+        }
+
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        assert str(response.status_code).startswith("4")
+        assert "Not Found" in str(response.json())
+
+    def test_add_documents_unknown_query_parameter(self):
+        """This test is to ensure that the new API does not accept unknown query parameters"""
+        self.client.create_index(self.index_name_1)
+        url = f'{self.authorized_url}/{self.index_name_1}/documents?random_parameter=true'
+        headers = {'Content-type': 'application/json'}
+
+        data = {
+            "documents": [
+                {
+                    "Title": "The Travels of Marco Polo",
+                    "Description": "A 13th-century travelogue describing the travels of Polo",
+                    "Genre": "History"
+                },
+                {
+                    "Title": "Extravehicular Mobility Unit (EMU)",
+                    "Description": "The EMU is a spacesuit that provides environmental protection",
+                    "_id": "article_591",
+                    "Genre": "Science"
+                }
+            ],
+        }
+
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        assert str(response.status_code).startswith("4")
+        assert "Not Found" in str(response.json())
+
+    def test_add_docs_image_download_headers(self):
+        mock__post = mock.MagicMock()
+
+        @mock.patch("marqo._httprequests.HttpRequests.post", mock__post)
+        def run():
+            image_download_headers = {"Authentication": "my-secret-key"}
+            self.client.index(index_name=self.index_name_1).add_documents(
+                documents=[{"some": "data"}], image_download_headers=image_download_headers,
+            non_tensor_fields=[])
+            args, kwargs = mock__post.call_args
+            assert "imageDownloadHeaders" in kwargs['body']
+            assert kwargs['body']['imageDownloadHeaders'] == image_download_headers
+
+            return True
+
+        assert run()
 
 
 @pytest.mark.cpu_only_test
@@ -333,8 +422,10 @@ class TestAddDocumentsCPUOnly(MarqoTestCase):
 
         self.client.create_index(self.index_name_1, settings_dict=index_settings)
 
-        self.client.index(self.index_name_1).add_documents([{"_id": "explicit_cpu", "title": "blah"}], device="cpu")
-        self.client.index(self.index_name_1).add_documents([{"_id": "default_device", "title": "blah"}])
+        self.client.index(self.index_name_1).add_documents([{"_id": "explicit_cpu", "title": "blah"}], device="cpu",
+                                                           non_tensor_fields=[])
+        self.client.index(self.index_name_1).add_documents([{"_id": "default_device", "title": "blah"}],
+                                                           non_tensor_fields=[])
         
         cpu_vec = self.client.index(self.index_name_1).get_document(document_id="explicit_cpu", expose_facets=True)['_tensor_facets'][0]["_embedding"]
         default_vec = self.client.index(self.index_name_1).get_document(document_id="default_device", expose_facets=True)['_tensor_facets'][0]["_embedding"]
@@ -351,7 +442,8 @@ class TestAddDocumentsCPUOnly(MarqoTestCase):
 
         # Add docs with CUDA must fail if CUDA is not available
         try:
-            self.client.index(self.index_name_1).add_documents([{"_id": "explicit_cuda", "title": "blah"}], device="cuda")
+            self.client.index(self.index_name_1).add_documents([{"_id": "explicit_cuda", "title": "blah"}],
+                                                               device="cuda", non_tensor_fields=[])
             raise AssertionError
         except MarqoWebError:
             pass
