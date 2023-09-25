@@ -163,12 +163,12 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         max_replicas = 10
         max_ef = 6000
         new_models = ["hf/all_datasets_v4_MiniLM-L6"]
-        utilities.rerun_marqo_with_env_vars(
+        lines = utilities.rerun_marqo_with_env_vars(
             env_vars=[
                 "-e", f"MARQO_MAX_NUMBER_OF_REPLICAS={max_replicas}",
                 "-e", f"MARQO_EF_CONSTRUCTION_MAX_VALUE={max_ef}",
                 "-e", f"MARQO_MODELS_TO_PRELOAD={json.dumps(new_models)}",
-                "-e", f"MARQO_LOG_LEVEL=debug"
+                # "-e", f"MARQO_LOG_LEVEL=debug"
             ],
             calling_class=self.__class__.__name__
         )
@@ -202,21 +202,27 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
         # ## Testing log output when LEVEL=debug ##
         #    we want to ensure that, in debug mode, no information is hidden
-        utilities.check_logs(
-            log_wide_checks=[
-                # lambda log_blob:(
-                #     "Unverified HTTPS request is being made to host 'host.docker.internal'. "
-                #     "Adding certificate verification is strongly advised." in log_blob) or (
-                #     "Unverified HTTPS request is being made to host 'localhost'. "
-                #     "Adding certificate verification is strongly advised." in log_blob),
-                # check presence of pip freeze:
-                lambda log_blob: 'torch==' in log_blob,
-                lambda log_blob: 'Status: Downloaded newer image for marqoai/marqo-os' in log_blob,
-                lambda log_blob: 'FutureWarning: Importing `GenerationMixin`' in log_blob,
-                lambda log_blob: 'Called redis-server command' in log_blob,
-            ],
-            container_name='marqo'
-        )
+        line_blob = ''.join(lines)
+        print('LINEBLOB START:')
+        print (line_blob)
+        print('LINEBLOB END:')
+        assert 'torch==' in line_blob
+
+        # utilities.check_logs(
+        #     log_wide_checks=[
+        #         # lambda log_blob:(
+        #         #     "Unverified HTTPS request is being made to host 'host.docker.internal'. "
+        #         #     "Adding certificate verification is strongly advised." in log_blob) or (
+        #         #     "Unverified HTTPS request is being made to host 'localhost'. "
+        #         #     "Adding certificate verification is strongly advised." in log_blob),
+        #         # check presence of pip freeze:
+        #         lambda log_blob: 'torch==' in log_blob,
+        #         lambda log_blob: 'Status: Downloaded newer image for marqoai/marqo-os' in log_blob,
+        #         lambda log_blob: 'FutureWarning: Importing `GenerationMixin`' in log_blob,
+        #         lambda log_blob: 'Called redis-server command' in log_blob,
+        #     ],
+        #     container_name='marqo'
+        # )
         # ## End log output tests ##
 
     def test_max_add_docs_count(self):

@@ -93,14 +93,14 @@ def rerun_marqo_with_env_vars(env_vars: list = [], calling_class: str = ""):
         stderr=subprocess.STDOUT,
         universal_newlines=True
     )
-
+    lines = []
     # Read and print the output line by line (in real time)
     for line in run_process.stdout:
-        print(line, end='')
+        lines.append(line)
 
     # Wait for the process to complete
     run_process.wait()
-    return True
+    return lines
 
 
 def rerun_marqo_with_default_config(calling_class: str = ""):
