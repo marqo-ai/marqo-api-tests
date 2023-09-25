@@ -202,7 +202,15 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
         # ## Testing log output when LEVEL=debug ##
         #    we want to ensure that, in debug mode, no information is hidden
-        log_blob = utilities.check_logs(log_wide_checks=[], container_name='marqo')# ''.join(lines)
+
+        # use the index to generate more log outputs (specifically regarding HTTPS requests)
+        self.client.index(self.index_name_1).add_documents(
+            documents=[{'Title': 'Recipes for hippos'}],
+            tensor_fields=['Title'],
+            auto_refresh=True
+        )
+        self.client.index(self.index_name_1).search('something')
+        log_blob = utilities.check_logs(log_wide_checks=[], container_name='marqo')
         print('LOG BLOB')
         print(log_blob)
         print('END LOG BLOB')
