@@ -1,7 +1,25 @@
+"""
+
+To test these functions locally:
+
+1. Run a Marqo container another terminal
+2. cd into the root of this repo
+3. Run the following command (you can replace MARQO_IMAGE_NAME):
+
+    TESTING_CONFIGURATION=DIND_MARQO_OS \
+    MARQO_API_TESTS_ROOT=. \
+    MARQO_IMAGE_NAME=marqoai/marqo:latest \
+    pytest tests/application_tests/test_log_output.py
+
+
+We may test multiple different env vars in the same test case. This is because
+ each new test case is expensive, requiring a restart of Marqo. This prevents
+ this test suite's runtime from growing too large.
+"""
 from tests import marqo_test
 from tests import utilities
 from marqo import Client
-from marqo.errors import MarqoApiError, BackendCommunicationError, MarqoWebError
+from marqo.errors import MarqoApiError, MarqoWebError
 import json
 
 
@@ -30,12 +48,18 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         print("Marqo has been rerun with default env vars!")
 
     def test_max_replicas(self):
-        # Default max is 1
-        # Rerun marqo with new replica count
+        """
+        Tests Marqo with a different max replica count to default (Default max is 1).
+
+        Also, tests that INFO-level log output is as expected.
+        """
         max_replicas = 5
-        print(f"Attempting to rerun marqo with max replicas: {max_replicas}")
+        log_level = 'info'
+        print(f"Attempting to rerun marqo with max replicas: {max_replicas} and log level {log_level}")
         utilities.rerun_marqo_with_env_vars(
-            env_vars = ["-e", f"MARQO_MAX_NUMBER_OF_REPLICAS={max_replicas}"],
+            env_vars=[
+                "-e", f"MARQO_MAX_NUMBER_OF_REPLICAS={max_replicas}",
+                "-e", f"MARQO_LOG_LEVEL={log_level}"],
             calling_class=self.__class__.__name__
         )
 
@@ -51,11 +75,36 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         # Make sure new index has 4 replicas
         assert self.client.get_index(self.index_name_1).get_settings() \
             ["number_of_replicas"] == 4
-    
+
+        # ## Testing log output when LEVEL=info ##
+        #    we want to ensure that, no excessive log messages are printed
+        utilities.check_logs(
+            log_wide_checks=[
+                lambda log_blob:
+                     "Unverified HTTPS request is being made to host 'host.docker.internal'. "
+                     "Adding certificate verification is strongly advised." not in log_blob,
+                lambda log_blob:
+                    "Unverified HTTPS request is being made to host 'localhost'. "
+                    "Adding certificate verification is strongly advised." not in log_blob,
+                lambda log_blob: 'torch==' not in log_blob,
+                lambda log_blob: 'Status: Downloaded newer image for marqoai/marqo-os' not in log_blob,
+                lambda log_blob: 'FutureWarning: Importing `GenerationMixin`' not in log_blob,
+                lambda log_blob: 'Called redis-server command' not in log_blob,
+                # to assure use that logs aren't just completely empty
+                lambda log_blob: 'COMPLETED SUCCESSFULLY' in log_blob
+            ],
+            container_name='marqo'
+        )
+        # ## End log output tests ##
 
     def test_preload_models(self):
-        # Default models are ["hf/all_datasets_v4_MiniLM-L6", "ViT-L/14"]
-        # Rerun marqo with new custom model
+        """
+        Tests rerunning marqo with non-default, custom model.
+        Default models are ["hf/all_datasets_v4_MiniLM-L6", "ViT-L/14"]
+
+        Also, this tests log output when log level is not set. The log level should be INFO by default.
+        """
+
         open_clip_model_object = {
             "model": "open-clip-1",
             "model_properties": {
@@ -77,6 +126,27 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         res = self.client.get_loaded_models()
         assert set([item["model_name"] for item in res["models"]]) == set(custom_models)
 
+        # ## Testing log output when log level is not set. ##
+        #    we want to ensure that, no excessive log messages are printed
+        utilities.check_logs(
+            log_wide_checks=[
+                lambda log_blob:
+                     "Unverified HTTPS request is being made to host 'host.docker.internal'. "
+                     "Adding certificate verification is strongly advised." not in log_blob,
+                lambda log_blob:
+                    "Unverified HTTPS request is being made to host 'localhost'. "
+                    "Adding certificate verification is strongly advised." not in log_blob,
+                lambda log_blob: 'torch==' not in log_blob,
+                lambda log_blob: 'Status: Downloaded newer image for marqoai/marqo-os' not in log_blob,
+                lambda log_blob: 'FutureWarning: Importing `GenerationMixin`' not in log_blob,
+                lambda log_blob: 'Called redis-server command' not in log_blob,
+                # to assure use that logs aren't just completely empty
+                lambda log_blob: 'COMPLETED SUCCESSFULLY' in log_blob
+            ],
+            container_name='marqo'
+        )
+        # ## End log output tests ##
+
 
     def test_multiple_env_vars(self):
         """
@@ -87,17 +157,21 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
             1. Load models
             2. set max number of replicas
             3. set max EF
+
+            Also, tests that debug log output is as expected.
         """
 
         # Restart marqo with new max values
         max_replicas = 10
         max_ef = 6000
-        new_models = ["hf/all_datasets_v4_MiniLM-L6"]
+        new_models = ["hf/all_datasets_v4_MiniLM-L6"],
+        log_level = 'debug'
         utilities.rerun_marqo_with_env_vars(
-            env_vars = [
+            env_vars=[
                 "-e", f"MARQO_MAX_NUMBER_OF_REPLICAS={max_replicas}",
                 "-e", f"MARQO_EF_CONSTRUCTION_MAX_VALUE={max_ef}",
-                "-e", f"MARQO_MODELS_TO_PRELOAD={json.dumps(new_models)}"
+                "-e", f"MARQO_MODELS_TO_PRELOAD={json.dumps(new_models)}",
+                "-e", f"MARQO_LOG_LEVEL={log_level}"
             ],
             calling_class=self.__class__.__name__
         )
@@ -128,6 +202,25 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         # Assert correct models
         res = self.client.get_loaded_models()
         assert set([item["model_name"] for item in res["models"]]) == set(new_models)
+
+        # ## Testing log output when LEVEL=debug ##
+        #    we want to ensure that, in debug mode, no information is hidden
+        utilities.check_logs(
+            log_wide_checks=[
+                lambda log_blob:
+                    ("Unverified HTTPS request is being made to host 'host.docker.internal'. "
+                     "Adding certificate verification is strongly advised." in log_blob) or
+                    ("Unverified HTTPS request is being made to host 'localhost'. "
+                     "Adding certificate verification is strongly advised." in log_blob),
+                # check presence of pip freeze:
+                lambda log_blob: 'torch==' in log_blob,
+                lambda log_blob: 'Status: Downloaded newer image for marqoai/marqo-os' in log_blob,
+                lambda log_blob: 'FutureWarning: Importing `GenerationMixin`' in log_blob,
+                lambda log_blob: 'Called redis-server command' in log_blob,
+            ],
+            container_name='marqo'
+        )
+        # ## End log output tests ##
 
 
     def test_max_add_docs_count(self):
@@ -171,3 +264,4 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
                 raise AssertionError("Add docs call should have failed with bad request")
             except MarqoWebError as e:
                 assert e.code == "bad_request"
+
