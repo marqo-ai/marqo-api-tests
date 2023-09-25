@@ -222,3 +222,14 @@ class TestAddDocuments(MarqoTestCase):
         assert len(loaded_model) == 1
         assert loaded_model[0]["model_name"] == "open_clip/ViT-B-32-quickgelu/laion400m_e31"
         assert loaded_model[0]["device"] == "cuda"
+
+    def test_add_documents_empty(self):
+        """
+        Test that adding an empty list of documents fails with bad_request
+        """
+        self.client.create_index(index_name=self.index_name_1)
+        try:
+            self.client.index(self.index_name_1).add_documents(documents=[], non_tensor_fields=[], device="cuda")
+            raise AssertionError
+        except MarqoWebError as e:
+            assert "bad_request" == e.code
