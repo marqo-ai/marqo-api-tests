@@ -57,33 +57,11 @@ def rerun_marqo_with_env_vars(env_vars: list = [], calling_class: str = ""):
         1. Flags are separate items from variable itself (eg, ['-e', 'MARQO_MODELS_TO_PRELOAD=["hf/all_datasets_v4_MiniLM-L6"]'])
         2. Strings (individual items in env_vars list) do not contain ' (use " instead)
         -> single quotes cause some parsing issues and will affect the test outcome
-
-        Returns True if successful
     """
-    run_process = run_marqo_process_with_env_vars(env_vars=env_vars, calling_class=calling_class)
-    
-    # Read and print the output line by line (in real time)
-    for line in run_process.stdout:
-        print(line, end='')
-    
-    # Wait for the process to complete
-    run_process.wait()
-    return True
 
-
-def run_marqo_process_with_env_vars(env_vars: list = [], calling_class: str = ""):
-    """Given a list of env vars / flags, stop and rerun Marqo using the start script appropriate
-    for the current test config
-
-    Returns the subprocess Popen object
-    """
-    if calling_class not in [
-        "TestEnvVarChanges",
-        "TestLogOutPut"
-    ]:
+    if calling_class not in ["TestEnvVarChanges"]:
         raise RuntimeError(
-            f"Rerun Marqo function should only be called by `TestEnvVarChanges` to ensure other API tests are not "
-            f"affected. Given calling class is {calling_class}")
+            f"Rerun Marqo function should only be called by `TestEnvVarChanges` to ensure other API tests are not affected. Given calling class is {calling_class}")
 
     # Stop Marqo
     print("Attempting to stop marqo.")
@@ -115,7 +93,14 @@ def run_marqo_process_with_env_vars(env_vars: list = [], calling_class: str = ""
         stderr=subprocess.STDOUT,
         universal_newlines=True
     )
-    return run_process
+
+    # Read and print the output line by line (in real time)
+    for line in run_process.stdout:
+        print(line, end='')
+
+    # Wait for the process to complete
+    run_process.wait()
+    return True
 
 
 def rerun_marqo_with_default_config(calling_class: str = ""):
