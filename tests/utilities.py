@@ -154,11 +154,7 @@ def retrieve_docker_logs(
     docker_log_fetcher = attach_docker_logs
 
     # Run the fetch_docker_logs function in a separate thread
-    # A separate thread is used so that we can enforce a timeout
     docker_log_fetcher(container_name=container_name, log_collection=log_collection)
-    # thread = threading.Thread(target=docker_log_fetcher, args=(container_name, log_collection))
-    # thread.start()
-    # thread.join(timeout=10)
 
     if not log_collection:
         raise RuntimeError("Fetching logs timed out or failed. log_collection is empty.")
