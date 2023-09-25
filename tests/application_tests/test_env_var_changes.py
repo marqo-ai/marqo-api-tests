@@ -79,7 +79,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
         # ## Testing log output when LEVEL=info ##
         #    we want to ensure that no excessive log messages are printed
-        log_blob = utilities.check_logs(log_wide_checks=[], container_name='marqo')
+        log_blob = utilities.retrieve_docker_logs(container_name='marqo')
         assert ("Unverified HTTPS request is being made to host 'host.docker.internal'. "
                 "Adding certificate verification is strongly advised." not in log_blob)
 
@@ -125,7 +125,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
         # ## Testing log output when log level is not set. ##
         #    we want to ensure that no excessive log messages are printed
-        log_blob = utilities.check_logs(log_wide_checks=[], container_name='marqo')
+        log_blob = utilities.retrieve_docker_logs(container_name='marqo')
         assert ("Unverified HTTPS request is being made to host 'host.docker.internal'. "
                 "Adding certificate verification is strongly advised." not in log_blob)
 
@@ -202,7 +202,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
             auto_refresh=True
         )
         self.client.index(self.index_name_1).search('something')
-        log_blob = utilities.check_logs(log_wide_checks=[], container_name='marqo')
+        log_blob = utilities.retrieve_docker_logs(container_name='marqo')
         print('LOG BLOB')
         print(log_blob)
         print('END LOG BLOB')
