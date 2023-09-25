@@ -120,7 +120,7 @@ def fetch_docker_logs(container_name: str, log_collection: typing.List):
         log_collection (List): A list where the fetched logs or error messages are stored.
     """
     completed_process = subprocess.run(
-        ["docker", "logs", container_name],
+        ["docker", "logs", container_name, '--stderr', '--stdout'],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True
