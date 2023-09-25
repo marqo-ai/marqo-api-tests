@@ -112,9 +112,8 @@ def rerun_marqo_with_default_config(calling_class: str = ""):
 docker_log_failure_message = "Failed to fetch docker logs for Marqo"
 
 
-def attach_docker_logs(container_name: str, log_collection: typing.List):
+def attach_docker_logs(container_name: str, log_collection: typing.List) -> None:
     """Fetches the Docker logs of a specified container and stores them in a provided list.
-    Meant to be called in a thread with at timeout
 
     Args:
         container_name (str): Name of the Docker container whose logs are to be fetched.
