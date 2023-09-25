@@ -2,14 +2,15 @@
 
 To test these functions locally:
 
-1. Run a Marqo container another terminal
+1. Run a Marqo container another terminal (these tests assume there is a running Marqo
+    container and then try to kill it, failing if unsuccessful)
 2. cd into the root of this repo
 3. Run the following command (you can replace MARQO_IMAGE_NAME):
 
     TESTING_CONFIGURATION=DIND_MARQO_OS \
     MARQO_API_TESTS_ROOT=. \
     MARQO_IMAGE_NAME=marqoai/marqo:latest \
-    pytest tests/application_tests/test_log_output.py
+    pytest tests/application_tests/test_env_var_changes.py::TestEnvVarChanges::test_multiple_env_vars
 
 
 We may test multiple different env vars in the same test case. This is because
@@ -147,7 +148,6 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         )
         # ## End log output tests ##
 
-
     def test_multiple_env_vars(self):
         """
             Ensures that rerun_marqo_with_env_vars can work with several different env vars
@@ -201,6 +201,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
         # Assert correct models
         res = self.client.get_loaded_models()
+        print(f'DEBUGL self.client.get_loaded_models(), {res}')
         assert set([item["model_name"] for item in res["models"]]) == set(new_models)
 
         # ## Testing log output when LEVEL=debug ##
