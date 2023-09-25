@@ -202,11 +202,18 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
         # ## Testing log output when LEVEL=debug ##
         #    we want to ensure that, in debug mode, no information is hidden
-        line_blob = ''.join(lines)
-        print('LINEBLOB START:')
-        print (line_blob)
-        print('LINEBLOB END:')
-        assert 'torch==' in line_blob
+        log_blob = ''.join(lines)
+
+        assert 'torch==' in log_blob
+        assert ((
+                        "Unverified HTTPS request is being made to host 'host.docker.internal'. "
+                        "Adding certificate verification is strongly advised." in log_blob)
+                or (
+                        "Unverified HTTPS request is being made to host 'localhost'. "
+                        "Adding certificate verification is strongly advised." in log_blob))
+        assert 'Status: Downloaded newer image for marqoai/marqo-os' in log_blob
+        assert 'FutureWarning: Importing `GenerationMixin`' in log_blob
+        assert 'Called redis-server command' in log_blob
 
         # utilities.check_logs(
         #     log_wide_checks=[
