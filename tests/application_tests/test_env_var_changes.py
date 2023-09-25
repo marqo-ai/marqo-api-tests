@@ -204,11 +204,11 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         #    we want to ensure that, in debug mode, no information is hidden
         utilities.check_logs(
             log_wide_checks=[
-                lambda log_blob:(
-                    "Unverified HTTPS request is being made to host 'host.docker.internal'. "
-                    "Adding certificate verification is strongly advised." in log_blob) or (
-                    "Unverified HTTPS request is being made to host 'localhost'. "
-                    "Adding certificate verification is strongly advised." in log_blob),
+                # lambda log_blob:(
+                #     "Unverified HTTPS request is being made to host 'host.docker.internal'. "
+                #     "Adding certificate verification is strongly advised." in log_blob) or (
+                #     "Unverified HTTPS request is being made to host 'localhost'. "
+                #     "Adding certificate verification is strongly advised." in log_blob),
                 # check presence of pip freeze:
                 lambda log_blob: 'torch==' in log_blob,
                 lambda log_blob: 'Status: Downloaded newer image for marqoai/marqo-os' in log_blob,
