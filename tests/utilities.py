@@ -122,7 +122,7 @@ def fetch_docker_logs(container_name: str, log_collection: typing.List):
     completed_process = subprocess.run(
         ["docker", "logs", container_name],
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
         text=True
     )
 
