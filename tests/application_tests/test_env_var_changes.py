@@ -170,8 +170,8 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
             env_vars=[
                 "-e", f"MARQO_MAX_NUMBER_OF_REPLICAS={max_replicas}",
                 "-e", f"MARQO_EF_CONSTRUCTION_MAX_VALUE={max_ef}",
-                "-e", f"MARQO_MODELS_TO_PRELOAD={json.dumps(new_models)}",
-                "-e", f"MARQO_LOG_LEVEL={log_level}"
+                "-e", f"MARQO_MODELS_TO_PRELOAD={json.dumps(new_models)}"
+                # "-e", f"MARQO_LOG_LEVEL={log_level}"
             ],
             calling_class=self.__class__.__name__
         )
