@@ -93,14 +93,14 @@ def rerun_marqo_with_env_vars(env_vars: list = [], calling_class: str = ""):
         stderr=subprocess.STDOUT,
         universal_newlines=True
     )
-    lines = []
+
     # Read and print the output line by line (in real time)
     for line in run_process.stdout:
-        lines.append(line)
+        print(line, end='')
 
     # Wait for the process to complete
     run_process.wait()
-    return lines
+    return True
 
 
 def rerun_marqo_with_default_config(calling_class: str = ""):
@@ -112,12 +112,14 @@ def rerun_marqo_with_default_config(calling_class: str = ""):
 docker_log_failure_message = "Failed to fetch docker logs for Marqo"
 
 
-def fetch_docker_logs(container_name: str, log_collection: typing.List):
+def attach_docker_logs(container_name: str, log_collection: typing.List):
     """Fetches the Docker logs of a specified container and stores them in a provided list.
+    Meant to be called in a thread with at timeout
 
     Args:
         container_name (str): Name of the Docker container whose logs are to be fetched.
         log_collection (List): A list where the fetched logs or error messages are stored.
+            This is a mutable object so that this function can be used in a thread if needed.
     """
     completed_process = subprocess.run(
         ["docker", "logs", container_name],
@@ -134,29 +136,29 @@ def fetch_docker_logs(container_name: str, log_collection: typing.List):
             f"Failed with error: {completed_process.stderr}")
 
 
-def check_logs(
-        log_wide_checks: typing.List[typing.Callable[[str], bool]],
+def retrieve_docker_logs(
         container_name: str
-):
-    """Checks the logs of a specified Docker container for the presence or absence of specific lines.
+) -> str:
+    """Returns docker logs as a string, for a specific container
 
     Args:
-        log_wide_checks (List[str]): a list of functions to be applied to each to the entire log sr. These
-            functions should test for some property, such as the presence or absence of a substring, returning
-            True iff it passes
         container_name (str): Name of the Docker container whose logs are to be checked. Defaults to 'marqo'.
+    Returns:
+        A str which is the docker logs for the container.
     Raises:
         RuntimeError: If fetching logs fails or times out.
     """
     # a 1-elem mutable object to save the docker logs to:
     log_collection = []
 
-    docker_log_fetcher = fetch_docker_logs
+    docker_log_fetcher = attach_docker_logs
 
     # Run the fetch_docker_logs function in a separate thread
-    thread = threading.Thread(target=docker_log_fetcher, args=(container_name, log_collection))
-    thread.start()
-    thread.join(timeout=30)
+    # A separate thread is used so that we can enforce a timeout
+    docker_log_fetcher(container_name=container_name, log_collection=log_collection)
+    # thread = threading.Thread(target=docker_log_fetcher, args=(container_name, log_collection))
+    # thread.start()
+    # thread.join(timeout=10)
 
     if not log_collection:
         raise RuntimeError("Fetching logs timed out or failed. log_collection is empty.")

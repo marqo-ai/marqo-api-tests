@@ -78,7 +78,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
             ["number_of_replicas"] == 4
 
         # ## Testing log output when LEVEL=info ##
-        #    we want to ensure that, no excessive log messages are printed
+        #    we want to ensure that no excessive log messages are printed
         log_blob = utilities.check_logs(log_wide_checks=[], container_name='marqo')
         assert ("Unverified HTTPS request is being made to host 'host.docker.internal'. "
                 "Adding certificate verification is strongly advised." not in log_blob)
@@ -124,7 +124,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         assert set([item["model_name"] for item in res["models"]]) == set(custom_models)
 
         # ## Testing log output when log level is not set. ##
-        #    we want to ensure that, no excessive log messages are printed
+        #    we want to ensure that no excessive log messages are printed
         log_blob = utilities.check_logs(log_wide_checks=[], container_name='marqo')
         assert ("Unverified HTTPS request is being made to host 'host.docker.internal'. "
                 "Adding certificate verification is strongly advised." not in log_blob)
@@ -193,7 +193,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         assert set([item["model_name"] for item in res["models"]]) == set(new_models)
 
         # ## Testing log output when LEVEL=debug ##
-        #    we want to ensure that, in debug mode, no information is hidden
+        #    we want to ensure that  in debug mode, no information is hidden
 
         # use the index to generate more log outputs (specifically regarding HTTPS requests)
         self.client.index(self.index_name_1).add_documents(
