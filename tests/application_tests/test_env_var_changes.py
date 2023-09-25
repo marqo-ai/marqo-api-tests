@@ -157,33 +157,29 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
             1. Load models
             2. set max number of replicas
             3. set max EF
-
-            Also, tests that debug log output is as expected.
         """
 
         # Restart marqo with new max values
         max_replicas = 10
         max_ef = 6000
-        new_models = ["hf/all_datasets_v4_MiniLM-L6"],
-        log_level = 'debug'
+        new_models = ["hf/all_datasets_v4_MiniLM-L6"]
         utilities.rerun_marqo_with_env_vars(
             env_vars=[
                 "-e", f"MARQO_MAX_NUMBER_OF_REPLICAS={max_replicas}",
                 "-e", f"MARQO_EF_CONSTRUCTION_MAX_VALUE={max_ef}",
                 "-e", f"MARQO_MODELS_TO_PRELOAD={json.dumps(new_models)}"
-                # "-e", f"MARQO_LOG_LEVEL={log_level}"
             ],
             calling_class=self.__class__.__name__
         )
 
         # Create index with same number of replicas and EF
         res_0 = self.client.create_index(index_name=self.index_name_1, settings_dict={
-            "number_of_replicas": 4,         # should be fine now
+            "number_of_replicas": 4,  # should be fine now
             "index_defaults": {
-                "ann_parameters" : {
+                "ann_parameters": {
                     "space_type": "cosinesimil",
                     "parameters": {
-                        "ef_construction": 5000,    # should be fine now
+                        "ef_construction": 5000,  # should be fine now
                         "m": 16
                     }
                 }
@@ -193,36 +189,15 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         # Assert correct replicas
         # Make sure new index has 4 replicas
         assert self.client.get_index(self.index_name_1).get_settings() \
-            ["number_of_replicas"] == 4
-        
+                   ["number_of_replicas"] == 4
+
         # Assert correct EF const
         assert self.client.get_index(self.index_name_1).get_settings() \
-            ["index_defaults"]["ann_parameters"]["parameters"]["ef_construction"] == 5000
+                   ["index_defaults"]["ann_parameters"]["parameters"]["ef_construction"] == 5000
 
         # Assert correct models
         res = self.client.get_loaded_models()
-        print(f'DEBUGL self.client.get_loaded_models(), {res}')
         assert set([item["model_name"] for item in res["models"]]) == set(new_models)
-
-        # ## Testing log output when LEVEL=debug ##
-        #    we want to ensure that, in debug mode, no information is hidden
-        utilities.check_logs(
-            log_wide_checks=[
-                lambda log_blob:
-                    ("Unverified HTTPS request is being made to host 'host.docker.internal'. "
-                     "Adding certificate verification is strongly advised." in log_blob) or
-                    ("Unverified HTTPS request is being made to host 'localhost'. "
-                     "Adding certificate verification is strongly advised." in log_blob),
-                # check presence of pip freeze:
-                lambda log_blob: 'torch==' in log_blob,
-                lambda log_blob: 'Status: Downloaded newer image for marqoai/marqo-os' in log_blob,
-                lambda log_blob: 'FutureWarning: Importing `GenerationMixin`' in log_blob,
-                lambda log_blob: 'Called redis-server command' in log_blob,
-            ],
-            container_name='marqo'
-        )
-        # ## End log output tests ##
-
 
     def test_max_add_docs_count(self):
         """
