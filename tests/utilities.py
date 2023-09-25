@@ -163,7 +163,9 @@ def check_logs(
 
     if docker_log_failure_message in log_collection[0]:
         raise RuntimeError(f"{docker_log_fetcher.__name__} encountered an error retrieving docker logs. {log_collection[0]}")
-
+    print("LOG BLOB")
+    print(log_collection[0])
+    print("END LOG BLOB ")
     for check in log_wide_checks:
         assert check(log_collection[0]), f"log_wide_check lambda failed: {inspect.getsource(check)}"
 

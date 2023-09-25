@@ -81,12 +81,12 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         #    we want to ensure that, no excessive log messages are printed
         utilities.check_logs(
             log_wide_checks=[
-                lambda log_blob:
+                lambda log_blob: (
                      "Unverified HTTPS request is being made to host 'host.docker.internal'. "
-                     "Adding certificate verification is strongly advised." not in log_blob,
-                lambda log_blob:
+                     "Adding certificate verification is strongly advised." not in log_blob),
+                lambda log_blob: (
                     "Unverified HTTPS request is being made to host 'localhost'. "
-                    "Adding certificate verification is strongly advised." not in log_blob,
+                    "Adding certificate verification is strongly advised." not in log_blob),
                 lambda log_blob: 'torch==' not in log_blob,
                 lambda log_blob: 'Status: Downloaded newer image for marqoai/marqo-os' not in log_blob,
                 lambda log_blob: 'FutureWarning: Importing `GenerationMixin`' not in log_blob,
@@ -131,12 +131,12 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         #    we want to ensure that, no excessive log messages are printed
         utilities.check_logs(
             log_wide_checks=[
-                lambda log_blob:
+                lambda log_blob: (
                      "Unverified HTTPS request is being made to host 'host.docker.internal'. "
-                     "Adding certificate verification is strongly advised." not in log_blob,
-                lambda log_blob:
+                     "Adding certificate verification is strongly advised." not in log_blob),
+                lambda log_blob: (
                     "Unverified HTTPS request is being made to host 'localhost'. "
-                    "Adding certificate verification is strongly advised." not in log_blob,
+                    "Adding certificate verification is strongly advised." not in log_blob),
                 lambda log_blob: 'torch==' not in log_blob,
                 lambda log_blob: 'Status: Downloaded newer image for marqoai/marqo-os' not in log_blob,
                 lambda log_blob: 'FutureWarning: Importing `GenerationMixin`' not in log_blob,
