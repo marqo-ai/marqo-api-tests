@@ -116,9 +116,12 @@ def attach_docker_logs(container_name: str, log_collection: typing.List) -> None
     """Fetches the Docker logs of a specified container and stores them in a provided list.
 
     Args:
-        container_name (str): Name of the Docker container whose logs are to be fetched.
-        log_collection (List): A list where the fetched logs or error messages are stored.
-            This is a mutable object so that this function can be used in a thread if needed.
+        container_name (str): Name of the Docker container whose logs are to be
+            fetched.
+        log_collection (List): A list which its first element is used to store
+            the fetched logs or error messages. A list is used to store the
+            logs, rather than returning them, so this function can be used in a
+            thread.
     """
     completed_process = subprocess.run(
         ["docker", "logs", container_name],
@@ -156,9 +159,11 @@ def retrieve_docker_logs(
     docker_log_fetcher(container_name=container_name, log_collection=log_collection)
 
     if not log_collection:
-        raise RuntimeError("Fetching logs timed out or failed. log_collection is empty.")
+        raise RuntimeError(
+            "Fetching logs timed out or failed. log_collection is empty.")
 
     if docker_log_failure_message in log_collection[0]:
-        raise RuntimeError(f"{docker_log_fetcher.__name__} encountered an error retrieving docker logs. {log_collection[0]}")
+        raise RuntimeError(f"{docker_log_fetcher.__name__} encountered an "
+                           f"error retrieving docker logs. {log_collection[0]}")
 
     return log_collection[0]
