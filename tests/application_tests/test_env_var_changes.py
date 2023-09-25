@@ -4,6 +4,7 @@ from marqo import Client
 from marqo.errors import MarqoApiError, BackendCommunicationError, MarqoWebError
 import json
 
+
 class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
     """

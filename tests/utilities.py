@@ -80,7 +80,8 @@ def run_marqo_process_with_env_vars(env_vars: list = [], calling_class: str = ""
         "TestLogOutPut"
     ]:
         raise RuntimeError(
-            f"Rerun Marqo function should only be called by `TestEnvVarChanges` to ensure other API tests are not affected. Given calling class is {calling_class}")
+            f"Rerun Marqo function should only be called by `TestEnvVarChanges` to ensure other API tests are not "
+            f"affected. Given calling class is {calling_class}")
 
     # Stop Marqo
     print("Attempting to stop marqo.")
