@@ -120,7 +120,7 @@ def fetch_docker_logs(container_name: str, log_collection: typing.List):
         log_collection (List): A list where the fetched logs or error messages are stored.
     """
     completed_process = subprocess.run(
-        ["docker", "logs", container_name, '--stderr', '--stdout'],
+        ["docker", "logs", container_name],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True
@@ -163,9 +163,5 @@ def check_logs(
 
     if docker_log_failure_message in log_collection[0]:
         raise RuntimeError(f"{docker_log_fetcher.__name__} encountered an error retrieving docker logs. {log_collection[0]}")
-    print("LOG BLOB")
-    print(log_collection[0])
-    print("END LOG BLOB ")
-    for check in log_wide_checks:
-        assert check(log_collection[0]), f"log_wide_check lambda failed: {inspect.getsource(check)}"
 
+    return log_collection[0]

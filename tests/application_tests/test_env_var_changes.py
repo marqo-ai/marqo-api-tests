@@ -202,7 +202,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
         # ## Testing log output when LEVEL=debug ##
         #    we want to ensure that, in debug mode, no information is hidden
-        log_blob = ''.join(lines)
+        log_blob = utilities.check_logs(log_wide_checks=[], container_name='marqo)# ''.join(lines)
         print('LOG BLOB')
         print(log_blob)
         print('END LOG BLOB')
