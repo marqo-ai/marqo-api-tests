@@ -218,7 +218,7 @@ class TestAddDocuments(MarqoTestCase):
 
         self.client.index(self.index_name_1).add_documents([{"_id": "default_device", "title": "blah"}], non_tensor_fields=[])
 
-        loaded_model = self.client.get_loaded_models().get("models")
+        loaded_model = self.client.index(self.index_name_1).get_loaded_models().get("models")
         assert len(loaded_model) == 1
         assert loaded_model[0]["model_name"] == "open_clip/ViT-B-32-quickgelu/laion400m_e31"
         assert loaded_model[0]["device"] == "cuda"
