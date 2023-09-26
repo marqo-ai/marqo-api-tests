@@ -216,7 +216,7 @@ class TestAddDocuments(MarqoTestCase):
 
         self.client.create_index(self.index_name_1, settings_dict=index_settings)
 
-        self.client.index(self.index_name_1).add_documents([{"_id": "default_device", "title": "blah"}], non_tensor_fields=[])
+        self.client.index(self.index_name_1).add_documents([{"_id": "default_device", "title": "blah"}], tensor_fields=["title"])
 
         loaded_model = self.client.index(self.index_name_1).get_loaded_models().get("models")
         assert len(loaded_model) == 1
