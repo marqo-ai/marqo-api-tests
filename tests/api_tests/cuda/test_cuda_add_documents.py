@@ -229,7 +229,7 @@ class TestAddDocuments(MarqoTestCase):
         """
         self.client.create_index(index_name=self.index_name_1)
         try:
-            self.client.index(self.index_name_1).add_documents(documents=[], non_tensor_fields=[], device="cuda")
+            self.client.index(self.index_name_1).add_documents(documents=[], tensor_fields=["title"], device="cuda")
             raise AssertionError
         except MarqoWebError as e:
             assert "bad_request" == e.code
