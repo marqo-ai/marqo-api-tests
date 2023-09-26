@@ -220,9 +220,8 @@ class TestAddDocuments(MarqoTestCase):
 
         loaded_model = self.client.index(self.index_name_1).get_loaded_models().get("models")
         assert len(loaded_model) == 1
-        print(loaded_model)
         assert loaded_model[0]["model_name"] == "open_clip/ViT-B-32-quickgelu/laion400m_e31"
-        assert loaded_model[0]["device"] == "cuda"
+        assert loaded_model[0]["model_device"] == "cuda"
 
     def test_add_documents_empty(self):
         """
