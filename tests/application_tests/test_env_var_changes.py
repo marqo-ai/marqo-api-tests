@@ -92,6 +92,9 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
         # to assure use that logs aren't just completely empty:
         assert 'COMPLETED SUCCESSFULLY' in log_blob
+        assert 'Marqo throttling successfully started.' in log_blob
+        assert 'INFO:DeviceSummary:found devices' in log_blob
+        assert 'INFO:ModelsForStartup:completed loading models' in log_blob
         # ## End log output tests ##
 
     def test_preload_models(self):
@@ -138,6 +141,9 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
         # to assure use that logs aren't just completely empty:
         assert 'COMPLETED SUCCESSFULLY' in log_blob
+        assert 'Marqo throttling successfully started.' in log_blob
+        assert 'INFO:DeviceSummary:found devices' in log_blob
+        assert 'INFO:ModelsForStartup:completed loading models' in log_blob
         # ## End log output tests ##
 
     def test_multiple_env_vars(self):
