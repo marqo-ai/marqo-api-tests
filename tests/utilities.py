@@ -155,7 +155,6 @@ def retrieve_docker_logs(
 
     docker_log_fetcher = attach_docker_logs
 
-    # Run the fetch_docker_logs function in a separate thread
     docker_log_fetcher(container_name=container_name, log_collection=log_collection)
 
     if not log_collection:
