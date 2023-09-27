@@ -212,9 +212,6 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         )
         self.client.index(self.index_name_1).search('something')
         log_blob = utilities.retrieve_docker_logs(container_name='marqo')
-        print('LOG BLOB')
-        print(log_blob)
-        print('END LOG BLOB')
         assert 'torch==' in log_blob
         # assertions about HTTP requests aren't reliable for some reason
         # assert ((
