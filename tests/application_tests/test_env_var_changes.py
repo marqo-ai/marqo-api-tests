@@ -155,6 +155,9 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
             1. Load models
             2. set max number of replicas
             3. set max EF
+            4. set log level to debug
+
+            Also, asserts that Marqo's debug output is as expected
         """
 
         # Restart marqo with new max values
