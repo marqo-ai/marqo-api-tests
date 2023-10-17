@@ -23,8 +23,10 @@ class TestCreateIndex(MarqoTestCase):
 
         client.create_index(self.index_name_bulk_substring)
         try:
-            client.create_index('bulk')
-            raise AssertionError('created index with illegal name `bulk`!')
+            create_index_res = client.create_index('bulk')
+            raise AssertionError(
+                f'created index with illegal name `bulk`! '
+                f'Create index response: {create_index_res}')
         except MarqoWebError as e:
             assert e.code == 'invalid_index_name'
         # ensure the index was not accidentally created despite the error:
