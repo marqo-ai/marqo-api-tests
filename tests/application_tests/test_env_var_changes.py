@@ -22,6 +22,7 @@ from tests import utilities
 from marqo import Client
 from marqo.errors import MarqoApiError, MarqoWebError
 import json
+import os
 
 
 class TestEnvVarChanges(marqo_test.MarqoTestCase):
@@ -220,7 +221,8 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         #         or (
         #                 "Unverified HTTPS request is being made to host 'localhost'. "
         #                 "Adding certificate verification is strongly advised." in log_blob))
-        assert 'Status: Downloaded newer image for marqoai/marqo-os' in log_blob
+        if "DIND" in os.environ["TESTING_CONFIGURATION"]:
+            assert 'Status: Downloaded newer image for marqoai/marqo-os' in log_blob
         assert 'FutureWarning: Importing `GenerationMixin`' in log_blob
         assert 'Called redis-server command' in log_blob
 
