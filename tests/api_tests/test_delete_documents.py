@@ -50,3 +50,42 @@ class TestDeleteDocuments(MarqoTestCase):
         res = self.client.index(self.index_name_1).get_document("123")
         print(res)
         assert "abc" in res
+    
+    def test_delete_docs_response(self):
+        """
+        Ensure that delete docs response has the correct format
+        items list, index_name, status, type, details, duration, startedAt, finishedAt
+        """
+
+        self.client.create_index(index_name=self.index_name_1)
+        self.client.index(self.index_name_1).add_documents([
+            {"_id": "doc1", "abc": "wow camel"},
+            {"_id": "doc2", "abc": "camels are cool"},
+            {"_id": "doc3", "abc": "wow camels again"}
+        ], tensor_fields=[], auto_refresh=True)
+
+        res = self.client.index(self.index_name_1).delete_documents(["doc1", "doc2", "missingdoc"], auto_refresh=True)
+        
+        assert "duration" in res
+        assert "startedAt" in res
+        assert "finishedAt" in res
+
+        assert res["index_name"] == self.index_name_1
+        assert res["type"] == "documentDeletion"
+        assert res["status"] == "succeeded"
+        assert res["details"] == {
+            "receivedDocumentIds":3,
+            "deletedDocuments":2
+        }
+        assert len(res["items"]) == 3
+
+        for item in res["items"]:
+            assert "_id" in item
+            assert "_shards" in item
+            if item["_id"] in {"doc1", "doc2"}:
+                assert item["status"] == 200
+                assert item["result"] == "deleted"
+            elif item["_id"] == "missingdoc":
+                assert item["status"] == 404
+                assert item["result"] == "not_found"
+
