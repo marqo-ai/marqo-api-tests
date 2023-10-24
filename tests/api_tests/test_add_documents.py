@@ -390,6 +390,14 @@ class TestAddDocuments(MarqoTestCase):
         assert run()
     
     def test_custom_vector_doc(self):
+        """
+        Tests the custom_vector field type.
+        Ensures the following features work on this field:
+        1. lexical search
+        2. filter string search
+        3. tensor search
+        4. get document
+        """
         settings = {
             "index_defaults": {
                 "treat_urls_and_pointers_as_images": True,
