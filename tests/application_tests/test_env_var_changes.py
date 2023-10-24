@@ -23,6 +23,8 @@ from marqo import Client
 from marqo.errors import MarqoApiError, MarqoWebError
 import json
 import os
+import time
+from datetime import datetime
 
 
 class TestEnvVarChanges(marqo_test.MarqoTestCase):
@@ -39,6 +41,9 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
             self.client.delete_index(self.index_name_1)
         except MarqoApiError as s:
             pass
+
+    def tearDown(self) -> None:
+        utilities.control_marqo_os("marqo-os", "start")
     
     @classmethod
     def tearDownClass(cls) -> None:
@@ -267,4 +272,129 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
                 raise AssertionError("Add docs call should have failed with bad request")
             except MarqoWebError as e:
                 assert e.code == "bad_request"
+
+    def test_marqo_default_retry_multi_env_values(self):
+        """
+            Ensures that retries are implemented due to transient
+            network errors occuring when sending search requests to OpenSearch.
+        """
+
+        retry_attempt_list = [1,3,5,7,10]
+
+        for retry_attempt in retry_attempt_list:
+            utilities.rerun_marqo_with_env_vars(
+                env_vars=[
+                    "-e", f"DEFAULT_MARQO_MAX_BACKEND_RETRY_ATTEMPTS='{retry_attempt}'"
+                ],
+                calling_class=self.__class__.__name__
+            )
+            self.client.create_index(self.index_name_1)
+            
+            for search_method in ["TENSOR", "LEXICAL"]:
+                utilities.control_marqo_os("marqo-os", "stop")
+                try:
+                    start_time = datetime.fromtimestamp(time.time()).strftime("%Y-%m-%dT%H:%M:%S")
+                    res = self.client.index(self.index_name_1).search(
+                        q="blah",
+                        device="cpu",
+                        search_method=search_method
+                    )
+                except Exception as e:
+                    assert e.__class__ == MarqoWebError
+                    pass
+
+                log_blob = utilities.retrieve_docker_logs("marqo", start_time)
+
+                retry_text = "BackendCommunicationError encountered... Retrying request to"
+                assert retry_text in log_blob
+                assert log_blob.count(retry_text) == retry_attempt
+
+                utilities.control_marqo_os("marqo-os", "start")
+
+    def test_marqo_add_docs_retry_multi_env_values(self):
+        """
+            Ensures that retries are implemented due to transient
+            network errors occuring when sending add docs requests to OpenSearch.
+        """
+        retry_attempt_list = [1,3,5,7,10]
+
+        for retry_attempt in retry_attempt_list:
+            utilities.rerun_marqo_with_env_vars(
+                env_vars=[
+                    "-e", f"MARQO_MAX_BACKEND_ADD_DOCS_RETRY_ATTEMPTS='{retry_attempt}'"
+                ],
+                calling_class=self.__class__.__name__
+            )
+
+            self.client.create_index(self.index_name_1)
+
+            res = self.client.index(self.index_name_1).add_documents(
+                documents=[{"some": "data"}, {"some1": "data1"}],
+                tensor_fields=["some", "some1"]
+            ) # add docs to populate index cache
+            self.client.index(self.index_name_1).refresh()
+
+            res = self.client.index(self.index_name_1).search(
+                q="blah",
+                device="cpu",
+                search_method="TENSOR"
+            )
+
+            utilities.control_marqo_os("marqo-os", "stop")
+
+            try:
+                start_time = datetime.fromtimestamp(time.time()).strftime("%Y-%m-%dT%H:%M:%S")
+                res = self.client.index(self.index_name_1).add_documents(
+                    documents=[{"some2": "data2"}, {"some3": "data3"}],
+                    tensor_fields=["some2", "some3"]
+                )
+            except Exception as e:
+                assert e.__class__ == MarqoWebError
+                pass
+
+            log_blob = utilities.retrieve_docker_logs("marqo", start_time)
+
+            retry_text = "BackendCommunicationError encountered... Retrying request to"
+            assert retry_text in log_blob
+            assert log_blob.count(retry_text) == retry_attempt
+
+            utilities.control_marqo_os("marqo-os", "start")
+
+    def test_marqo_search_retry_multi_env_values(self):
+        """
+            Ensures that retries are implemented due to transient
+            network errors occuring when sending search requests to OpenSearch.
+        """
+
+        retry_attempt_list = [1,3,5,7,10]
+
+        for retry_attempt in retry_attempt_list:
+            utilities.rerun_marqo_with_env_vars(
+                env_vars=[
+                    "-e", f"MARQO_MAX_BACKEND_SEARCH_RETRY_ATTEMPTS='{retry_attempt}'"
+                ],
+                calling_class=self.__class__.__name__
+            )
+            self.client.create_index(self.index_name_1)
+            
+            for search_method in ["TENSOR", "LEXICAL"]:
+                utilities.control_marqo_os("marqo-os", "stop")
+                try:
+                    start_time = datetime.fromtimestamp(time.time()).strftime("%Y-%m-%dT%H:%M:%S")
+                    res = self.client.index(self.index_name_1).search(
+                        q="blah",
+                        device="cpu",
+                        search_method=search_method
+                    )
+                except Exception as e:
+                    assert e.__class__ == MarqoWebError
+                    pass
+
+                log_blob = utilities.retrieve_docker_logs("marqo", start_time)
+
+                retry_text = "BackendCommunicationError encountered... Retrying request to"
+                assert retry_text in log_blob
+                assert log_blob.count(retry_text) == retry_attempt
+
+                utilities.control_marqo_os("marqo-os", "start")
 
