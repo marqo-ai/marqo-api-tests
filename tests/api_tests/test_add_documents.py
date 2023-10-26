@@ -388,6 +388,67 @@ class TestAddDocuments(MarqoTestCase):
             return True
 
         assert run()
+    
+    def test_custom_vector_doc(self):
+        """
+        Tests the custom_vector field type.
+        Ensures the following features work on this field:
+        1. lexical search
+        2. filter string search
+        3. tensor search
+        4. get document
+        """
+        settings = {
+            "index_defaults": {
+                "treat_urls_and_pointers_as_images": True,
+                "model": "ViT-B/32",    # dimension is 512
+            }
+        }
+        self.client.create_index(self.index_name_1, settings_dict=settings)
+        self.client.index(index_name=self.index_name_1).add_documents(
+            documents=[
+                {
+                    "my_custom_vector": {
+                        "content": "custom vector text",
+                        "vector": [1.0 for _ in range(512)],
+                    },
+                    "my_normal_text_field": "normal text",
+                    "_id": "doc1",
+                },
+                {
+                    "my_normal_text_field": "second doc",
+                    "_id": "doc2"
+                }
+            ], mappings={
+                "my_custom_vector": {
+                    "type": "custom_vector"
+                }
+            }, 
+            auto_refresh=True, tensor_fields=["my_custom_vector"])
+
+        # lexical search test
+        lexical_res = self.client.index(self.index_name_1).search(
+            "custom vector text", search_method="lexical")
+        assert lexical_res["hits"][0]["_id"] == "doc1"
+
+        # filter string test
+        filtering_res = self.client.index(self.index_name_1).search(
+            "", filter_string="my_custom_vector:(custom vector text)")
+        assert filtering_res["hits"][0]["_id"] == "doc1"
+
+        # tensor search test
+        tensor_res = self.client.index(self.index_name_1).search(q={"dummy text": 0}, context={"tensor": [{"vector": [1.0 for _ in range(512)], "weight": 1}]})
+        assert tensor_res["hits"][0]["_id"] == "doc1"
+
+        # get document test
+        doc_res = self.client.index(self.index_name_1).get_document(
+            document_id="doc1",
+            expose_facets=True
+        )
+        assert doc_res["my_custom_vector"] == "custom vector text"
+        assert doc_res['_tensor_facets'][0]["my_custom_vector"] == "custom vector text"
+        assert doc_res['_tensor_facets'][0]['_embedding'] == [1.0 for _ in range(512)]
+    
 
 
 @pytest.mark.cpu_only_test
