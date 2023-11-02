@@ -41,9 +41,6 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
             self.client.delete_index(self.index_name_1)
         except MarqoApiError as s:
             pass
-
-    def tearDown(self) -> None:
-        utilities.control_marqo_os("marqo-os", "start")
     
     @classmethod
     def tearDownClass(cls) -> None:
@@ -273,6 +270,35 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
             except MarqoWebError as e:
                 assert e.code == "bad_request"
 
+
+class TestBackendRetries(marqo_test.MarqoTestCase):
+    
+    """
+        All tests that test for retry mechanism working for backend requests.
+        Teardown will handle resetting marqo back to base settings as well as
+        restarting marqo-os.
+    """
+
+    def setUp(self) -> None:
+        self.client = Client(**self.client_settings)
+        self.index_name_1 = "my-test-index-1"
+        try:
+            self.client.delete_index(self.index_name_1)
+        except MarqoApiError as s:
+            pass
+
+    def tearDown(self) -> None:
+        utilities.control_marqo_os("marqo-os", "start")
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        super().tearDownClass()
+        # Ensures that marqo goes back to default state after these tests
+        utilities.rerun_marqo_with_default_config(
+            calling_class=cls.__name__
+        )
+        print("Marqo has been rerun with default env vars!")
+
     def test_marqo_default_retry_multi_env_values(self):
         """
             Ensures that retries are implemented due to transient
@@ -397,4 +423,3 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
                 assert log_blob.count(retry_text) == retry_attempt
 
                 utilities.control_marqo_os("marqo-os", "start")
-
