@@ -310,7 +310,7 @@ class TestBackendRetries(marqo_test.MarqoTestCase):
         for retry_attempt in retry_attempt_list:
             utilities.rerun_marqo_with_env_vars(
                 env_vars=[
-                    "-e", f"DEFAULT_MARQO_MAX_BACKEND_RETRY_ATTEMPTS='{retry_attempt}'"
+                    "-e", f"DEFAULT_MARQO_MAX_BACKEND_RETRY_ATTEMPTS={retry_attempt}"
                 ],
                 calling_class=self.__class__.__name__
             )
@@ -347,7 +347,7 @@ class TestBackendRetries(marqo_test.MarqoTestCase):
         for retry_attempt in retry_attempt_list:
             utilities.rerun_marqo_with_env_vars(
                 env_vars=[
-                    "-e", f"MARQO_MAX_BACKEND_ADD_DOCS_RETRY_ATTEMPTS='{retry_attempt}'"
+                    "-e", f"MARQO_MAX_BACKEND_ADD_DOCS_RETRY_ATTEMPTS={retry_attempt}"
                 ],
                 calling_class=self.__class__.__name__
             )
@@ -397,11 +397,23 @@ class TestBackendRetries(marqo_test.MarqoTestCase):
         for retry_attempt in retry_attempt_list:
             utilities.rerun_marqo_with_env_vars(
                 env_vars=[
-                    "-e", f"MARQO_MAX_BACKEND_SEARCH_RETRY_ATTEMPTS='{retry_attempt}'"
+                    "-e", f"MARQO_MAX_BACKEND_SEARCH_RETRY_ATTEMPTS={retry_attempt}"
                 ],
                 calling_class=self.__class__.__name__
             )
             self.client.create_index(self.index_name_1)
+
+            res = self.client.index(self.index_name_1).add_documents(
+                documents=[{"some": "data"}, {"some1": "data1"}],
+                tensor_fields=["some", "some1"]
+            ) # add docs to populate index cache
+            self.client.index(self.index_name_1).refresh()
+
+            res = self.client.index(self.index_name_1).search(
+                q="blah",
+                device="cpu",
+                search_method="TENSOR"
+            )
             
             for search_method in ["TENSOR", "LEXICAL"]:
                 utilities.control_marqo_os("marqo-os", "stop")

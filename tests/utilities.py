@@ -60,7 +60,7 @@ def rerun_marqo_with_env_vars(env_vars: list = [], calling_class: str = ""):
         -> single quotes cause some parsing issues and will affect the test outcome
     """
 
-    if calling_class not in ["TestEnvVarChanges"]:
+    if calling_class not in ["TestEnvVarChanges", "TestBackendRetries"]:
         raise RuntimeError(
             f"Rerun Marqo function should only be called by `TestEnvVarChanges` to ensure other API tests are not affected. Given calling class is {calling_class}")
 
@@ -188,15 +188,15 @@ def control_marqo_os(
 
     time.sleep(10)
     if "DIND" in os.environ["TESTING_CONFIGURATION"]:
-        subprocess.run(
-            f"docker exec -it marqo sh -c '{docker_command}'",
+        command_output = subprocess.run(
+            f"docker exec marqo sh -c '{docker_command}'",
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True
         )
     else:
-        subprocess.run(
+        command_output = subprocess.run(
             docker_command,
             shell=True,
             stdout=subprocess.PIPE,
@@ -204,3 +204,4 @@ def control_marqo_os(
             text=True
         )
     time.sleep(10)
+    print(command_output.stdout)
