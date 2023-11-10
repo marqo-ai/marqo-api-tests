@@ -360,12 +360,6 @@ class TestBackendRetries(marqo_test.MarqoTestCase):
             ) # add docs to populate index cache
             self.client.index(self.index_name_1).refresh()
 
-            res = self.client.index(self.index_name_1).search(
-                q="blah",
-                device="cpu",
-                search_method="TENSOR"
-            )
-
             utilities.control_marqo_os("marqo-os", "stop")
 
             try:
@@ -408,12 +402,6 @@ class TestBackendRetries(marqo_test.MarqoTestCase):
                 tensor_fields=["some", "some1"]
             ) # add docs to populate index cache
             self.client.index(self.index_name_1).refresh()
-
-            res = self.client.index(self.index_name_1).search(
-                q="blah",
-                device="cpu",
-                search_method="TENSOR"
-            )
             
             for search_method in ["TENSOR", "LEXICAL"]:
                 utilities.control_marqo_os("marqo-os", "stop")
