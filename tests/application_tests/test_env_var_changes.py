@@ -329,6 +329,8 @@ class TestBackendRetries(marqo_test.MarqoTestCase):
                     assert e.__class__ == MarqoWebError
                     pass
 
+                time.sleep(10) # add sleep to let marqo print all occurrences of retry_text
+
                 log_blob = utilities.retrieve_docker_logs("marqo", start_time)
 
                 retry_text = "BackendCommunicationError encountered... Retrying request to"
@@ -371,6 +373,8 @@ class TestBackendRetries(marqo_test.MarqoTestCase):
             except Exception as e:
                 assert e.__class__ == MarqoWebError
                 pass
+
+            time.sleep(10) # add sleep to let marqo print all occurrences of retry_text
 
             log_blob = utilities.retrieve_docker_logs("marqo", start_time)
 
@@ -415,6 +419,8 @@ class TestBackendRetries(marqo_test.MarqoTestCase):
                 except Exception as e:
                     assert e.__class__ == MarqoWebError
                     pass
+
+                time.sleep(10) # add sleep to let marqo print all occurrences of retry_text
 
                 log_blob = utilities.retrieve_docker_logs("marqo", start_time)
 

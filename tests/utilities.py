@@ -126,11 +126,14 @@ def attach_docker_logs(container_name: str, log_collection: typing.List, start_t
         start_time (str): A string representing the start time stamp to get docker logs
             must be in the format: "%Y-%m-%dT%H:%M:%S"
     """
-    
-    start_time_command = f"--since={start_time}" if start_time != None else ""
+
+    commands =  ["docker", "logs", container_name]
+
+    if start_time != None:
+        commands.append(f"--since={start_time}")
     
     completed_process = subprocess.run(
-        ["docker", "logs", container_name, start_time_command],
+        commands,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True
