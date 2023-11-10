@@ -1,4 +1,5 @@
 import os
+import time
 import subprocess
 import typing
 import threading
@@ -59,7 +60,7 @@ def rerun_marqo_with_env_vars(env_vars: list = [], calling_class: str = ""):
         -> single quotes cause some parsing issues and will affect the test outcome
     """
 
-    if calling_class not in ["TestEnvVarChanges"]:
+    if calling_class not in ["TestEnvVarChanges", "TestBackendRetries"]:
         raise RuntimeError(
             f"Rerun Marqo function should only be called by `TestEnvVarChanges` to ensure other API tests are not affected. Given calling class is {calling_class}")
 
@@ -112,7 +113,7 @@ def rerun_marqo_with_default_config(calling_class: str = ""):
 docker_log_failure_message = "Failed to fetch docker logs for Marqo"
 
 
-def attach_docker_logs(container_name: str, log_collection: typing.List) -> None:
+def attach_docker_logs(container_name: str, log_collection: typing.List, start_time: str = None) -> None:
     """Fetches the Docker logs of a specified container and stores them in a provided list.
 
     Args:
@@ -122,9 +123,14 @@ def attach_docker_logs(container_name: str, log_collection: typing.List) -> None
             the fetched logs or error messages. A list is used to store the
             logs, rather than returning them, so this function can be used in a
             thread.
+        start_time (str): A string representing the start time stamp to get docker logs
+            must be in the format: "%Y-%m-%dT%H:%M:%S"
     """
+    
+    start_time_command = f"--since={start_time}" if start_time != None else ""
+    
     completed_process = subprocess.run(
-        ["docker", "logs", container_name],
+        ["docker", "logs", container_name, start_time_command],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True
@@ -139,7 +145,8 @@ def attach_docker_logs(container_name: str, log_collection: typing.List) -> None
 
 
 def retrieve_docker_logs(
-        container_name: str
+        container_name: str,
+        start_time: str = None,
 ) -> str:
     """Returns docker logs as a string, for a specific container
 
@@ -155,7 +162,7 @@ def retrieve_docker_logs(
 
     docker_log_fetcher = attach_docker_logs
 
-    docker_log_fetcher(container_name=container_name, log_collection=log_collection)
+    docker_log_fetcher(container_name=container_name, log_collection=log_collection, start_time=start_time)
 
     if not log_collection:
         raise RuntimeError(
@@ -166,3 +173,35 @@ def retrieve_docker_logs(
                            f"error retrieving docker logs. {log_collection[0]}")
 
     return log_collection[0]
+
+
+def control_marqo_os(
+    container_name: str = "marqo-os",
+    command: str = "start",
+):
+    """Stops a Marqo OS container. If Setup is DIND, This executes a command on the marqo container.
+
+    Args:
+        container_name (str): Name of the Docker container to stop. Defaults to 'marqo-os'.
+    """
+    docker_command = f"docker {command} {container_name}"
+
+    time.sleep(10)
+    if "DIND" in os.environ["TESTING_CONFIGURATION"]:
+        command_output = subprocess.run(
+            f"docker exec marqo sh -c '{docker_command}'",
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+    else:
+        command_output = subprocess.run(
+            docker_command,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+    time.sleep(10)
+    print(command_output.stdout)
