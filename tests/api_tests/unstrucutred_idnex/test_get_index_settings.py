@@ -1,17 +1,19 @@
+import uuid
+
 from tests.marqo_test import MarqoTestCase
-from marqo.errors import IndexNotFoundError
 from marqo.client import Client
 
+
 class TestGetSettings(MarqoTestCase):
+    default_index_name = "default_index" + str(uuid.uuid4()).replace('-', '')
+    custom_index_name = "custom_index" + str(uuid.uuid4()).replace('-', '')
 
     def setUp(self) -> None:
         self.client = Client(**self.client_settings)
-        self.generic_header = {'Content-type': 'application/json'}
-        self.index_name = 'my-test-index-1'
-        try:
-            self.client.delete_index(self.index_name)
-        except IndexNotFoundError as s:
-            pass
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.delete_indexes([cls.default_index_name, cls.custom_index_name])
 
     def test_default_settings(self):
         """default fields should be returned if index is created with default settings
@@ -22,17 +24,14 @@ class TestGetSettings(MarqoTestCase):
                                           'image_preprocessing': {'patch_method': None}}, 'number_of_shards': 5,
                                           'number_of_replicas' : 1,}
         """
-        self.client.create_index(index_name=self.index_name)
+        self.client.create_index(index_name=self.default_index_name, type="unstructured")
 
-        ix = self.client.index(self.index_name)
+        ix = self.client.index(self.default_index_name)
         index_settings = ix.get_settings()
         fields = {'treat_urls_and_pointers_as_images', 'text_preprocessing', 'model', 'normalize_embeddings',
                   'image_preprocessing'}
 
-        self.assertIn('index_defaults', index_settings)
-        self.assertIn('number_of_shards', index_settings)
-        self.assertIn("number_of_replicas", index_settings)
-        self.assertTrue(fields.issubset(set(index_settings['index_defaults'])))
+        self.assertTrue(fields.issubset(set(index_settings)))
 
     def test_custom_settings(self):
         """adding custom settings to the index should be reflected in the returned output
@@ -43,30 +42,18 @@ class TestGetSettings(MarqoTestCase):
                             'type': 'sbert'}
 
         index_settings = {
-            'index_defaults': {
-                'treat_urls_and_pointers_as_images': False,
-                'model': 'test-model',
-                'model_properties': model_properties,
-                'normalize_embeddings': True,
-            }
+            "type": "unstructured",
+            'treat_urls_and_pointers_as_images': False,
+            'model': 'test-model',
+            'model_properties': model_properties,
+            'normalize_embeddings': True,
         }
 
-        self.client.create_index(index_name=self.index_name, settings_dict=index_settings)
+        res = self.client.create_index(index_name=self.custom_index_name, settings_dict=index_settings)
 
-        ix = self.client.index(self.index_name)
+        ix = self.client.index(self.custom_index_name)
         index_settings = ix.get_settings()
         fields = {'treat_urls_and_pointers_as_images', 'text_preprocessing', 'model', 'normalize_embeddings',
                   'image_preprocessing', 'model_properties'}
 
-        self.assertIn('index_defaults', index_settings)
-        self.assertIn('number_of_shards', index_settings)
-        self.assertIn("number_of_replicas", index_settings)
-        self.assertTrue(fields.issubset(set(index_settings['index_defaults'])))
-
-    def test_settings_should_be_type_dict(self):
-        self.client.create_index(index_name=self.index_name)
-
-        ix = self.client.index(self.index_name)
-        index_settings = ix.get_settings()
-
-        self.assertIsInstance(index_settings, dict)
+        self.assertTrue(fields.issubset(set(index_settings)))

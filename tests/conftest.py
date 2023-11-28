@@ -7,6 +7,9 @@ def pytest_configure(config):
 
 
 def pytest_collection_modifyitems(items):
+    # TODO Remove this
+    os.environ["TESTING_CONFIGURATION"] = "CUSTOM"
+
     if os.environ["TESTING_CONFIGURATION"] in ["CUDA_DIND_MARQO_OS"]:
         # Skip cpu_only_tests if the env is CUDA
         skip_cpu_only_test = pytest.mark.skip(reason="need to not set "
