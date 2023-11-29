@@ -5,34 +5,39 @@ from marqo.errors import MarqoWebError
 
 from tests.marqo_test import MarqoTestCase
 
-class TestUnstructuredDeleteDocuments(MarqoTestCase):
+class TestStructuredDeleteDocuments(MarqoTestCase):
+    text_index_name = "api_test_structured_index" + str(uuid.uuid4()).replace('-', '')
+    image_index_name = "api_test_structured_image_index" + str(uuid.uuid4()).replace('-', '')
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        try:
-            cls.delete_indexes(["api_test_unstructured_index", "api_test_unstructured_image_index"])
-        except Exception:
-            pass
 
         cls.client = Client(**cls.client_settings)
-
-        cls.text_index_name = "api_test_unstructured_index" + str(uuid.uuid4()).replace('-', '')
-        cls.image_index_name = "api_test_unstructured_image_index" + str(uuid.uuid4()).replace('-', '')
 
         cls.create_indexes([
             {
                 "index_name": cls.text_index_name,
                 "settings_dict": {
-                    "type": "unstructured",
+                    "type": "structured",
                     "model": "sentence-transformers/all-MiniLM-L6-v2",
+                    "all_fields": [
+                        {"name": "title", "type": "text"},
+                        {"name": "content", "type": "text"},
+                    ],
+                    "tensor_fields": ["title", "content"],
                 }
             },
             {
                 "index_name": cls.image_index_name,
                 "settings_dict": {
-                    "type": "unstructured",
-                    "model": "open_clip/ViT-B-32/openai"
+                    "type": "structured",
+                    "model": "open_clip/ViT-B-32/openai",
+                    "all_fields": [
+                        {"name": "title", "type": "text"},
+                        {"name": "image_content", "type": "image_pointer"},
+                    ],
+                    "tensor_fields": ["title", "image_content"],
                 }
             }
         ])
@@ -45,9 +50,9 @@ class TestUnstructuredDeleteDocuments(MarqoTestCase):
             
     def test_delete_docs(self):
         self.client.index(self.text_index_name).add_documents([
-            {"abc": "wow camel", "_id": "123"},
-            {"abc": "camels are cool", "_id": "foo"}
-        ], tensor_fields=["abc"])
+            {"title": "wow camel", "_id": "123"},
+            {"title": "camels are cool", "_id": "foo"}
+        ])
 
         res0 = self.client.index(self.text_index_name).search("wow camel")
 
@@ -59,14 +64,14 @@ class TestUnstructuredDeleteDocuments(MarqoTestCase):
         assert len(res1['hits']) == 1
 
     def test_delete_docs_empty_ids(self):
-        self.client.index(self.text_index_name).add_documents([{"abc": "efg", "_id": "123"}], tensor_fields=[])
+        self.client.index(self.text_index_name).add_documents([{"title": "efg", "_id": "123"}])
         try:
             self.client.index(self.text_index_name).delete_documents([])
             raise AssertionError
         except MarqoWebError as e:
             assert "can't be empty" in str(e) or "value_error.missing" in str (e)
         res = self.client.index(self.text_index_name).get_document("123")
-        assert "abc" in res
+        assert "title" in res
 
     def test_delete_docs_response(self):
         """
@@ -74,10 +79,10 @@ class TestUnstructuredDeleteDocuments(MarqoTestCase):
         items list, index_name, status, type, details, duration, startedAt, finishedAt
         """
         self.client.index(self.text_index_name).add_documents([
-            {"_id": "doc1", "abc": "wow camel"},
-            {"_id": "doc2", "abc": "camels are cool"},
-            {"_id": "doc3", "abc": "wow camels again"}
-        ], tensor_fields=[])
+            {"_id": "doc1", "title": "wow camel"},
+            {"_id": "doc2", "title": "camels are cool"},
+            {"_id": "doc3", "title": "wow camels again"}
+        ])
 
         res = self.client.index(self.text_index_name).delete_documents(["doc1", "doc2", "doc3"])
 
@@ -96,7 +101,6 @@ class TestUnstructuredDeleteDocuments(MarqoTestCase):
 
         for item in res["items"]:
             assert "_id" in item
-            assert "_shards" in item
             if item["_id"] in {"doc1", "doc2", "doc3"}:
                 assert item["status"] == 200
                 assert item["result"] == "deleted"

@@ -13,34 +13,54 @@ import pytest
 
 
 class TestUnstructuredSearch(MarqoTestCase):
+    text_index_name = "api_test_structured_index" + str(uuid.uuid4()).replace('-', '')
+    image_index_name = "api_test_structured_image_index" + str(uuid.uuid4()).replace('-', '')
+    filter_test_index_name = "api_test_structured_filter_index" + str(uuid.uuid4()).replace('-', '')
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
 
-        try:
-            cls.delete_indexes(["api_test_unstructured_index", "api_test_unstructured_image_index"])
-        except Exception:
-            pass
-
         cls.client = Client(**cls.client_settings)
-
-        cls.text_index_name = "api_test_unstructured_index" + str(uuid.uuid4()).replace('-', '')
-        cls.image_index_name = "api_test_unstructured_image_index" + str(uuid.uuid4()).replace('-', '')
 
         cls.create_indexes([
             {
                 "index_name": cls.text_index_name,
                 "settings_dict": {
-                    "type": "unstructured",
+                    "type": "structured",
                     "model": "sentence-transformers/all-MiniLM-L6-v2",
+                    "all_fields": [
+                        {"name": "title", "type": "text", "features": ["filter", "lexical_search"]},
+                        {"name": "content", "type": "text", "features": ["filter", "lexical_search"]},
+                    ],
+                    "tensor_fields": ["title", "content"],
+                }
+            },
+            {
+                "index_name": cls.filter_test_index_name,
+                "settings_dict": {
+                    "type": "structured",
+                    "model": "sentence-transformers/all-MiniLM-L6-v2",
+                    "all_fields": [
+                        {"name": "field_a", "type": "text", "features": ["filter"]},
+                        {"name": "field_b", "type": "text", "features": ["filter"]},
+                        {"name": "str_for_filtering", "type": "text", "features": ["filter"]},
+                        {"name": "int_for_filtering", "type": "int", "features": ["filter"]},
+                    ],
+                    "tensor_fields": ["field_a", "field_b"],
                 }
             },
             {
                 "index_name": cls.image_index_name,
                 "settings_dict": {
-                    "type": "unstructured",
-                    "model": "open_clip/ViT-B-32/openai"
+                    "type": "structured",
+                    "model": "open_clip/ViT-B-32/openai",
+                    "all_fields": [
+                        {"name": "title", "type": "text", "features": ["filter", "lexical_search"]},
+                        {"name": "content", "type": "text", "features": ["filter", "lexical_search"]},
+                        {"name": "image_content", "type": "image_pointer"},
+                    ],
+                    "tensor_fields": ["title", "image_content"],
                 }
             }
         ])
@@ -69,18 +89,18 @@ class TestUnstructuredSearch(MarqoTestCase):
         """Searches an index of a single doc.
         Checks the basic functionality and response structure"""
         d1 = {
-            "Title": "This is a title about some doc. ",
-            "Description": """The Guardian is a British daily newspaper. It was founded in 1821 as The Manchester Guardian, and changed its name in 1959.[5] Along with its sister papers The Observer and The Guardian Weekly, The Guardian is part of the Guardian Media Group, owned by the Scott Trust.[6] The trust was created in 1936 to "secure the financial and editorial independence of The Guardian in perpetuity and to safeguard the journalistic freedom and liberal values of The Guardian free from commercial or political interference".[7] The trust was converted into a limited company in 2008, with a constitution written so as to maintain for The Guardian the same protections as were built into the structure of the Scott Trust by its creators. Profits are reinvested in journalism rather than distributed to owners or shareholders.[7] It is considered a newspaper of record in the UK.[8][9]
+            "title": "This is a title about some doc. ",
+            "content": """The Guardian is a British daily newspaper. It was founded in 1821 as The Manchester Guardian, and changed its name in 1959.[5] Along with its sister papers The Observer and The Guardian Weekly, The Guardian is part of the Guardian Media Group, owned by the Scott Trust.[6] The trust was created in 1936 to "secure the financial and editorial independence of The Guardian in perpetuity and to safeguard the journalistic freedom and liberal values of The Guardian free from commercial or political interference".[7] The trust was converted into a limited company in 2008, with a constitution written so as to maintain for The Guardian the same protections as were built into the structure of the Scott Trust by its creators. Profits are reinvested in journalism rather than distributed to owners or shareholders.[7] It is considered a newspaper of record in the UK.[8][9]
             The editor-in-chief Katharine Viner succeeded Alan Rusbridger in 2015.[10][11] Since 2018, the paper's main newsprint sections have been published in tabloid format. As of July 2021, its print edition had a daily circulation of 105,134.[4] The newspaper has an online edition, TheGuardian.com, as well as two international websites, Guardian Australia (founded in 2013) and Guardian US (founded in 2011). The paper's readership is generally on the mainstream left of British political opinion,[12][13][14][15] and the term "Guardian reader" is used to imply a stereotype of liberal, left-wing or "politically correct" views.[3] Frequent typographical errors during the age of manual typesetting led Private Eye magazine to dub the paper the "Grauniad" in the 1960s, a nickname still used occasionally by the editors for self-mockery.[16]
             """
         }
-        add_doc_res = self.client.index(self.text_index_name).add_documents([d1], tensor_fields=["Title", "Description"])
+        add_doc_res = self.client.index(self.text_index_name).add_documents([d1])
         search_res = self.client.index(self.text_index_name).search(
             "title about some doc")
         assert len(search_res["hits"]) == 1
         assert self.strip_marqo_fields(search_res["hits"][0]) == d1
         assert len(search_res["hits"][0]["_highlights"]) > 0
-        assert ("Title" in search_res["hits"][0]["_highlights"]) or ("Description" in search_res["hits"][0]["_highlights"])
+        assert ("title" in search_res["hits"][0]["_highlights"]) or ("content" in search_res["hits"][0]["_highlights"])
 
     def test_search_empty_index(self):
         search_res = self.client.index(self.text_index_name).search(
@@ -89,44 +109,44 @@ class TestUnstructuredSearch(MarqoTestCase):
         
     def test_search_multi_docs(self):
         d1 = {
-                "doc title": "Cool Document 1",
-                "field 1": "some extra info",
+                "title": "Cool Document 1",
+                "content": "some extra info",
                 "_id": "e197e580-0393-4f4e-90e9-8cdf4b17e339"
             }
         d2 = {
-                "doc title": "Just Your Average Doc",
-                "field X": "this is a solid doc",
+                "title": "Just Your Average Doc",
+                "content": "this is a solid doc",
                 "_id": "123456"
         }
         res = self.client.index(self.text_index_name).add_documents([
             d1, d2
-        ], tensor_fields=["doc title", "field 1", "field X"])
+        ])
         search_res = self.client.index(self.text_index_name).search(
             "this is a solid doc")
         assert d2 == self.strip_marqo_fields(search_res['hits'][0], strip_id=False)
-        assert search_res['hits'][0]['_highlights']["field X"] == "this is a solid doc"
+        assert search_res['hits'][0]['_highlights']["content"] == "this is a solid doc"
 
     def test_select_lexical(self):
         d1 = {
-            "doc title": "Very heavy, dense metallic lead.",
-            "field 1": "some extra info",
+            "title": "Very heavy, dense metallic lead.",
+            "content": "some extra info",
             "_id": "e197e580-0393-4f4e-90e9-8cdf4b17e339"
         }
         d2 = {
-            "doc title": "The captain bravely lead her followers into battle."
+            "title": "The captain bravely lead her followers into battle."
                          " She directed her soldiers to and fro.",
-            "field X": "this is a solid doc",
+            "content": "this is a solid doc",
             "_id": "123456"
         }
         res = self.client.index(self.text_index_name).add_documents([
             d1, d2
-        ], tensor_fields=["doc title", "field 1", "field X"])
+        ])
 
         # Ensure that vector search works
         search_res = self.client.index(self.text_index_name).search(
             "Examples of leadership", search_method=enums.SearchMethods.TENSOR)
         assert d2 == self.strip_marqo_fields(search_res["hits"][0], strip_id=False)
-        assert search_res["hits"][0]['_highlights']["doc title"].startswith("The captain bravely lead her followers")
+        assert search_res["hits"][0]['_highlights']["title"].startswith("The captain bravely lead her followers")
 
         # try it with lexical search:
         #    can't find the above with synonym
@@ -183,7 +203,7 @@ class TestUnstructuredSearch(MarqoTestCase):
                 "int_for_filtering": 1,
             }
         ]
-        res = self.client.index(self.text_index_name).add_documents(docs, tensor_fields=["field_a", "field_b"])
+        res = self.client.index(self.filter_test_index_name,).add_documents(docs)
 
         test_cases = [
             {   # filter string only (str)
@@ -209,7 +229,7 @@ class TestUnstructuredSearch(MarqoTestCase):
             expected = case["expected"]
 
             with self.subTest(query=query, filter_string=filter_string, expected=expected):
-                search_res = self.client.index(self.text_index_name).search(
+                search_res = self.client.index(self.filter_test_index_name,).search(
                     query,
                     filter_string=filter_string,
                 )
@@ -219,38 +239,17 @@ class TestUnstructuredSearch(MarqoTestCase):
                 self.assertEqual(actual_ids, set(expected),
                                  f"Failed ID match for query '{query}' with filter '{filter_string}'. Expected {expected}, got {actual_ids}.")
 
-    def test_escaped_non_tensor_field(self):
-        """We need to make sure non tensor field escaping works properly.
-
-        We test to ensure Marqo doesn't match to the non tensor field
-        """
-        docs = [{
-            "dont#tensorise Me": "Dog",
-            "tensorise_me": "quarterly earnings report"
-        }]
-        self.client.index(index_name=self.text_index_name).add_documents(
-            docs, tensor_fields=["tensorise_me"]
-        )
-        search_res = self.client.index(index_name=self.text_index_name).search("Dog")
-        assert list(search_res['hits'][0]['_highlights'].keys()) == ['tensorise_me']
-
     def test_multi_queries(self):
         docs = [
             {
-                "loc a": "https://marqo-assets.s3.amazonaws.com/tests/images/ai_hippo_realistic.png",
+                "content": "https://marqo-assets.s3.amazonaws.com/tests/images/ai_hippo_realistic.png",
                 "_id": 'realistic_hippo'},
-            {"loc b": "https://marqo-assets.s3.amazonaws.com/tests/images/ai_hippo_statue.png",
+            {"content": "https://marqo-assets.s3.amazonaws.com/tests/images/ai_hippo_statue.png",
              "_id": 'artefact_hippo'}
         ]
-        image_index_config = {
-            'index_defaults': {
-                'model': "ViT-B/16",
-                'treat_urls_and_pointers_as_images': True
-            }
-        }
 
-        self.client.index(index_name=self.text_index_name).add_documents(
-            documents=docs, tensor_fields=["loc a", "loc b"]
+        self.client.index(index_name=self.image_index_name).add_documents(
+            documents=docs
         )
 
         queries_expected_ordering = [
@@ -263,7 +262,7 @@ class TestUnstructuredSearch(MarqoTestCase):
              ['artefact_hippo', 'realistic_hippo']),
         ]
         for query, expected_ordering in queries_expected_ordering:
-            res = self.client.index(index_name=self.text_index_name).search(
+            res = self.client.index(index_name=self.image_index_name).search(
                 q=query,
                 search_method="TENSOR")
             # the poodle doc should be lower ranked than the irrelevant doc
@@ -274,16 +273,16 @@ class TestUnstructuredSearch(MarqoTestCase):
         self.client.index(index_name=self.image_index_name).add_documents(
             [
                 {
-                    "Title": "A comparison of the best pets",
-                    "Description": "Animals",
+                    "title": "A comparison of the best pets",
+                    "content": "Animals",
                     "_id": "d1"
                 },
                 {
-                    "Title": "The history of dogs",
-                    "Description": "A history of household pets",
+                    "title": "The history of dogs",
+                    "content": "A history of household pets",
                     "_id": "d2"
                 }
-            ], tensor_fields=["Title", "Description"]
+            ]
         )
         
         query = {
