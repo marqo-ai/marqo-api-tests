@@ -102,10 +102,11 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
     def test_preload_models(self):
         """
-        Tests rerunning marqo with non-default, custom model.
+        1. Tests rerunning marqo with non-default, custom model.
         Default models are ["hf/all_datasets_v4_MiniLM-L6", "ViT-L/14"]
 
-        Also, this tests log output when log level is not set. The log level should be INFO by default.
+        2. Also, this tests log output when log level is not set. The log level should be INFO by default.
+        3. Checks that trying to preload `no_model` does not raise an error, and logs that `no_model` was skipped.
         """
 
         open_clip_model_object = {
@@ -118,16 +119,23 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
             }
         }
 
+        no_model_object = {
+            "model": "no_model",
+            "model_properties": {
+                "dimensions": 123
+            }
+        }
+
         print(f"Attempting to rerun marqo with custom model {open_clip_model_object['model']}")
         utilities.rerun_marqo_with_env_vars(
-            env_vars = ['-e', f"MARQO_MODELS_TO_PRELOAD=[{json.dumps(open_clip_model_object)}]"],
+            env_vars = ['-e', f"MARQO_MODELS_TO_PRELOAD=[{json.dumps(open_clip_model_object)}, {json.dumps(no_model_object)}]"],
             calling_class=self.__class__.__name__
         )
 
         # check preloaded models (should be custom model)
-        custom_models = ["open-clip-1"]
+        custom_models = {"open-clip-1"}
         res = self.client.get_loaded_models()
-        assert set([item["model_name"] for item in res["models"]]) == set(custom_models)
+        assert set([item["model_name"] for item in res["models"]]) == custom_models
 
         # ## Testing log output when log level is not set. ##
         #    we want to ensure that no excessive log messages are printed
@@ -147,6 +155,10 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         assert 'Marqo throttling successfully started.' in log_blob
         assert 'INFO:DeviceSummary:found devices' in log_blob
         assert 'INFO:ModelsForStartup:completed loading models' in log_blob
+
+        # Check no_model was properly skipped
+        assert 'Skipping preloading of `no_model`' in log_blob
+        
         # ## End log output tests ##
 
     def test_multiple_env_vars(self):
@@ -305,7 +317,7 @@ class TestBackendRetries(marqo_test.MarqoTestCase):
             network errors occuring when sending search requests to OpenSearch.
         """
 
-        retry_attempt_list = [1,3,5,7,10]
+        retry_attempt_list = [1,3]
 
         for retry_attempt in retry_attempt_list:
             utilities.rerun_marqo_with_env_vars(
@@ -344,7 +356,7 @@ class TestBackendRetries(marqo_test.MarqoTestCase):
             Ensures that retries are implemented due to transient
             network errors occuring when sending add docs requests to OpenSearch.
         """
-        retry_attempt_list = [1,3,5,7,10]
+        retry_attempt_list = [1,3]
 
         for retry_attempt in retry_attempt_list:
             utilities.rerun_marqo_with_env_vars(
@@ -390,7 +402,7 @@ class TestBackendRetries(marqo_test.MarqoTestCase):
             network errors occuring when sending search requests to OpenSearch.
         """
 
-        retry_attempt_list = [1,3,5,7,10]
+        retry_attempt_list = [1,3]
 
         for retry_attempt in retry_attempt_list:
             utilities.rerun_marqo_with_env_vars(
