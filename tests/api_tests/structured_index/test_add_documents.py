@@ -9,10 +9,9 @@ from tests.marqo_test import MarqoTestCase
 
 
 class TestStructuredAddDocuments(MarqoTestCase):
+    text_index_name = "add_doc_api_test_structured_index" + str(uuid.uuid4()).replace('-', '')
+    image_index_name = "add_doc_api_test_structured_image_index" + str(uuid.uuid4()).replace('-', '')
 
-    text_index_name = "api_test_structured_index" + str(uuid.uuid4()).replace('-', '')
-    image_index_name = "api_test_structured_image_index" + str(uuid.uuid4()).replace('-', '')
-    
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -21,34 +20,30 @@ class TestStructuredAddDocuments(MarqoTestCase):
 
         cls.create_indexes([
             {
-                "index_name": cls.text_index_name,
-                "settings_dict": {
-                    "type": "structured",
-                    "model": "sentence-transformers/all-MiniLM-L6-v2",
-                    "all_fields": [
-                        {"name": "title", "type": "text"},
-                        {"name": "content", "type": "text"},
-                    ],
-                    "tensor_fields": ["title", "content"],
-                }
+                "indexName": cls.text_index_name,
+                "type": "structured",
+                "model": "sentence-transformers/all-MiniLM-L6-v2",
+                "allFields": [
+                    {"name": "title", "type": "text"},
+                    {"name": "content", "type": "text"},
+                ],
+                "tensorFields": ["title", "content"],
             },
             {
-                "index_name": cls.image_index_name,
-                "settings_dict": {
-                    "type": "structured",
-                    "model": "open_clip/ViT-B-32/openai",
-                    "all_fields": [
-                        {"name": "title", "type": "text"},
-                        {"name": "image_content", "type": "image_pointer"},
-                    ],
-                    "tensor_fields": ["title", "image_content"],
-                }
+                "indexName": cls.image_index_name,
+                "type": "structured",
+                "model": "open_clip/ViT-B-32/openai",
+                "allFields": [
+                    {"name": "title", "type": "text"},
+                    {"name": "image_content", "type": "image_pointer"},
+                ],
+                "tensorFields": ["title", "image_content"],
             }
-            ])
-        
-        cls.indexes_to_delete.extend([cls.text_index_name, cls.image_index_name])
-        
-        
+        ]
+        )
+
+        cls.indexes_to_delete = [cls.text_index_name, cls.image_index_name]
+
     def tearDown(self):
         if self.indexes_to_delete:
             self.clear_indexes(self.indexes_to_delete)
@@ -69,7 +64,8 @@ class TestStructuredAddDocuments(MarqoTestCase):
             d1, d2
         ])
 
-        retrieved_d1 = self.client.index(self.text_index_name).get_document(document_id="e197e580-0393-4f4e-90e9-8cdf4b17e339")
+        retrieved_d1 = self.client.index(self.text_index_name).get_document(
+            document_id="e197e580-0393-4f4e-90e9-8cdf4b17e339")
         assert retrieved_d1 == d1
         retrieved_d2 = self.client.index(self.text_index_name).get_document(document_id="123456")
         assert retrieved_d2 == d2
@@ -81,9 +77,9 @@ class TestStructuredAddDocuments(MarqoTestCase):
             "content": "some extra info"
         }
         d2 = {
-                "title": "Just Your Average Doc",
-                "content": "this is a solid doc"
-            }
+            "title": "Just Your Average Doc",
+            "content": "this is a solid doc"
+        }
         res = self.client.index(self.text_index_name).add_documents([d1, d2])
         ids = [item["_id"] for item in res["items"]]
         assert len(ids) == 2
@@ -176,6 +172,7 @@ class TestStructuredAddDocuments(MarqoTestCase):
 
     def test_add_docs_image_download_headers(self):
         mock__post = mock.MagicMock()
+
         @mock.patch("marqo._httprequests.HttpRequests.post", mock__post)
         def run():
             image_download_headers = {"Authentication": "my-secret-key"}

@@ -4,37 +4,60 @@ from tests.marqo_test import MarqoTestCase
 from marqo.client import Client
 
 
-class TestGetSettings(MarqoTestCase):
+class TestStructuredGetSettings(MarqoTestCase):
     default_index_name = "default_index" + str(uuid.uuid4()).replace('-', '')
     custom_index_name = "custom_index" + str(uuid.uuid4()).replace('-', '')
 
-    def setUp(self) -> None:
-        self.client = Client(**self.client_settings)
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.indexes_to_delete = [cls.default_index_name, cls.custom_index_name]
+        cls.client = Client(**cls.client_settings)
 
     @classmethod
     def tearDownClass(cls) -> None:
         cls.delete_indexes([cls.default_index_name, cls.custom_index_name])
 
     def test_default_settings(self):
-        """default fields should be returned if index is created with default settings
-            sample structure of output: {'index_defaults': {'treat_urls_and_pointers_as_images': False,
-                                          'text_preprocessing': {'split_method': 'sentence', 'split_length': 2,
-                                                                 'split_overlap': 0},
-                                          'model': 'hf/all_datasets_v4_MiniLM-L6', 'normalize_embeddings': True,
-                                          'image_preprocessing': {'patch_method': None}}, 'number_of_shards': 5,
-                                          'number_of_replicas' : 1,}
+        """default fields should be returned if index is created with default settings, in camel case
+            sample structure of output:
+        {'type': 'structured',
+        'allFields': [{'name': 'title', 'type': 'text', 'features': []}],
+        'tensorFields': ['title'],
+        'model': 'hf/all_datasets_v4_MiniLM-L6',
+        'normalizeEmbeddings': True,
+        'textPreprocessing': {'split_length': 2, 'split_overlap': 0, 'split_method': 'sentence'},
+        'imagePreprocessing': {},
+        'vectorNumericType': 'float',
+        'annParameters': {'spaceType': 'angular', 'parameters': {'ef_construction': 128, 'm': 16}}
+        }
         """
-        self.client.create_index(index_name=self.default_index_name, type="structured",
-                                 all_fields=[{"name": "title", "type": "text"}],tensor_fields=["title"])
+        self.client.create_index(index_name=self.default_index_name,
+                                 type="structured",
+                                 all_fields=[{"name": "title", "type": "text"}],
+                                 tensor_fields=["title"])
 
         ix = self.client.index(self.default_index_name)
         index_settings = ix.get_settings()
-        fields = {'text_preprocessing', 'model', 'normalize_embeddings',
-                  'image_preprocessing', "all_fields", "tensor_fields"}
+        fields = {"type", "allFields", "tensorFields", "model",
+                  "normalizeEmbeddings", "textPreprocessing", "imagePreprocessing",
+                  "vectorNumericType", "annParameters"}
         self.assertTrue(fields.issubset(set(index_settings)))
 
     def test_custom_settings(self):
         """adding custom settings to the index should be reflected in the returned output
+        Sample output:
+        {'type': 'structured',
+        'allFields': [{'name': 'title', 'type': 'text', 'features': []}, {'name': 'content', 'type': 'text', 'features': []}],
+        'tensorFields': ['title', 'content'],
+        'model': 'test-model',
+        'modelProperties': {'name': 'sentence-transformers/multi-qa-MiniLM-L6-cos-v1', 'dimensions': 384, 'tokens': 128, 'type': 'sbert'},
+        'normalizeEmbeddings': True,
+        'textPreprocessing': {'split_length': 2, 'split_overlap': 0, 'split_method': 'sentence'},
+        'imagePreprocessing': {},
+        'vectorNumericType': 'float',
+        'annParameters': {'spaceType': 'angular', 'parameters': {'ef_construction': 128, 'm': 16}}
+        }
         """
         model_properties = {'name': 'sentence-transformers/multi-qa-MiniLM-L6-cos-v1',
                             'dimensions': 384,
@@ -44,19 +67,20 @@ class TestGetSettings(MarqoTestCase):
         index_settings = {
             "type": "structured",
             'model': 'test-model',
-            'model_properties': model_properties,
-            'normalize_embeddings': True,
-            "all_fields": [
+            'modelProperties': model_properties,
+            'normalizeEmbeddings': True,
+            "allFields": [
                 {"name": "title", "type": "text"},
                 {"name": "content", "type": "text"},
             ],
-            "tensor_fields": ["title", "content"],
+            "tensorFields": ["title", "content"],
         }
 
         res = self.client.create_index(index_name=self.custom_index_name, settings_dict=index_settings)
 
         ix = self.client.index(self.custom_index_name)
         index_settings = ix.get_settings()
-        fields = {'text_preprocessing', 'model', 'normalize_embeddings',
-                  'image_preprocessing', 'model_properties', "all_fields", "tensor_fields"}
+        fields = {"type", "allFields", "tensorFields", "model", "modelProperties",
+                  "normalizeEmbeddings", "textPreprocessing", "imagePreprocessing",
+                  "vectorNumericType", "annParameters"}
         self.assertTrue(fields.issubset(set(index_settings)))

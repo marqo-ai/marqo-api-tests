@@ -12,10 +12,10 @@ from tests.utilities import disallow_environments
 import pytest
 
 
-class TestUnstructuredSearch(MarqoTestCase):
-    text_index_name = "api_test_structured_index" + str(uuid.uuid4()).replace('-', '')
-    image_index_name = "api_test_structured_image_index" + str(uuid.uuid4()).replace('-', '')
-    filter_test_index_name = "api_test_structured_filter_index" + str(uuid.uuid4()).replace('-', '')
+class TestStructuredSearch(MarqoTestCase):
+    text_index_name = "api_test_structured_index_text" + str(uuid.uuid4()).replace('-', '')
+    image_index_name = "api_test_structured_image_index_image" + str(uuid.uuid4()).replace('-', '')
+    filter_test_index_name = "api_test_structured_filter_index_filter" + str(uuid.uuid4()).replace('-', '')
 
     @classmethod
     def setUpClass(cls):
@@ -25,49 +25,43 @@ class TestUnstructuredSearch(MarqoTestCase):
 
         cls.create_indexes([
             {
-                "index_name": cls.text_index_name,
-                "settings_dict": {
-                    "type": "structured",
-                    "model": "sentence-transformers/all-MiniLM-L6-v2",
-                    "all_fields": [
-                        {"name": "title", "type": "text", "features": ["filter", "lexical_search"]},
-                        {"name": "content", "type": "text", "features": ["filter", "lexical_search"]},
-                    ],
-                    "tensor_fields": ["title", "content"],
-                }
+                "indexName": cls.text_index_name,
+                "type": "structured",
+                "model": "sentence-transformers/all-MiniLM-L6-v2",
+                "allFields": [
+                    {"name": "title", "type": "text", "features": ["filter", "lexical_search"]},
+                    {"name": "content", "type": "text", "features": ["filter", "lexical_search"]},
+                ],
+                "tensorFields": ["title", "content"],
             },
             {
-                "index_name": cls.filter_test_index_name,
-                "settings_dict": {
-                    "type": "structured",
-                    "model": "sentence-transformers/all-MiniLM-L6-v2",
-                    "all_fields": [
-                        {"name": "field_a", "type": "text", "features": ["filter"]},
-                        {"name": "field_b", "type": "text", "features": ["filter"]},
-                        {"name": "str_for_filtering", "type": "text", "features": ["filter"]},
-                        {"name": "int_for_filtering", "type": "int", "features": ["filter"]},
-                    ],
-                    "tensor_fields": ["field_a", "field_b"],
-                }
+                "indexName": cls.filter_test_index_name,
+                "type": "structured",
+                "model": "sentence-transformers/all-MiniLM-L6-v2",
+                "allFields": [
+                    {"name": "field_a", "type": "text", "features": ["filter"]},
+                    {"name": "field_b", "type": "text", "features": ["filter"]},
+                    {"name": "str_for_filtering", "type": "text", "features": ["filter"]},
+                    {"name": "int_for_filtering", "type": "int", "features": ["filter"]},
+                ],
+                "tensorFields": ["field_a", "field_b"],
             },
             {
-                "index_name": cls.image_index_name,
-                "settings_dict": {
-                    "type": "structured",
-                    "model": "open_clip/ViT-B-32/openai",
-                    "all_fields": [
-                        {"name": "title", "type": "text", "features": ["filter", "lexical_search"]},
-                        {"name": "content", "type": "text", "features": ["filter", "lexical_search"]},
-                        {"name": "image_content", "type": "image_pointer"},
-                    ],
-                    "tensor_fields": ["title", "image_content"],
-                }
+                "indexName": cls.image_index_name,
+                "type": "structured",
+                "model": "open_clip/ViT-B-32/openai",
+                "allFields": [
+                    {"name": "title", "type": "text", "features": ["filter", "lexical_search"]},
+                    {"name": "content", "type": "text", "features": ["filter", "lexical_search"]},
+                    {"name": "image_content", "type": "image_pointer"},
+                ],
+                "tensorFields": ["title", "image_content"],
             }
         ])
 
-        cls.indexes_to_delete.extend([cls.text_index_name, cls.image_index_name])
+        cls.indexes_to_delete = [cls.text_index_name, cls.image_index_name, cls.filter_test_index_name]
 
-    def tearDown(self):
+    def setUp(self):
         if self.indexes_to_delete:
             self.clear_indexes(self.indexes_to_delete)
             
@@ -97,8 +91,8 @@ class TestUnstructuredSearch(MarqoTestCase):
         add_doc_res = self.client.index(self.text_index_name).add_documents([d1])
         search_res = self.client.index(self.text_index_name).search(
             "title about some doc")
-        assert len(search_res["hits"]) == 1
-        assert self.strip_marqo_fields(search_res["hits"][0]) == d1
+        self.assertEqual(1, len(search_res["hits"]))
+        self.assertEqual(d1, self.strip_marqo_fields(search_res["hits"][0]))
         assert len(search_res["hits"][0]["_highlights"]) > 0
         assert ("title" in search_res["hits"][0]["_highlights"]) or ("content" in search_res["hits"][0]["_highlights"])
 
@@ -267,7 +261,7 @@ class TestUnstructuredSearch(MarqoTestCase):
                 search_method="TENSOR")
             # the poodle doc should be lower ranked than the irrelevant doc
             for hit_position, _ in enumerate(res['hits']):
-                assert res['hits'][hit_position]['_id'] == expected_ordering[hit_position]
+                self.assertEqual(expected_ordering[hit_position], res['hits'][hit_position]['_id'])
                 
     def test_custom_search_results(self):
         self.client.index(index_name=self.image_index_name).add_documents(

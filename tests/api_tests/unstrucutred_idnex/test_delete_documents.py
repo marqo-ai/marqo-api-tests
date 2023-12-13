@@ -22,22 +22,18 @@ class TestUnstructuredDeleteDocuments(MarqoTestCase):
 
         cls.create_indexes([
             {
-                "index_name": cls.text_index_name,
-                "settings_dict": {
-                    "type": "unstructured",
-                    "model": "sentence-transformers/all-MiniLM-L6-v2",
-                }
+                "indexName": cls.text_index_name,
+                "type": "unstructured",
+                "model": "sentence-transformers/all-MiniLM-L6-v2",
             },
             {
-                "index_name": cls.image_index_name,
-                "settings_dict": {
-                    "type": "unstructured",
-                    "model": "open_clip/ViT-B-32/openai"
-                }
+                "indexName": cls.image_index_name,
+                "type": "unstructured",
+                "model": "open_clip/ViT-B-32/openai"
             }
         ])
 
-        cls.indexes_to_delete.extend([cls.text_index_name, cls.image_index_name])
+        cls.indexes_to_delete = [cls.text_index_name, cls.image_index_name]
 
     def tearDown(self):
         if self.indexes_to_delete:
@@ -95,8 +91,6 @@ class TestUnstructuredDeleteDocuments(MarqoTestCase):
         assert len(res["items"]) == 3
 
         for item in res["items"]:
-            assert "_id" in item
-            assert "_shards" in item
             if item["_id"] in {"doc1", "doc2", "doc3"}:
                 assert item["status"] == 200
                 assert item["result"] == "deleted"

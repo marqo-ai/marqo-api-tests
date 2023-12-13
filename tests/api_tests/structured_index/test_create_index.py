@@ -14,4 +14,4 @@ class CreateStructuredIndex(MarqoTestCase):
                                      all_fields=[{"name": "title", "type": "text"}],
                                      tensor_fields=["title"])
 
-        self.assertIn("invalid_index_name", str(e.exception.message))
+        self.assertIn("not a valid index name", str(e.exception.message))

@@ -13,11 +13,6 @@ class TestUnstructuredAddDocuments(MarqoTestCase):
     def setUpClass(cls):
         super().setUpClass()
 
-        try:
-            cls.delete_indexes(["api_test_unstructured_index", "api_test_unstructured_image_index"])
-        except Exception:
-            pass
-
         cls.client = Client(**cls.client_settings)
 
         cls.text_index_name = "api_test_unstructured_index" + str(uuid.uuid4()).replace('-', '')
@@ -25,22 +20,18 @@ class TestUnstructuredAddDocuments(MarqoTestCase):
 
         cls.create_indexes([
             {
-                "index_name": cls.text_index_name,
-                "settings_dict": {
-                    "type": "unstructured",
-                    "model": "sentence-transformers/all-MiniLM-L6-v2",
-                }
+                "indexName": cls.text_index_name,
+                "type": "unstructured",
+                "model": "sentence-transformers/all-MiniLM-L6-v2",
             },
             {
-                "index_name": cls.image_index_name,
-                "settings_dict": {
-                    "type": "unstructured",
-                    "model": "open_clip/ViT-B-32/openai"
-                }
+                "indexName": cls.image_index_name,
+                "type": "unstructured",
+                "model": "open_clip/ViT-B-32/openai"
             }
             ])
         
-        cls.indexes_to_delete.extend([cls.text_index_name, cls.image_index_name])
+        cls.indexes_to_delete = [cls.text_index_name, cls.image_index_name]
         
         
     def tearDown(self):

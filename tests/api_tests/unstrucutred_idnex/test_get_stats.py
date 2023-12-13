@@ -22,22 +22,19 @@ class TestUnstructuredGetStats(MarqoTestCase):
 
         cls.create_indexes([
             {
-                "index_name": cls.text_index_name,
-                "settings_dict": {
-                    "type": "unstructured",
-                    "model": "sentence-transformers/all-MiniLM-L6-v2",
-                }
+                "indexName": cls.text_index_name,
+                "type": "unstructured",
+                "model": "sentence-transformers/all-MiniLM-L6-v2",
             },
             {
-                "index_name": cls.image_index_name,
-                "settings_dict": {
-                    "type": "unstructured",
-                    "model": "open_clip/ViT-B-32/openai"
-                }
+                "indexName": cls.image_index_name,
+                "type": "unstructured",
+                "model": "open_clip/ViT-B-32/openai",
+                "treatUrlsAndPointersAsImages": True,
             }
         ])
 
-        cls.indexes_to_delete.extend([cls.text_index_name, cls.image_index_name])
+        cls.indexes_to_delete = [cls.text_index_name, cls.image_index_name]
 
     def tearDown(self):
         if self.indexes_to_delete:
@@ -49,28 +46,78 @@ class TestUnstructuredGetStats(MarqoTestCase):
         assert "numberOfVectors" in res
         assert "numberOfDocuments" in res
 
-    def test_get_status_response_results(self):
-        self.client.index(self.text_index_name).add_documents(
-            documents=[
-                {"description_1": "test-2", "description_2": "test"},  # 2 vectors
-                {"description_1": "test-2", "description_2": "test", "description_3": "test"},  # 3 vectors
-                {"description_2": "test"},  # 1 vector
-                {"my_multi_modal_field": {
-                    "text_1": "test", "text_2": "test"}},  # 1 vector
-                {"non_tensor_field": "test"}  # 0 vectors
-            ],
-            auto_refresh=True, device="cpu",
-            non_tensor_fields=["non_tensor_field"],
-            mappings={"my_multi_modal_field": {"type": "multimodal_combination", "weights": {
-                "text_1": 0.5, "text_2": 0.8}}}
-            )
+    def test_get_status_response_results_text_index(self):
+        """Ensure that the number of vectors and documents is correct, with or without mappings"""
+        test_cases = [
+            ([
+                 {"title": "test-2", "content": "test"},  # 2 vectors
+                 {"title": "test-2", "content": "test", "non_tensor": "test"}, # 2 vectors
+                 {"title": "test"},  # 1 vector
+                 {"non_tensor": "test"}  # 0 vector
+             ], None, 4, 5, "No mappings"),
+            ([
+                 {"title": "test-2", "content": "test"},  # 3 vectors (with multimodal_field)
+                 {"title": "test-2", "content": "test", "non_tensor": "test"},  # 3 vectors (with multimodal_field)
+                 {"title": "test"},  # 2 vectors (with multimodal_field)
+                 {"non_tensor": "test"}  # 0 vector
+             ], {"my_multi_modal_field": {"type": "multimodal_combination", "weights": {"title": 0.5, "content": 0.8}}},
+             4, 8, "With mappings"),
+        ]
 
-        expected_number_of_vectors = 7
-        expected_number_of_documents = 5
+        for documents, mappings, number_of_documents, number_of_vectors, msg in test_cases:
+            self.clear_indexes([self.text_index_name])
+            with self.subTest(msg):
+                self.client.index(self.text_index_name).add_documents(
+                    documents=documents,
+                    device="cpu",
+                    mappings=mappings,
+                    tensor_fields = ["title", "content", "my_multi_modal_field"]
+                )
 
-        res = self.client.index(self.text_index_name).get_stats()
-        assert res["numberOfDocuments"] == expected_number_of_documents
-        assert res["numberOfVectors"] == expected_number_of_vectors
+                res = self.client.index(self.text_index_name).get_stats()
+                self.assertEqual(number_of_documents, res["numberOfDocuments"])
+                self.assertEqual(number_of_vectors, res["numberOfVectors"])
+
+    def test_get_status_response_results_image_index(self):
+        """Ensure that the number of vectors and documents is correct, with or without mappings"""
+
+        image_content = "https://marqo-assets.s3.amazonaws.com/tests/images/image2.jpg"
+
+        test_cases = [
+            ([
+                 {"title": "test-2", "image_content": image_content},  # 2 vectors
+                 # 2 vectors
+                 {"title": "test-2", "image_content": image_content, "non_tensor": "test"},
+                 {"title": "test"},  # 1 vector
+                 {"image_content": image_content},  # 1 vector
+                 {"non_tensor": "test"}  # 0 vector
+             ], None, 5, 6, "No mappings"),
+            ([
+                 {"title": "test-2", "image_content": image_content},  # 3 vectors (with multimodal_field)
+                 # 3 vectors (with multimodal_field)
+                 {"title": "test-2", "image_content": image_content, "non_tensor": "test"},
+                 {"title": "test"},  # 2 vectors (with multimodal_field)
+                 {"image_content": image_content},  # 2 vectors (with multimodal_field)
+                 {"non_tensor": "test"}  # 0 vector
+             ],
+             {"my_multi_modal_field": {"type": "multimodal_combination",
+                                       "weights": {"title": 0.5, "image_content": 0.8}}},
+             5, 10, "With mappings"),
+        ]
+
+        for documents, mappings, number_of_documents, number_of_vectors, msg in test_cases:
+            self.clear_indexes([self.image_index_name])
+            with self.subTest(msg):
+                self.client.index(self.image_index_name).add_documents(
+                    documents=documents,
+                    device="cpu",
+                    mappings=mappings,
+                    tensor_fields=["title", "image_content", "my_multi_modal_field"]
+                )
+
+                res = self.client.index(self.image_index_name).get_stats()
+                self.assertEqual(number_of_documents, res["numberOfDocuments"])
+                self.assertEqual(number_of_vectors, res["numberOfVectors"])
 
     def test_get_status_error(self):
         with self.assertRaises(MarqoWebError) as cm:

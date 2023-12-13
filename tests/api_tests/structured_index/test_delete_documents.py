@@ -5,6 +5,7 @@ from marqo.errors import MarqoWebError
 
 from tests.marqo_test import MarqoTestCase
 
+
 class TestStructuredDeleteDocuments(MarqoTestCase):
     text_index_name = "api_test_structured_index" + str(uuid.uuid4()).replace('-', '')
     image_index_name = "api_test_structured_image_index" + str(uuid.uuid4()).replace('-', '')
@@ -17,37 +18,33 @@ class TestStructuredDeleteDocuments(MarqoTestCase):
 
         cls.create_indexes([
             {
-                "index_name": cls.text_index_name,
-                "settings_dict": {
-                    "type": "structured",
-                    "model": "sentence-transformers/all-MiniLM-L6-v2",
-                    "all_fields": [
-                        {"name": "title", "type": "text"},
-                        {"name": "content", "type": "text"},
-                    ],
-                    "tensor_fields": ["title", "content"],
-                }
+                "indexName": cls.text_index_name,
+                "type": "structured",
+                "model": "sentence-transformers/all-MiniLM-L6-v2",
+                "allFields": [
+                    {"name": "title", "type": "text"},
+                    {"name": "content", "type": "text"},
+                ],
+                "tensorFields": ["title", "content"],
             },
             {
-                "index_name": cls.image_index_name,
-                "settings_dict": {
-                    "type": "structured",
-                    "model": "open_clip/ViT-B-32/openai",
-                    "all_fields": [
-                        {"name": "title", "type": "text"},
-                        {"name": "image_content", "type": "image_pointer"},
-                    ],
-                    "tensor_fields": ["title", "image_content"],
-                }
+                "indexName": cls.image_index_name,
+                "type": "structured",
+                "model": "open_clip/ViT-B-32/openai",
+                "allFields": [
+                    {"name": "title", "type": "text"},
+                    {"name": "image_content", "type": "image_pointer"},
+                ],
+                "tensorFields": ["title", "image_content"],
             }
         ])
 
-        cls.indexes_to_delete.extend([cls.text_index_name, cls.image_index_name])
+        cls.indexes_to_delete = [cls.text_index_name, cls.image_index_name]
 
     def tearDown(self):
         if self.indexes_to_delete:
             self.clear_indexes(self.indexes_to_delete)
-            
+
     def test_delete_docs(self):
         self.client.index(self.text_index_name).add_documents([
             {"title": "wow camel", "_id": "123"},
@@ -69,7 +66,7 @@ class TestStructuredDeleteDocuments(MarqoTestCase):
             self.client.index(self.text_index_name).delete_documents([])
             raise AssertionError
         except MarqoWebError as e:
-            assert "can't be empty" in str(e) or "value_error.missing" in str (e)
+            assert "can't be empty" in str(e) or "value_error.missing" in str(e)
         res = self.client.index(self.text_index_name).get_document("123")
         assert "title" in res
 
@@ -104,4 +101,3 @@ class TestStructuredDeleteDocuments(MarqoTestCase):
             if item["_id"] in {"doc1", "doc2", "doc3"}:
                 assert item["status"] == 200
                 assert item["result"] == "deleted"
-

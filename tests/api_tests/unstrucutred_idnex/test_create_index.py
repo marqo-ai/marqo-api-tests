@@ -12,4 +12,4 @@ class CreateUnstructuredIndex(MarqoTestCase):
         with self.assertRaises(errors.MarqoWebError) as e:
             self.client.create_index("test-1", type=self.UNSTRUCTURED)
 
-        self.assertIn("invalid_index_name", str(e.exception.message))
+        self.assertIn("not a valid index name", str(e.exception.message))
