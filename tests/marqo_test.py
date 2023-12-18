@@ -25,7 +25,8 @@ class MarqoTestCase(unittest.TestCase):
         }
         cls.client_settings = local_marqo_settings
         cls.authorized_url = cls.client_settings["url"]
-        cls.indexes_to_delete = []
+        # A list with index names to be cleared in each setUp call and to be deleted in tearDownClass call
+        cls.indexes_to_delete: List[str] = []
         cls.client = Client(**cls.client_settings)
 
     @classmethod
@@ -35,6 +36,10 @@ class MarqoTestCase(unittest.TestCase):
         cls.removeAllModels()
         if cls.indexes_to_delete:
             cls.delete_indexes(cls.indexes_to_delete)
+
+    def setUp(self) -> None:
+        if self.indexes_to_delete:
+            self.clear_indexes(self.indexes_to_delete)
 
     @classmethod
     def create_indexes(cls, index_settings_with_name: List[Dict]):
@@ -66,6 +71,7 @@ class MarqoTestCase(unittest.TestCase):
                 r.raise_for_status()
             except requests.exceptions.HTTPError as e:
                 raise MarqoWebError(e)
+
 
     @classmethod
     def removeAllModels(cls) -> None:

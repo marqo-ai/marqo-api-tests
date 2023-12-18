@@ -13,7 +13,8 @@ class TestGetSettings(MarqoTestCase):
         cls.indexes_to_delete = [cls.default_index_name, cls.custom_index_name]
 
     def setUp(self) -> None:
-        self.client = Client(**self.client_settings)
+        # Override the setUp to disable the clear index call in this unittest
+        pass
 
     def test_default_settings(self):
         """default fields should be returned if index is created with default settings

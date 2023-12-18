@@ -27,7 +27,8 @@ class TestUnstructuredAddDocuments(MarqoTestCase):
             {
                 "indexName": cls.image_index_name,
                 "type": "unstructured",
-                "model": "open_clip/ViT-B-32/openai"
+                "model": "open_clip/ViT-B-32/openai",
+                "treatUrlsAndPointersAsImages": True,
             }
             ])
         
@@ -174,3 +175,71 @@ class TestUnstructuredAddDocuments(MarqoTestCase):
             return True
 
         assert run()
+
+    def test_add_document_multimodal(self):
+        """Test that adding a document with a multimodal field works"""
+        image_content = "https://marqo-assets.s3.amazonaws.com/tests/images/image2.jpg"
+
+        documents = [
+            {
+                "title": "test-1",
+                "image_content": image_content,
+                "non_tensor": "test"
+            },
+            {
+                "title": "test-2",
+                "image_content": image_content,
+                "content": "test"
+            },
+        ]
+
+        # Mappings, tensor fields, number_of_documents, number_of_vectors, msg
+        test_cases = [
+            ({"my_multimodal_field": {"type": "multimodal_combination", "weights": {"title": 0.5, "image_content": 0.8}}},
+            ["my_multimodal_field"], 2, 2, "single multimodal field"),
+
+            ({"my_multimodal_field": {"type": "multimodal_combination",
+                                       "weights": {"title": 0.5, "image_content": 0.8}}},
+             ["my_multimodal_field", "title", "content"], 2, 5, "multimodal field with other tensor fields"),
+
+            ({"my_multimodal_field": {"type": "multimodal_combination",
+                                       "weights": {"content": 0.5, "void_content": 0.8}}},
+             ["my_multimodal_field", "title"], 2, 3, "multimodal field with other tensor fields"),
+
+            ({"my_multimodal_field": {"type": "multimodal_combination",
+                                       "weights": {"voind_content_2": 0.5, "void_content_1": 0.8}}},
+             ["my_multimodal_field"], 2, 0, "multimodal field with other tensor fields"),
+
+            ({"my_multimodal_field_1": {"type": "multimodal_combination",
+                                      "weights": {"title": 0.5, "image_content": 0.8}},
+             "my_multimodal_field_2": {"type": "multimodal_combination",
+                                        "weights": {"void": 0.5, "content": 0.8}}
+              },
+             ["my_multimodal_field_1", "my_multimodal_field_2"], 2, 3, "multiple multimodal fields"),
+        ]
+
+        for mappings, tensor_fields, number_of_documents, number_of_vectors, msg in test_cases:
+            with self.subTest(msg):
+                self.clear_indexes([self.image_index_name])
+                self.client.index(self.image_index_name).add_documents(
+                    documents=documents,
+                    device="cpu",
+                    mappings=mappings,
+                    tensor_fields=tensor_fields
+                )
+
+                res = self.client.index(self.image_index_name).get_stats()
+                self.assertEqual(number_of_documents, res["numberOfDocuments"])
+                self.assertEqual(number_of_vectors, res["numberOfVectors"])
+
+    def test_add_documents_call_tensor_fields(self):
+        """Test that calling add_documents without tensor_fields fails"""
+        test_cases = [
+            ({"tensor_fields": None}, "None as tensor fields"),
+            ({}, "No tensor fields"),
+        ]
+        for tensor_fields, msg in test_cases:
+            with self.subTest(msg):
+                with self.assertRaises(MarqoWebError) as e:
+                    self.client.index(self.text_index_name).add_documents(documents=[{"some": "data"}], **tensor_fields)
+                assert "bad_request" in str(e.exception.message)

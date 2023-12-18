@@ -14,9 +14,9 @@ class TestStructuredGetSettings(MarqoTestCase):
         cls.indexes_to_delete = [cls.default_index_name, cls.custom_index_name]
         cls.client = Client(**cls.client_settings)
 
-    @classmethod
-    def tearDownClass(cls) -> None:
-        cls.delete_indexes([cls.default_index_name, cls.custom_index_name])
+    def setUp(self) -> None:
+        # Override the setUp to disable the clear index call in this unittest
+        pass
 
     def test_default_settings(self):
         """default fields should be returned if index is created with default settings, in camel case
