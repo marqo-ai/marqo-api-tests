@@ -7,151 +7,101 @@ TestFieldNames tests the following:
     - Identifies and tests which special characters work in fieldnames used as searchable attributes
     - Identifies and tests which special characters work in fieldnames used as within filters
 """
+import uuid
+
 from marqo.client import Client
 from marqo.errors import MarqoApiError
 from typing import List
 from tests.marqo_test import MarqoTestCase
+
 
 class TestFiltering(MarqoTestCase):
     """More rigorous tests for filtering with special characters
 
     We don't include tests for spaces, as these are tested elsewhere
     """
-    special_str_sequences = {
-        # from Lucene:
+    supported_special_str_sequences = {
         '/', '*', '^', '\\', '!', '[', '||', '?',
-        '&&', '"', ']', '-', '{', '~', '+', '}', ':', ')', '(',
-        # extra sequences:
-        ' ', '\n', '\t', '\r', '\b', '\f', '\v', '\a', '.'
+        '&&', '"', ']', '-', '{', '~', '+', '}', ':', ')', '(', '.', '\n', '\t', '\r',
     }
-    def setUp(self) -> None:
-        self.client = Client(**self.client_settings)
-        self.index_name_1 = "my-test-index-1"
-        try:
-            self.client.delete_index(self.index_name_1)
-        except MarqoApiError as s:
-            pass
 
-    def help_filtering_on_content_with_special_chars(
-            self, special_str: str, add_docs_kwargs: dict, search_method: str,
-            excepted_filter_strs: List[str] = None, verbose: bool = False
-    ):
-        """Helper method to test filtering on content with special chars
+    unsupported_special_str_sequences = {
+        '\b', '\f', '\v', '\a',
+    }
 
-        Set verbose to help debug this
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.standard_structured_index_name = "structured_standard" + str(uuid.uuid4()).replace('-', '')
+        cls.standard_unstructured_index_name = "unstructured_standard" + str(uuid.uuid4()).replace('-', '')
 
-        Args:
-            special_str: the special string sequence to test
-            add_docs_kwargs: the kwargs to pass to the add_documents method
-            search_method: the search method to use during search()
-            excepted_filter_strs: search filter strings that DONT yet work. These will be skipped
-                during the test
-            verbose: if True, prints out the following:
-                - The arguments this function was called with
-                - Any filter strings that were skipped
-        """
-        if excepted_filter_strs is None:
-            excepted_filter_strs = []
+        cls.create_indexes([
+            {
+                "indexName": cls.standard_unstructured_index_name,
+                "type": "unstructured"
+            },
+            {
+                "indexName": cls.standard_structured_index_name,
+                "type": "structured",
+                "allFields": [{"name": "searchField", "type": "text", "features":["lexical_search"]},
+                              {"name": "filteringField", "type": "text", "features": ["filter"]}],
+                "tensorFields": ["searchField"]
+            }
+        ])
 
-        docs = [
-            {'_id': 'doc_0', 'filteringField': f"str_at_back_{special_str}", "searchField": "hello"},
-            {'_id': 'doc_1', 'filteringField': f"{special_str}_str_at_front", "searchField": "hello"},
-            {'_id': 'doc_2', 'filteringField': f"str_{special_str}_mid", "searchField": "hello"},
-            {'_id': 'doc_3', 'filteringField': f"{special_str}", "searchField": "hello"},
-            # red herring fields
-            {'_id': 'doc_4', 'filteringField': f"does not contain str", "searchField": "hello"}
-        ]
-        self.client.create_index(self.index_name_1)
-        self.client.index(self.index_name_1).add_documents(
-            documents=docs,
-            auto_refresh=True,
-            **add_docs_kwargs
-        )
-        for doc_i in range(len(docs)):
-            str_for_filtering = docs[doc_i]['filteringField'].replace(special_str, f"\\{special_str}")
-
-            called_with = (
-                f"special_str: `{repr(special_str)}`, add_docs_kwargs: `{add_docs_kwargs}`, search_method: `{search_method}`, "
-                f"str_for_filtering: `{str_for_filtering}`")
-
-            if str_for_filtering in excepted_filter_strs and verbose:
-                print('skipped testing filter string: ', called_with, '\n')
-                continue
-
-            if verbose:
-                print(called_with, '\n')
-
-            results = self.client.index(self.index_name_1).search(
-                q="hello",
-                filter_string=f"filteringField:{str_for_filtering}",
-                search_method=search_method
-            )
-            if doc_i == 4:
-                continue
-            else:
-                assert len(results['hits']) == 1
-                assert results['hits'][0]['_id'] == f"doc_{doc_i}"
-
-        self.client.delete_index(self.index_name_1)
+        cls.indexes_to_delete = [cls.standard_unstructured_index_name, cls.standard_structured_index_name]
 
     def test_filtering_on_content_with_special_chars_tensor(self):
-        """ Test that we can filter on content with special chars. For example if a field's content is
-        "my*content" and we filter for "my\*content" we should get that document back.
+        for index_name in [self.standard_structured_index_name, self.standard_unstructured_index_name]:
+            for special_str in self.supported_special_str_sequences:
+                docs = [
+                    {'_id': 'doc_0', 'filteringField': f"str_at_back_{special_str}", "searchField": "hello"},
+                    {'_id': 'doc_1', 'filteringField': f"{special_str}_str_at_front", "searchField": "hello"},
+                    {'_id': 'doc_2', 'filteringField': f"str_{special_str}_mid", "searchField": "hello"},
+                    {'_id': 'doc_3', 'filteringField': f"{special_str}", "searchField": "hello"},
+                ]
+                for expected_document in docs:
+                    str_for_filtering = expected_document['filteringField'].replace(special_str, f"\\{special_str}")
 
-        Notice that we still have to escape the special char at search time.
+                    with self.subTest(f"Tensor Search, {index_name}, "
+                                      f"str for filtering {str_for_filtering}, expected_doc {expected_document}"):
+                        self.clear_indexes(self.indexes_to_delete)
 
-        This test is for tensor search
-        """
-        # non document kwargs
-        add_docs_kwargs_to_test = [
-            {"non_tensor_fields": ["filteringField"]},
-            # all tensor fields:
-            {"non_tensor_fields": []}
-        ]
-        for add_docs_kwargs in add_docs_kwargs_to_test:
-            for special_str in self.special_str_sequences:
-                self.help_filtering_on_content_with_special_chars(
-                    special_str=special_str,
-                    add_docs_kwargs=add_docs_kwargs,
-                    search_method='TENSOR'
-                )
+                        self.client.index(index_name).add_documents(docs, tensor_fields=["searchField"] if \
+                            index_name.startswith("un") else None)
+
+                        res = self.client.index(index_name).search(q="hello",
+                                                                   filter_string=f"filteringField:{str_for_filtering}", )
+
+                        self.assertEqual(res["hits"][0]["_id"], expected_document["_id"])
 
     def test_filtering_on_content_with_special_chars_lexical(self):
-        """ Test that we can filter on content with special chars. For example if a field's content is
-        "my*content" and we filter for "my\*content" we should get that document back.
+        for index_name in [self.standard_structured_index_name, self.standard_unstructured_index_name]:
+            for special_str in self.supported_special_str_sequences:
+                docs = [
+                    {'_id': 'doc_0', 'filteringField': f"str_at_back_{special_str}", "searchField": "hello"},
+                    {'_id': 'doc_1', 'filteringField': f"{special_str}_str_at_front", "searchField": "hello"},
+                    {'_id': 'doc_2', 'filteringField': f"str_{special_str}_mid", "searchField": "hello"},
+                    {'_id': 'doc_3', 'filteringField': f"{special_str}", "searchField": "hello"},
+                ]
+                for expected_document in docs:
+                    str_for_filtering = expected_document['filteringField'].replace(special_str, f"\\{special_str}")
 
-        Notice that we still have to escape the special char at search time.
+                    with self.subTest(f"Lexical search, {index_name}, str for filtering "
+                                      f"{str_for_filtering}, expected_doc {expected_document}"):
+                        self.clear_indexes(self.indexes_to_delete)
 
-        This test is for lexical search
-        """
-        # non document kwargs
-        add_docs_kwargs_to_test = [
-            {"non_tensor_fields": ["filteringField"]},
-            # all tensor fields:
-            {"non_tensor_fields": []}
-        ]
-        # These search filter strings don't yet work. They will be skipped during the test
-        filter_strs_that_dont_yet_work = [
-            # There seems to be issues filtering on single special chars, even if they are escaped.
-            # other cases, like "str_at_back_\\*" seem to work.
-            '\\!', '\\\x08', '\\}', '\\)', '\\\r', '\\||', '\\\t', '\\\x0b', '\\.', '\\(', '\\ ', '\\\n', '\\/', '\\+',
-            '\\]', '\\{', '\\?', '\\~', '\\\\', '\\"', '\\[', '\\:', '\\\x07', '\\*', '\\^', '\\&&', '\\\x0c', '\\-',
-            '\\!', '\\\x08', '\\}', '\\)', '\\\r', '\\||', '\\\t', '\\\x0b', '\\.', '\\(', '\\ ', '\\\n', '\\/', '\\+',
-            '\\]', '\\{', '\\?', '\\~', '\\\\', '\\"', '\\[', '\\:', '\\\x07', '\\*', '\\^', '\\&&', '\\\x0c', '\\-'
-        ]
-        for add_docs_kwargs in add_docs_kwargs_to_test:
-            for special_str in self.special_str_sequences:
-                self.help_filtering_on_content_with_special_chars(
-                    special_str=special_str,
-                    add_docs_kwargs=add_docs_kwargs,
-                    search_method='LEXICAL',
-                    excepted_filter_strs=filter_strs_that_dont_yet_work,
-                    verbose=True
-                )
+                        self.client.index(index_name).add_documents(docs, tensor_fields=["searchField"] if \
+                            index_name.startswith("un") else None)
+
+                        res = self.client.index(index_name).search(q="hello",
+                                                                   filter_string=f"filteringField:{str_for_filtering}",
+                                                                   search_method="LEXICAL")
+
+                        self.assertEqual(res["hits"][0]["_id"], expected_document["_id"])
 
 
 class TestSpecialCharsFieldNames(MarqoTestCase):
-
     special_str_sequences = [
         # from Lucene:
         '/', '*', '^', '\\', '!', '[', '||', '?',
@@ -174,10 +124,10 @@ class TestSpecialCharsFieldNames(MarqoTestCase):
     ]
 
     # these sequences can be used as a searchable attribute, but can't be used for filtering
-    str_sequences_that_can_be_indexed_but_not_filtered_on = [ '*', ':']
+    str_sequences_that_can_be_indexed_but_not_filtered_on = ['*', ':']
 
     # these sequences can't even be used as a searchable attribute
-    str_sequences_that_can_be_indexed_but_not_searchable_attr = ['\t', '\\',  '\r']
+    str_sequences_that_can_be_indexed_but_not_searchable_attr = ['\t', '\\', '\r']
 
     def test_special_chars_that_need_escaping_in_filter(self):
         """Test field names with special chars that need escaping in the filter string.
@@ -211,7 +161,7 @@ class TestSpecialCharsFieldNames(MarqoTestCase):
                     search_method=search_method,
                     verbose=False,
                     all_testing_docs=testing_docs,
-                    test_escaped_filter_str=True ,
+                    test_escaped_filter_str=True,
                     test_non_escaped_filter_str=False,
                     escape_special_str_in_filter_content=False
                 )
@@ -229,7 +179,6 @@ class TestSpecialCharsFieldNames(MarqoTestCase):
             "my_unusual_field\?:(content to filter\?)"
         """
 
-
         for special_str in self.str_sequences_that_pass_with_escaping:
             for search_method in ['TENSOR', 'LEXICAL']:
                 testing_docs = [
@@ -241,15 +190,17 @@ class TestSpecialCharsFieldNames(MarqoTestCase):
                     # red herring doc
                     {'_id': 'doc_4', 'some other field': f"hippo airplane"},
                     # another testing doc
-                    {'_id': 'doc_5', f"{special_str}_{special_str}_{special_str}": f"{special_str}hippo {special_str}giraffe{special_str}"},
-                    {'_id': 'doc_6', f"{special_str}_{special_str}{special_str}_{special_str}": f"hippo giraffe{special_str}"}
+                    {'_id': 'doc_5',
+                     f"{special_str}_{special_str}_{special_str}": f"{special_str}hippo {special_str}giraffe{special_str}"},
+                    {'_id': 'doc_6',
+                     f"{special_str}_{special_str}{special_str}_{special_str}": f"hippo giraffe{special_str}"}
                 ]
                 self.special_char_in_fieldname_non_escaped_filter_helper(
                     special_str=special_str,
                     search_method=search_method,
                     verbose=False,
                     all_testing_docs=testing_docs,
-                    test_escaped_filter_str=True ,
+                    test_escaped_filter_str=True,
                     test_non_escaped_filter_str=False,
                     escape_special_str_in_filter_content=True
                 )
@@ -285,7 +236,7 @@ class TestSpecialCharsFieldNames(MarqoTestCase):
                     search_method=search_method,
                     verbose=False,
                     all_testing_docs=testing_docs,
-                    test_escaped_filter_str=False ,
+                    test_escaped_filter_str=False,
                     test_non_escaped_filter_str=True,
                     escape_special_str_in_filter_content=False
                 )
@@ -316,17 +267,19 @@ class TestSpecialCharsFieldNames(MarqoTestCase):
                     # red herring doc
                     {'_id': 'doc_4', 'some other field': f"hippo airplane"},
                     # another testing doc
-                    {'_id': 'doc_5', f"{special_str}_{special_str}_{special_str}": f"{special_str}hippo hippo {special_str}giraffe{special_str}"},
+                    {'_id': 'doc_5',
+                     f"{special_str}_{special_str}_{special_str}": f"{special_str}hippo hippo {special_str}giraffe{special_str}"},
                 ]
                 self.special_char_in_fieldname_non_escaped_filter_helper(
                     special_str=special_str,
                     search_method=search_method,
                     verbose=True,
                     all_testing_docs=testing_docs,
-                    test_escaped_filter_str=False ,
+                    test_escaped_filter_str=False,
                     test_non_escaped_filter_str=True,
                     escape_special_str_in_filter_content=True
                 )
+
     def test_special_chars_that_cant_be_indexed(self):
         """These special chars can't be indexed, so the test should fail before we get to searching
         """
@@ -379,10 +332,10 @@ class TestSpecialCharsFieldNames(MarqoTestCase):
                     search_method=search_method,
                     verbose=True,
                     all_testing_docs=testing_docs,
-                    test_escaped_filter_str=False ,
+                    test_escaped_filter_str=False,
                     test_non_escaped_filter_str=False,
                     escape_special_str_in_filter_content=False
-            )
+                )
 
     def test_str_sequences_that_can_be_indexed_but_not_as_searchable_attrib(self):
         """These special chars can be indexed, and can be used during search_all
@@ -408,7 +361,7 @@ class TestSpecialCharsFieldNames(MarqoTestCase):
                         search_method=search_method,
                         verbose=True,
                         all_testing_docs=testing_docs,
-                        test_escaped_filter_str=False ,
+                        test_escaped_filter_str=False,
                         test_non_escaped_filter_str=False,
                         escape_special_str_in_filter_content=False
                     )
@@ -505,24 +458,28 @@ class TestSpecialCharsFieldNames(MarqoTestCase):
 
             if test_escaped_filter_str:
                 escaped_searchable_attrib = searchable_attrib.replace(special_str, f"\\{special_str}")
-                escaped_filter_str  = f"{escaped_searchable_attrib}:({doc[searchable_attrib]})"
+                escaped_filter_str = f"{escaped_searchable_attrib}:({doc[searchable_attrib]})"
                 self.filtering_on_special_char_in_fieldname_helper(
                     filter_str=escaped_filter_str, verbose=verbose, search_method=search_method,
-                    expected_doc_id=doc['_id'], escape_special_str_in_filter_content=escape_special_str_in_filter_content,
+                    expected_doc_id=doc['_id'],
+                    escape_special_str_in_filter_content=escape_special_str_in_filter_content,
                     special_str=special_str
                 )
                 if verbose:
-                    print(f"passed filtering on specific attrib `{searchable_attrib}` with escaped filter_str `{repr(escaped_filter_str)}`")
+                    print(
+                        f"passed filtering on specific attrib `{searchable_attrib}` with escaped filter_str `{repr(escaped_filter_str)}`")
 
             if test_non_escaped_filter_str:
                 filter_str = f"{searchable_attrib}:({doc[searchable_attrib]})"
                 self.filtering_on_special_char_in_fieldname_helper(
                     filter_str=filter_str, verbose=verbose, search_method=search_method,
-                    expected_doc_id=doc['_id'], escape_special_str_in_filter_content=escape_special_str_in_filter_content,
+                    expected_doc_id=doc['_id'],
+                    escape_special_str_in_filter_content=escape_special_str_in_filter_content,
                     special_str=special_str
                 )
                 if verbose:
-                    print(f"passed filtering on specific attrib `{searchable_attrib}` with non-escaped filter_str `{repr(filter_str)}`")
+                    print(
+                        f"passed filtering on specific attrib `{searchable_attrib}` with non-escaped filter_str `{repr(filter_str)}`")
 
         self.client.delete_index(self.index_name_1)
 
