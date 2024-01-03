@@ -12,6 +12,7 @@ shift
 # ${@:+"$@"} adds ALL args (past $1) if any exist.
 set -x
 docker run -d --name marqo --gpus all --privileged -p 8882:8882 --add-host host.docker.internal:host-gateway \
+  -e MARQO_ENABLE_BATCH_APIS=TRUE \
     ${@:+"$@"} "$MARQO_DOCKER_IMAGE"
 set +x
 
