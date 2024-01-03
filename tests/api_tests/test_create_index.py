@@ -11,14 +11,9 @@ class TestCreateIndex(MarqoTestCase):
         we need to create/delete index before/after each test"""
         super().setUp()
         self.index_name = "test_index"
-        try:
-            self.client.delete_index(index_name=self.index_name)
-        except MarqoWebError:
-            pass
 
     def tearDown(self):
         super().tearDown()
-        self.index_name = "test_index"
         try:
             self.client.delete_index(index_name=self.index_name)
         except MarqoWebError:
