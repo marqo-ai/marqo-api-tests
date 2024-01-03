@@ -1,9 +1,10 @@
 import uuid
+import pytest
 
 from tests.marqo_test import MarqoTestCase
 from marqo.client import Client
 
-
+@pytest.mark.fixed
 class TestStructuredGetSettings(MarqoTestCase):
     default_index_name = "default_index" + str(uuid.uuid4()).replace('-', '')
     custom_index_name = "custom_index" + str(uuid.uuid4()).replace('-', '')

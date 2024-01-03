@@ -1,13 +1,12 @@
 import uuid
-
-from unittest import mock
 from unittest.mock import patch
-from marqo.client import Client
+
+import pytest
+
 from tests.marqo_test import MarqoTestCase
-import requests
-from marqo.errors import BackendTimeoutError, BackendCommunicationError, BadRequestError, MarqoApiError
 
 
+@pytest.mark.fixed
 class TestHealth(MarqoTestCase):
 
 

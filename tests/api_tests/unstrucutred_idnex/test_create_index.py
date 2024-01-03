@@ -1,8 +1,11 @@
-from marqo.client import Client
+import pytest
 from marqo import errors
+from marqo.client import Client
+
 from tests.marqo_test import MarqoTestCase
 
 
+@pytest.mark.fixed
 class CreateUnstructuredIndex(MarqoTestCase):
     UNSTRUCTURED = "unstructured"
     def setUp(self):

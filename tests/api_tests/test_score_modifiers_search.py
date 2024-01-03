@@ -1,12 +1,13 @@
 import uuid
-from functools import wraps
 
-from marqo.client import Client
 import numpy as np
-from marqo.errors import MarqoApiError, MarqoWebError
+import pytest
+from marqo.errors import MarqoWebError
+
 from tests.marqo_test import MarqoTestCase
 
 
+@pytest.mark.fixed
 class TestScoreModifierSearch(MarqoTestCase):
 
     @classmethod

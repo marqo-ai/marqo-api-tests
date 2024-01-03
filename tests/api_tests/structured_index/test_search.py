@@ -1,17 +1,16 @@
 import copy
 import uuid
-import marqo
-from marqo import enums
 from unittest import mock
-from marqo.client import Client
-from marqo.errors import MarqoApiError, MarqoWebError
-import unittest
-import pprint
-from tests.marqo_test import MarqoTestCase
-from tests.utilities import disallow_environments
+
+import marqo
 import pytest
+from marqo import enums
+from marqo.client import Client
+
+from tests.marqo_test import MarqoTestCase
 
 
+@pytest.mark.fixed
 class TestStructuredSearch(MarqoTestCase):
     text_index_name = "api_test_structured_index_text" + str(uuid.uuid4()).replace('-', '')
     image_index_name = "api_test_structured_image_index_image" + str(uuid.uuid4()).replace('-', '')

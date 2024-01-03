@@ -1,8 +1,11 @@
 import uuid
 
+import pytest
+
 from tests.marqo_test import MarqoTestCase
 
 
+@pytest.mark.fixed
 class TestSentenceChunking(MarqoTestCase):
     """Test for sentence chunking
 
@@ -133,8 +136,8 @@ class TestSentenceChunking(MarqoTestCase):
              'the image into sub-patches (aking to segmenting text). by using either.'),
             ('sasasasaifjfnonfqeno asadsdljknjdfln', 'sasasasaifjfnonfqeno asadsdljknjdfln'),
             ('can (optionally) chunk.', "the image chunking. can (optionally) chunk."),
-            ("can (optionally) chunk. the image into sub-patches (aking to segmenting text).",
-             "can (optionally) chunk. the image into sub-patches (aking to segmenting text)."),
+            ("the image chunking. can (optionally) chunk.",
+             "the image chunking. can (optionally) chunk."),
             ("the image into sub-patches (aking to segmenting text). by using either.",
              "the image into sub-patches (aking to segmenting text). by using either.")
         ]

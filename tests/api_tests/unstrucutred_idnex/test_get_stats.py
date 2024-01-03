@@ -1,9 +1,11 @@
 import uuid
 
+import pytest
 from marqo.client import Client
 from marqo.errors import MarqoWebError
 
 from tests.marqo_test import MarqoTestCase
+
 
 class TestUnstructuredGetStats(MarqoTestCase):
 
@@ -39,13 +41,15 @@ class TestUnstructuredGetStats(MarqoTestCase):
     def tearDown(self):
         if self.indexes_to_delete:
             self.clear_indexes(self.indexes_to_delete)
-            
+
+    @pytest.mark.fixed
     def test_get_status_response_format(self):
         res = self.client.index(self.text_index_name).get_stats()
         assert isinstance(res, dict)
         assert "numberOfVectors" in res
         assert "numberOfDocuments" in res
 
+    @pytest.mark.fixed
     def test_get_status_response_results_text_index(self):
         """Ensure that the number of vectors and documents is correct, with or without mappings"""
         test_cases = [
@@ -78,6 +82,7 @@ class TestUnstructuredGetStats(MarqoTestCase):
                 self.assertEqual(number_of_documents, res["numberOfDocuments"])
                 self.assertEqual(number_of_vectors, res["numberOfVectors"])
 
+    @pytest.mark.fixed
     def test_get_status_response_results_image_index(self):
         """Ensure that the number of vectors and documents is correct, with or without mappings"""
 

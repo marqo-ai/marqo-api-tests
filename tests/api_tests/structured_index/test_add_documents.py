@@ -1,6 +1,7 @@
 import copy
 from unittest import mock
 import uuid
+import pytest
 
 from marqo.client import Client
 from marqo.errors import MarqoWebError
@@ -8,6 +9,7 @@ from marqo.errors import MarqoWebError
 from tests.marqo_test import MarqoTestCase
 
 
+@pytest.mark.fixed
 class TestStructuredAddDocuments(MarqoTestCase):
     text_index_name = "add_doc_api_test_structured_index" + str(uuid.uuid4()).replace('-', '')
     image_index_name = "add_doc_api_test_structured_image_index" + str(uuid.uuid4()).replace('-', '')

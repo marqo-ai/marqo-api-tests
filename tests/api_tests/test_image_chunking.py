@@ -1,12 +1,7 @@
 import uuid
 from typing import Dict
-import json
 
-import numpy as np
-import requests
-from PIL import Image
-from marqo.client import Client
-from marqo.errors import MarqoApiError
+import pytest
 
 from tests.marqo_test import MarqoTestCase
 
@@ -32,7 +27,7 @@ def generate_unstructured_index_settings_dict(index_name, image_preprocessing_me
         "imagePreprocessing": {"patchMethod": image_preprocessing_method}
     }
 
-
+@pytest.mark.fixed
 class TestUnstructuredImageChunking(MarqoTestCase):
     """Test for image chunking as a preprocessing step
     """

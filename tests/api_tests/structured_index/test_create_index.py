@@ -1,8 +1,10 @@
+import pytest
+
 from marqo.client import Client
 from marqo import errors
 from tests.marqo_test import MarqoTestCase
 
-
+@pytest.mark.fixed
 class CreateStructuredIndex(MarqoTestCase):
     STRUCTURED = "structured"
     def setUp(self):

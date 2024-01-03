@@ -8,13 +8,16 @@ TestFieldNames tests the following:
     - Identifies and tests which special characters work in fieldnames used as within filters
 """
 import uuid
+from typing import List
 
+import pytest
 from marqo.client import Client
 from marqo.errors import MarqoApiError
-from typing import List
+
 from tests.marqo_test import MarqoTestCase
 
 
+@pytest.mark.fixed
 class TestFiltering(MarqoTestCase):
     """More rigorous tests for filtering with special characters
 
