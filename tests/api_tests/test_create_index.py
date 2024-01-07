@@ -222,3 +222,10 @@ class TestCreateIndex(MarqoTestCase):
         self.assertEqual(["test", "image"], index_settings["tensorFields"])
         self.assertEqual("open_clip/ViT-B-16/laion400m_e31", index_settings["model"])
         self.assertEqual("simple", index_settings['imagePreprocessing']['patch_method'])
+
+    def test_illegal_index_name(self):
+        with self.assertRaises(MarqoWebError) as e:
+            self.client.create_index("test-1", type="structured",
+                                     all_fields=[{"name": "title", "type": "text"}],
+                                     tensor_fields=["title"])
+        self.assertIn("not a valid index name", str(e.exception.message))

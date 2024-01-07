@@ -44,19 +44,19 @@ class TestUnstructuredAddDocuments(MarqoTestCase):
 
     def test_add_documents_with_ids(self):
         d1 = {
-            "doc title": "Cool Document 1",
-            "field 1": "some extra info",
+            "doc_title": "Cool Document 1",
+            "field_1": "some extra info",
             "_id": "e197e580-0393-4f4e-90e9-8cdf4b17e339"
         }
         d2 = {
-            "doc title": "Just Your Average Doc",
-            "field X": "this is a solid doc",
+            "doc_title": "Just Your Average Doc",
+            "field_X": "this is a solid doc",
             "_id": "123456"
         }
 
         res = self.client.index(self.text_index_name).add_documents([
             d1, d2
-        ], tensor_fields=["doc title"])
+        ], tensor_fields=["doc_title"])
 
         retrieved_d1 = self.client.index(self.text_index_name).get_document(document_id="e197e580-0393-4f4e-90e9-8cdf4b17e339")
         assert retrieved_d1 == d1
@@ -66,14 +66,14 @@ class TestUnstructuredAddDocuments(MarqoTestCase):
     def test_add_documents_without_ids(self):
         """indexes the documents and retrieves the documents with the generated IDs"""
         d1 = {
-            "doc title": "Cool Document 1",
-            "field 1": "some extra info"
+            "doc_title": "Cool Document 1",
+            "field_1": "some extra info"
         }
         d2 = {
-                "doc title": "Just Your Average Doc",
-                "field X": "this is a solid doc"
+                "doc_title": "Just Your Average Doc",
+                "field_X": "this is a solid doc"
             }
-        res = self.client.index(self.text_index_name).add_documents([d1, d2], tensor_fields=["doc title"])
+        res = self.client.index(self.text_index_name).add_documents([d1, d2], tensor_fields=["doc_title"])
         ids = [item["_id"] for item in res["items"]]
         assert len(ids) == 2
         assert ids[0] != ids[1]
@@ -89,29 +89,29 @@ class TestUnstructuredAddDocuments(MarqoTestCase):
         doc_ids = [str(num) for num in range(0, 100)]
         docs = [
             {"Title": f"The Title of doc {doc_id}",
-             "Generic text": "some text goes here...",
+             "Generic_text": "some text goes here...",
              "_id": doc_id}
             for doc_id in doc_ids]
 
-        ix.add_documents(docs, client_batch_size=10, tensor_fields=["Title", "Generic text"])
+        ix.add_documents(docs, client_batch_size=10, tensor_fields=["Title", "Generic_text"])
         for _id in [0, 19, 20, 99]:
             original_doc = docs[_id].copy()
             assert ix.get_document(document_id=str(_id)) == original_doc
 
     def test_add_documents_with_ids_twice(self):
         d1 = {
-            "doc title": "Just Your Average Doc",
-            "field X": "this is a solid doc",
+            "doc_title": "Just Your Average Doc",
+            "field_X": "this is a solid doc",
             "_id": "56"
         }
-        self.client.index(self.text_index_name).add_documents([d1], tensor_fields=["doc title"])
+        self.client.index(self.text_index_name).add_documents([d1], tensor_fields=["doc_title"])
         assert d1 == self.client.index(self.text_index_name).get_document("56")
         d2 = {
             "_id": "56",
             "completely": "different doc.",
-            "field X": "this is a solid doc"
+            "field_X": "this is a solid doc"
         }
-        self.client.index(self.text_index_name).add_documents([d2], tensor_fields=["doc title"])
+        self.client.index(self.text_index_name).add_documents([d2], tensor_fields=["doc_title"])
         assert d2 == self.client.index(self.text_index_name).get_document("56")
 
     def test_add_documents_missing_index_fails(self):

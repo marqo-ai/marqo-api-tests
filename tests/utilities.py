@@ -1,9 +1,7 @@
 import os
-import time
 import subprocess
+import time
 import typing
-import threading
-import inspect
 
 
 def disallow_environments(disallowed_configurations: typing.List[str]):

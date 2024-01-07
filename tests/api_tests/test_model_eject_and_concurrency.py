@@ -1,22 +1,23 @@
-from marqo.client import Client
-from marqo.errors import MarqoApiError, MarqoError, MarqoWebError
-from tests.marqo_test import MarqoTestCase
-import pytest
-import threading, queue, multiprocessing
+import queue
+import threading
 import time
+import uuid
 
+import pytest
+from marqo.client import Client
+from marqo.errors import MarqoApiError, MarqoWebError
 
+from tests.marqo_test import MarqoTestCase
+
+@pytest.mark.fixed
 @pytest.mark.cuda_test
 class TestModelEject(MarqoTestCase):
-    '''
-    Although the test is running in cpu, we restrict it to cuda environments due to its intensive usage of memory.
-    '''
+    '''Although the test is running in cpu, we restrict it to cuda environments due to its intensive usage of memory.'''
 
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
         cls.device = "cpu"
-        cls.client = Client(**cls.client_settings)
         cls.index_model_object = {
             "test_0": 'open_clip/ViT-B-32/laion400m_e31',
             "test_1": 'open_clip/ViT-B-32/laion400m_e32',
@@ -43,107 +44,70 @@ class TestModelEject(MarqoTestCase):
             "test_22": 'open_clip/ViT-B-16/laion400m_e32',
         }
 
-        for index_name, model in cls.index_model_object.items():
-            settings = {
-                "model": model
+        cls.create_indexes([
+            {
+                "indexName": index_name,
+                "model": model,
+                "type": "unstructured",
+            } for index_name, model in cls.index_model_object.items()
+        ])
+
+        cls.indexes_to_delete = list(cls.index_model_object)
+
+    def test_sequentially_search(self):
+        """Iterate through each index and loading each model. We expect to not run out of space as previously
+         loaded models are ejected to make space for newer ones.
+
+        If the Marqo does through this test, it indicates that a problem with model cache ejection.
+
+        Running this without a sleep between each call sometimes kills Marqo. This is probably because
+        we don't have much control over the garbage collection of dereferenced objects in Python,
+        resulting in an Out Of Memory crash.
+
+        Because rapidly loading different models is a niche usecase, we want to relax the strictness of
+        the test (by adding a sleep) rather than making the ejections stricter (for example, by locking
+        the available models dict).
+        """
+
+        # this downloads the models if they aren't already downloaded
+        for index_name in list(self.index_model_object):
+            self.client.index(index_name).search(q='What is the best outfit to wear on the moon?', device=self.device)
+            time.sleep(5)
+
+        # this loads the models from disk to memory
+        for index_name in list(self.index_model_object):
+            self.client.index(index_name).search(q='What is the best outfit to wear on the moon?', device=self.device)
+            time.sleep(5)
+        return True
+
+@pytest.mark.fixed
+class TestConcurrencyRequestsBlock(MarqoTestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+
+        cls.index_name = "unstructured_" + str(uuid.uuid4()).replace('-', '')
+
+        cls.create_indexes([
+            {
+                "indexName": cls.index_name,
+                "model": "open_clip/ViT-B-32/laion400m_e31",
+                "type": "unstructured",
             }
-            try:
-                cls.client.delete_index(index_name)
-            except Exception:
-                pass
+        ])
 
-            cls.client.create_index(index_name, **settings)
-
-            cls.client.index(index_name).add_documents([
-                {
-                    "Title": "The Travels of Marco Polo",
-                    "Description": "A 13th-century travelogue describing Polo's travels"
-                },
-                {
-                    "Title": "Extravehicular Mobility Unit (EMU)",
-                    "Description": "The EMU is a spacesuit that provides environmental protection, "
-                                   "mobility, life support, and communications for astronauts",
-                    "_id": "article_591"
-                }], auto_refresh=True, device=cls.device, non_tensor_fields=[])
-
-        time.sleep(10)
+        res = cls.client.index(cls.index_name).add_documents(
+            [{"test_1": "what is best to wear on the moon?"},
+             {"test_2": "what is best to wear on the moon?"}],
+            tensor_fields=["test_1", "test_2"], device="cpu"
+        )
+        cls.indexes_to_delete = [cls.index_name]
 
     def setUp(self) -> None:
-        self.client = Client(**self.client_settings)
+        self.device = "cpu"
 
     def tearDown(self) -> None:
         pass
-
-    @classmethod
-    def tearDownClass(cls) -> None:
-        super().tearDownClass()
-        for index_name, model in cls.index_model_object.items():
-            try:
-                cls.client.delete_index(index_name)
-            except Exception:
-                pass
-
-    def test_sequentially_search(self):
-        """Iterate through each index and loading each model. We expect to not run out of space as we 
-        older loaded models are ejected to make space for newer ones.
-        
-        If the Marqo does through this test, it indicates that a problem with model cache ejection.
-        
-        Running this without a sleep between each call sometimes kills Marqo. This is probably because
-        we don't have much control over the garbage collection of dereferenced objects in Python, 
-        resulting in an Out Of Memory crash. 
-        
-        Because rapidly loading different models is a niche usecase, we want to relax the strictness of 
-        the test (by adding a sleep) rather than making the ejections stricter (for example, by locking
-        the available models dict). 
-        """
-
-        # this downloads the models if they aren't already downloaded 
-        for index_name in list(self.index_model_object):
-            self.client.index(index_name).search(q='What is the best outfit to wear on the moon?', device=self.device)
-            time.sleep(5)
-
-        # this swaps the models from disk to memory
-        for index_name in list(self.index_model_object):
-            self.client.index(index_name).search(q='What is the best outfit to wear on the moon?', device=self.device)
-            time.sleep(5)
-
-        return True
-
-
-class TestConcurrencyRequestsBlock(MarqoTestCase):
-    def setUp(self) -> None:
-        self.client = Client(**self.client_settings)
-        self.index_name = "test"
-        self.device = "cpu"
-        try:
-            self.client.delete_index(self.index_name)
-        except MarqoApiError:
-            pass
-
-        self.model = 'hf/all-MiniLM-L6-v2'
-        settings = {
-            "model": self.model
-        }
-        self.client.create_index(self.index_name, **settings)
-        self.client.index(self.index_name).add_documents([
-            {
-                "Title": "The Travels of Marco Polo",
-                "Description": "A 13th-century travelogue describing Polo's travels"
-            },
-            {
-                "Title": "Extravehicular Mobility Unit (EMU)",
-                "Description": "The EMU is a spacesuit that provides environmental protection, "
-                               "mobility, life support, and communications for astronauts",
-                "_id": "article_591"
-            }], auto_refresh=True, device=self.device, non_tensor_fields=[])
-
-    def tearDown(self) -> None:
-        try:
-            self.client.delete_index(self.index_name)
-        except MarqoApiError:
-            pass
-        time.sleep(10)
 
     def normal_search(self, index_name, q):
         # A function will be called in threading
@@ -169,7 +133,7 @@ class TestConcurrencyRequestsBlock(MarqoTestCase):
 
     def test_concurrent_search_with_cache(self):
         # Search once to make sure the model is in cache
-        res = self.client.index(self.index_name).search("what is best to wear on the moon?")
+        res = self.client.index(self.index_name).search("what is best to wear on the moon?", device=self.device)
 
         normal_search_queue = queue.Queue()
         threads = []

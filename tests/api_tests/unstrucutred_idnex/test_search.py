@@ -84,44 +84,44 @@ class TestUnstructuredSearch(MarqoTestCase):
         
     def test_search_multi_docs(self):
         d1 = {
-                "doc title": "Cool Document 1",
-                "field 1": "some extra info",
+                "doc_title": "Cool Document 1",
+                "field_1": "some extra info",
                 "_id": "e197e580-0393-4f4e-90e9-8cdf4b17e339"
             }
         d2 = {
-                "doc title": "Just Your Average Doc",
-                "field X": "this is a solid doc",
+                "doc_title": "Just Your Average Doc",
+                "field_X": "this is a solid doc",
                 "_id": "123456"
         }
         res = self.client.index(self.text_index_name).add_documents([
             d1, d2
-        ], tensor_fields=["doc title", "field 1", "field X"])
+        ], tensor_fields=["doc_title", "field_1", "field_X"])
         search_res = self.client.index(self.text_index_name).search(
             "this is a solid doc")
         assert d2 == self.strip_marqo_fields(search_res['hits'][0], strip_id=False)
-        assert search_res['hits'][0]['_highlights']["field X"] == "this is a solid doc"
+        assert search_res['hits'][0]['_highlights']["field_X"] == "this is a solid doc"
 
     def test_select_lexical(self):
         d1 = {
-            "doc title": "Very heavy, dense metallic lead.",
-            "field 1": "some extra info",
+            "doc_title": "Very heavy, dense metallic lead.",
+            "field_1": "some extra info",
             "_id": "e197e580-0393-4f4e-90e9-8cdf4b17e339"
         }
         d2 = {
-            "doc title": "The captain bravely lead her followers into battle."
+            "doc_title": "The captain bravely lead her followers into battle."
                          " She directed her soldiers to and fro.",
-            "field X": "this is a solid doc",
+            "field_X": "this is a solid doc",
             "_id": "123456"
         }
         res = self.client.index(self.text_index_name).add_documents([
             d1, d2
-        ], tensor_fields=["doc title", "field 1", "field X"])
+        ], tensor_fields=["doc_title", "field_1", "field_X"])
 
         # Ensure that vector search works
         search_res = self.client.index(self.text_index_name).search(
             "Examples of leadership", search_method=enums.SearchMethods.TENSOR)
         assert d2 == self.strip_marqo_fields(search_res["hits"][0], strip_id=False)
-        assert search_res["hits"][0]['_highlights']["doc title"].startswith("The captain bravely lead her followers")
+        assert search_res["hits"][0]['_highlights']["doc_title"].startswith("The captain bravely lead her followers")
 
         # try it with lexical search:
         #    can't find the above with synonym
@@ -220,7 +220,7 @@ class TestUnstructuredSearch(MarqoTestCase):
         We test to ensure Marqo doesn't match to the non tensor field
         """
         docs = [{
-            "dont#tensorise Me": "Dog",
+            "dont_tensorise_Me": "Dog",
             "tensorise_me": "quarterly earnings report"
         }]
         self.client.index(index_name=self.text_index_name).add_documents(
