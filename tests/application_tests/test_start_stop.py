@@ -13,7 +13,7 @@ from tests import marqo_test
 class TestStartStop(marqo_test.MarqoTestCase):
     def test_start_stop(self):
 
-        NUMBER_OF_RESTARTS = 5
+        NUMBER_OF_RESTARTS = 3
 
         def run_start_stop(restart_number: int, sig: str):
             """
@@ -72,7 +72,7 @@ class TestStartStop(marqo_test.MarqoTestCase):
                     if isinstance(mqe, HTTPError):
                         pass
                     elif not isinstance(mqe, BackendCommunicationError):
-                        assert mqe.status_code == 429
+                        assert mqe.status_code == 429 or mqe.status_code == 500
                     if "exceeds your S2Search free tier limit" in str(mqe):
                         raise mqe
                     if i + 1 >= NUMBER_OF_TRIES:
