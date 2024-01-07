@@ -70,7 +70,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         # check preloaded models (should be custom model)
         custom_models = ["open-clip-1"]
         self.client.create_index("test_index_for_preloaded_models")
-        res = self.client.get_loaded_models()
+        res = self.client.index("test_index_for_preload_models").get_loaded_models()
         assert set([item["model_name"] for item in res["models"]]) == set(custom_models)
 
         # ## Testing log output when log level is not set. ##
