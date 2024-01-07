@@ -1,14 +1,15 @@
 import subprocess
 import subprocess
 import time
-import uuid
 
+import pytest
 from marqo.errors import BackendCommunicationError, MarqoWebError
 from requests import HTTPError
 
 from tests import marqo_test
 
 
+@pytest.mark.fixed
 class TestStartStop(marqo_test.MarqoTestCase):
     def test_start_stop(self):
 
