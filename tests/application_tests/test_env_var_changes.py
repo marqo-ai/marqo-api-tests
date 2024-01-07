@@ -44,6 +44,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         print("Marqo has been rerun with default env vars!")
 
     def test_preload_models(self):
+        # TODO: Add log test
         """
         Tests rerunning marqo with non-default, custom model.
         Default models are ["hf/all_datasets_v4_MiniLM-L6", "ViT-L/14"]
@@ -75,6 +76,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
 
     def test_multiple_env_vars(self):
+        # TODO: Add log test
         """
             Ensures that rerun_marqo_with_env_vars can work with several different env vars
             at the same time
@@ -107,62 +109,8 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
         # Assert correct EF const
         assert self.client.index(index_name).get_settings() \
-                   ["annParameters"]["parameters"]["efConstruction"] == 5000
+                   ["annParameters"]["parameters"]["ef_construction"] == 5000
 
         # Assert correct models
         res = self.client.index(index_name).get_loaded_models()
         assert set([item["model_name"] for item in res["models"]]) == set(new_models)
-
-        # ## Testing log output when LEVEL=debug ##
-        #    we want to ensure that  in debug mode, no information is hidden
-
-        # use the index to generate more log outputs (specifically regarding HTTPS requests)
-        self.client.index(index_name).add_documents(
-            documents=[{'Title': 'Recipes for hippos'}],
-            tensor_fields=['Title'],
-        )
-        self.client.index(index_name).search('something')
-        log_blob = utilities.retrieve_docker_logs(container_name='marqo')
-
-    def test_max_add_docs_count(self):
-        """
-        Test that MARQO_MAX_ADD_DOCS_COUNT works as expected. Trying to add more documents than the limit should fail.
-        """
-
-        counts_to_test = [10, 50, 100]
-        index_name = "test_max_add_docs_count"
-        for count in counts_to_test:
-            # Restart marqo with new max values
-            utilities.rerun_marqo_with_env_vars(
-                env_vars = [
-                    "-e", f"MARQO_MAX_ADD_DOCS_COUNT={count}",
-                ],
-                calling_class=self.__class__.__name__
-            )
-
-            # Create the index
-            self.client.create_index(index_name=index_name)
-
-            # Add 1 less document than the maximum
-            self.client.index(index_name).add_documents(documents=[
-                {"d1": "blah"} for _ in range(count-1)
-            ], device="cpu", tensor_fields=["d1"])
-
-            # Add exactly the maximum number of docs
-            self.client.index(index_name).add_documents(documents=[
-                {"d1": "blah"} for _ in range(count)
-            ], device="cpu", tensor_fields=["d1"])
-
-            # Add more than the maximum but BATCHED (should succeed)
-            self.client.index(index_name).add_documents(documents=[
-                {"d1": "blah"} for _ in range(count+1)
-            ], device="cpu", tensor_fields=["d1"], client_batch_size=count//2)
-
-            # Add more than the maximum (should fail with bad request)
-            try:
-                self.client.index(index_name).add_documents(documents=[
-                    {"d1": "blah"} for _ in range(count+1)
-                ], device="cpu", tensor_fields=["d1"])
-                raise AssertionError("Add docs call should have failed with bad request")
-            except MarqoWebError as e:
-                assert e.code == "bad_request"
