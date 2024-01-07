@@ -69,7 +69,7 @@ class TestModlCacheManagement(MarqoTestCase):
         for index_name in [self.structured_index_name, self.unstructured_index_name]:
             with self.subTest(index_name):
                 # Do a search to ensure the model is cached
-                r = self.client.index(index_name).search("q")
+                r = self.client.index(index_name).search("q", device="cpu")
                 res = self.client.index(index_name).eject_model("sentence-transformers/all-MiniLM-L6-v2", "cpu")
                 self.assertIn("successfully eject", str(res))
 
