@@ -1,25 +1,15 @@
-import logging
+import subprocess
 import subprocess
 import time
+import uuid
+
+from marqo.errors import BackendCommunicationError, MarqoWebError
 from requests import HTTPError
+
 from tests import marqo_test
-from marqo import Client
-from marqo.errors import MarqoApiError, BackendCommunicationError, MarqoWebError
 
 
 class TestStartStop(marqo_test.MarqoTestCase):
-
-    def setUp(self) -> None:
-        self.client = Client(**self.client_settings)
-        self.index_name_1 = "my-test-index-1"
-        self._delete_index()
-
-    def _delete_index(self):
-        try:
-            self.client.delete_index(self.index_name_1)
-        except MarqoApiError as s:
-            pass
-
     def test_start_stop(self):
 
         NUMBER_OF_RESTARTS = 5
@@ -35,13 +25,16 @@ class TestStartStop(marqo_test.MarqoTestCase):
             """
             # 1 retry a second...
             NUMBER_OF_TRIES = 400
-
+            index_name = "test_start_stop_index"
+            try:
+                self.client.delete_index(index_name)
+            except MarqoWebError:
+                pass
             d1 = {"Title": "The colour of plants", "_id": "fact_1"}
             d2 = {"Title": "some frogs", "_id": "fact_2"}
-            self._delete_index()
-            self.client.create_index(self.index_name_1)
-            self.client.index(self.index_name_1).add_documents(documents=[d1, d2], non_tensor_fields=[], auto_refresh=True)
-            search_res_0 = self.client.index(self.index_name_1).search(q="General nature facts")
+            self.client.create_index(index_name=index_name)
+            self.client.index(index_name).add_documents(documents=[d1, d2], tensor_fields=["Title"])
+            search_res_0 = self.client.index(index_name).search(q="General nature facts")
             assert (search_res_0["hits"][0]["_id"] == "fact_1") or (search_res_0["hits"][0]["_id"] == "fact_2")
             assert len(search_res_0["hits"]) == 2
 
@@ -60,7 +53,7 @@ class TestStartStop(marqo_test.MarqoTestCase):
                 raise ValueError(f"bad option used for sig: {sig}. Must be one of  ('SIGTERM', 'SIGINT', 'SIGKILL')")
 
             try:
-                self.client.index(self.index_name_1).search(q="General nature facts")
+                self.client.index(index_name).search(q="General nature facts")
                 raise AssertionError("Marqo is still accessible despite docker stopping!")
             except BackendCommunicationError as mqe:
                 pass
@@ -70,7 +63,7 @@ class TestStartStop(marqo_test.MarqoTestCase):
 
             for i in range(NUMBER_OF_TRIES):
                 try:
-                    self.client.index(self.index_name_1).search(q="General nature facts")
+                    self.client.index(index_name).search(q="General nature facts")
                     break
                 except (MarqoWebError, HTTPError) as mqe:
                     # most of the time they will be 500 errors
@@ -85,7 +78,7 @@ class TestStartStop(marqo_test.MarqoTestCase):
                         raise AssertionError(f"Timeout waiting for Marqo to restart! Restart number {restart_number}")
                     time.sleep(1)
 
-            search_res_1 = self.client.index(self.index_name_1).search(q="General nature facts")
+            search_res_1 = self.client.index(index_name).search(q="General nature facts")
             assert search_res_1["hits"] == search_res_0["hits"]
             assert (search_res_1["hits"][0]["_id"] == "fact_1") or (search_res_1["hits"][0]["_id"] == "fact_2")
             return True
