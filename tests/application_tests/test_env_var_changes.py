@@ -53,7 +53,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
         open_clip_model_object = {
             "model": "open-clip-1",
-            "model_properties": {
+            "modelProperties": {
                 "name": "ViT-B-32-quickgelu",
                 "dimensions": 512,
                 "type": "open_clip",
