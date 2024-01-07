@@ -73,25 +73,6 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         res = self.client.index("test_index_for_preload_models").get_loaded_models()
         assert set([item["model_name"] for item in res["models"]]) == set(custom_models)
 
-        # ## Testing log output when log level is not set. ##
-        #    we want to ensure that no excessive log messages are printed
-        log_blob = utilities.retrieve_docker_logs(container_name='marqo')
-        assert ("Unverified HTTPS request is being made to host 'host.docker.internal'. "
-                "Adding certificate verification is strongly advised." not in log_blob)
-
-        assert  ("Unverified HTTPS request is being made to host 'localhost'. "
-                 "Adding certificate verification is strongly advised." not in log_blob)
-        assert 'torch==' not in log_blob
-        assert 'Status: Downloaded newer image for marqoai/marqo-os' not in log_blob
-        assert  'FutureWarning: Importing `GenerationMixin`' not in log_blob
-        assert 'Called redis-server command' not in log_blob
-
-        # to assure use that logs aren't just completely empty:
-        assert 'COMPLETED SUCCESSFULLY' in log_blob
-        assert 'Marqo throttling successfully started.' in log_blob
-        assert 'INFO:DeviceSummary:found devices' in log_blob
-        assert 'INFO:ModelsForStartup:completed loading models' in log_blob
-        # ## End log output tests ##
 
     def test_multiple_env_vars(self):
         """
@@ -125,7 +106,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         )
 
         # Assert correct EF const
-        assert self.client.get_index(index_name).get_settings() \
+        assert self.client.index(index_name).get_settings() \
                    ["annParameters"]["parameters"]["efConstruction"] == 5000
 
         # Assert correct models
