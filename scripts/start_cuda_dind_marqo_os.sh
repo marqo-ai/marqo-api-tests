@@ -13,8 +13,7 @@ shift
 set -x
 docker run -d --name marqo --gpus all --privileged -p 8882:8882 --add-host host.docker.internal:host-gateway \
   -e MARQO_ENABLE_BATCH_APIS=TRUE \
-  # TODO Remove this in the real release
-  -e MARQO_MODELS_TO_PRELOAD='[]' \
+  -e MARQO_MODELS_TO_PRELOAD=[] \
     ${@:+"$@"} "$MARQO_DOCKER_IMAGE"
 set +x
 
