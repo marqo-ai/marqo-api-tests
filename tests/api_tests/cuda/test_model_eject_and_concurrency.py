@@ -79,7 +79,7 @@ class TestCudaModelEject(MarqoTestCase):
             self.client.index(index_name).search(q='What is the best outfit to wear on the moon?', device=self.device)
             time.sleep(5)
         return True
-
+@pytest.mark.cuda_test
 @pytest.mark.fixed
 class TestConcurrencyRequestsBlock(MarqoTestCase):
     @classmethod
