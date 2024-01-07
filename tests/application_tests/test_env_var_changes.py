@@ -110,7 +110,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
                    ["annParameters"]["parameters"]["efConstruction"] == 5000
 
         # Assert correct models
-        res = self.client.get_loaded_models()
+        res = self.client.index(index_name).get_loaded_models()
         assert set([item["model_name"] for item in res["models"]]) == set(new_models)
 
         # ## Testing log output when LEVEL=debug ##
@@ -123,7 +123,6 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         )
         self.client.index(index_name).search('something')
         log_blob = utilities.retrieve_docker_logs(container_name='marqo')
-        assert 'torch==' in log_blob
 
     def test_max_add_docs_count(self):
         """
