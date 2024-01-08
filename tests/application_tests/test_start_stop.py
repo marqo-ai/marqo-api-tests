@@ -87,12 +87,12 @@ class TestStartStop(marqo_test.MarqoTestCase):
             assert self.run_start_stop(sig="SIGTERM")
 
     def test_signal_int(self):
-        for i in range(3):
+        for i in range(self.NUMBER_OF_RESTARTS):
             print(f"testing SIGINT: starting restart number {i}")
             assert self.run_start_stop(sig="SIGINT")
 
     def test_signal_kill(self):
-        for i in range(3):
+        for i in range(self.NUMBER_OF_RESTARTS):
             print(f"testing SIGKILL: starting restart number {i}")
             assert self.run_start_stop(sig="SIGKILL")
 
