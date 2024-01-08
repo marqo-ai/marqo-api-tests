@@ -6,6 +6,7 @@ import pytest
 from tests.marqo_test import MarqoTestCase
 
 
+@pytest.mark.fixed
 def generate_structured_index_settings_dict(index_name, image_preprocessing_method) -> Dict:
     return {
         "indexName": index_name,

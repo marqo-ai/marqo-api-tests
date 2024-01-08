@@ -1,5 +1,4 @@
 import subprocess
-import subprocess
 import time
 
 import pytest
@@ -9,6 +8,7 @@ from requests import HTTPError
 from tests import marqo_test
 
 
+@pytest.mark.fixed
 class TestStartStop(marqo_test.MarqoTestCase):
     def test_start_stop(self):
 
