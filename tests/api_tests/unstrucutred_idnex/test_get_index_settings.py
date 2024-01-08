@@ -37,7 +37,7 @@ class TestGetSettings(MarqoTestCase):
         ix = self.client.index(self.default_index_name)
         index_settings = ix.get_settings()
         fields = {'treatUrlsAndPointersAsImages', 'textPreprocessing', 'model', 'normalizeEmbeddings',
-                  'imagePreprocessing', "shortStringLengthThreshold"}
+                  'imagePreprocessing', "filterStringMaxLength"}
 
         self.assertTrue(fields.issubset(set(index_settings)))
 
@@ -62,6 +62,6 @@ class TestGetSettings(MarqoTestCase):
         ix = self.client.index(self.custom_index_name)
         index_settings = ix.get_settings()
         fields = {'treatUrlsAndPointersAsImages', 'textPreprocessing', 'model', 'normalizeEmbeddings',
-                  'imagePreprocessing', "shortStringLengthThreshold"}
+                  'imagePreprocessing', "filterStringMaxLength"}
 
         self.assertTrue(fields.issubset(set(index_settings)))

@@ -52,8 +52,10 @@ class TestUnstructuredDeleteDocuments(MarqoTestCase):
 
         assert res0['hits'][0]["_id"] == "123"
         assert len(res0['hits']) == 2
-        self.client.index(self.text_index_name).delete_documents(["123"])
+        res2 = self.client.index(self.text_index_name).delete_documents(["123"])
+        print(res2)
         res1 = self.client.index(self.text_index_name).search("wow camel")
+        print(res1)
         assert res1['hits'][0]["_id"] == "foo"
         assert len(res1['hits']) == 1
 
