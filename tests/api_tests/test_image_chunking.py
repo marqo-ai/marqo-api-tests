@@ -6,7 +6,6 @@ import pytest
 from tests.marqo_test import MarqoTestCase
 
 
-@pytest.mark.fixed
 def generate_structured_index_settings_dict(index_name, image_preprocessing_method) -> Dict:
     return {
         "indexName": index_name,
@@ -28,6 +27,8 @@ def generate_unstructured_index_settings_dict(index_name, image_preprocessing_me
         "imagePreprocessing": {"patchMethod": image_preprocessing_method}
     }
 
+
+@pytest.mark.fixed
 class TestUnstructuredImageChunking(MarqoTestCase):
     """Test for image chunking as a preprocessing step
     """
