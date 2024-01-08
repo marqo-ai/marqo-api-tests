@@ -19,14 +19,10 @@ We may test multiple different env vars in the same test case. This is because
 """
 import json
 
-import pytest
-from marqo.errors import MarqoWebError
-
 from tests import marqo_test
 from tests import utilities
 
 
-@pytest.mark.fixed
 class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
     """

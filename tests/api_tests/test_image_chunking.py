@@ -27,7 +27,6 @@ def generate_unstructured_index_settings_dict(index_name, image_preprocessing_me
         "imagePreprocessing": {"patchMethod": image_preprocessing_method}
     }
 
-@pytest.mark.fixed
 class TestUnstructuredImageChunking(MarqoTestCase):
     """Test for image chunking as a preprocessing step
     """
