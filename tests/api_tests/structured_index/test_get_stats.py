@@ -7,6 +7,8 @@ from marqo.errors import MarqoWebError
 
 from tests.marqo_test import MarqoTestCase
 
+
+@pytest.mark.fixed
 class TestStructuredGetStats(MarqoTestCase):
     text_index_name = "api_test_structured_index" + str(uuid.uuid4()).replace('-', '')
     image_index_name = "api_test_structured_image_index" + str(uuid.uuid4()).replace('-', '')
@@ -60,7 +62,7 @@ class TestStructuredGetStats(MarqoTestCase):
         if self.indexes_to_delete:
             self.clear_indexes(self.indexes_to_delete)
 
-    @pytest.mark.fixed
+    
     def test_get_status_response_format(self):
         res = self.client.index(self.text_index_name).get_stats()
         assert isinstance(res, dict)
@@ -70,7 +72,7 @@ class TestStructuredGetStats(MarqoTestCase):
         assert "memoryUsedPercentage" in res["backend"]
         assert "storageUsedPercentage" in res["backend"]
 
-    @pytest.mark.fixed
+    
     def test_get_status_response_results_text_index(self):
         """Ensure that the number of vectors and documents is correct, with or without mappings"""
         test_cases = [
@@ -102,7 +104,7 @@ class TestStructuredGetStats(MarqoTestCase):
                 self.assertEqual(number_of_documents, res["numberOfDocuments"])
                 self.assertEqual(number_of_vectors, res["numberOfVectors"])
 
-    @pytest.mark.fixed
+    
     def test_get_status_response_results_image_index(self):
         """Ensure that the number of vectors and documents is correct, with or without mappings"""
 
