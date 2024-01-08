@@ -1,7 +1,10 @@
+import uuid
+
+from marqo.errors import MarqoWebError
 from pytest import mark
 
 from tests.marqo_test import MarqoTestCase
-from marqo.errors import MarqoWebError
+
 
 @mark.fixed
 class TestCreateIndex(MarqoTestCase):
@@ -33,7 +36,7 @@ class TestCreateIndex(MarqoTestCase):
         expected_settings = {
             'type': 'unstructured',
             'treatUrlsAndPointersAsImages': False,
-            'shortStringLengthThreshold': 20,
+            'filterStringMaxLength': 20,
             'model': 'hf/all_datasets_v4_MiniLM-L6',
             'normalizeEmbeddings': True,
             'textPreprocessing': {'split_length': 2, 'split_overlap': 0, 'split_method': 'sentence'},
@@ -223,9 +226,14 @@ class TestCreateIndex(MarqoTestCase):
         self.assertEqual("open_clip/ViT-B-16/laion400m_e31", index_settings["model"])
         self.assertEqual("simple", index_settings['imagePreprocessing']['patch_method'])
 
-    def test_illegal_index_name(self):
-        with self.assertRaises(MarqoWebError) as e:
-            self.client.create_index("test-1", type="structured",
-                                     all_fields=[{"name": "title", "type": "text"}],
-                                     tensor_fields=["title"])
-        self.assertIn("not a valid index name", str(e.exception.message))
+    def test_dash_in_index_name_structured(self):
+        index_name = "test-index-test-index" + str(uuid.uuid4())
+        self.client.create_index(index_name, type="structured",
+                                 all_fields=[{"name": "title", "type": "text"}],
+                                 tensor_fields=["title"])
+        self.indexes_to_delete.append(index_name)
+
+    def test_dash_in_index_name_unstructured(self):
+        index_name = "test-index-test-index" + str(uuid.uuid4())
+        self.client.create_index(index_name, type="unstructured")
+        self.indexes_to_delete.append(index_name)

@@ -7,6 +7,7 @@ from marqo.errors import MarqoWebError
 from tests.marqo_test import MarqoTestCase
 
 
+@pytest.mark.fixed
 class TestUnstructuredGetStats(MarqoTestCase):
 
     @classmethod
@@ -42,20 +43,18 @@ class TestUnstructuredGetStats(MarqoTestCase):
         if self.indexes_to_delete:
             self.clear_indexes(self.indexes_to_delete)
 
-    @pytest.mark.fixed
     def test_get_status_response_format(self):
         res = self.client.index(self.text_index_name).get_stats()
         assert isinstance(res, dict)
         assert "numberOfVectors" in res
         assert "numberOfDocuments" in res
 
-    @pytest.mark.fixed
     def test_get_status_response_results_text_index(self):
         """Ensure that the number of vectors and documents is correct, with or without mappings"""
         test_cases = [
             ([
                  {"title": "test-2", "content": "test"},  # 2 vectors
-                 {"title": "test-2", "content": "test", "non_tensor": "test"}, # 2 vectors
+                 {"title": "test-2", "content": "test", "non_tensor": "test"},  # 2 vectors
                  {"title": "test"},  # 1 vector
                  {"non_tensor": "test"}  # 0 vector
              ], None, 4, 5, "No mappings"),
@@ -75,14 +74,13 @@ class TestUnstructuredGetStats(MarqoTestCase):
                     documents=documents,
                     device="cpu",
                     mappings=mappings,
-                    tensor_fields = ["title", "content", "my_multi_modal_field"]
+                    tensor_fields=["title", "content", "my_multi_modal_field"]
                 )
 
                 res = self.client.index(self.text_index_name).get_stats()
                 self.assertEqual(number_of_documents, res["numberOfDocuments"])
                 self.assertEqual(number_of_vectors, res["numberOfVectors"])
 
-    @pytest.mark.fixed
     def test_get_status_response_results_image_index(self):
         """Ensure that the number of vectors and documents is correct, with or without mappings"""
 
@@ -126,5 +124,5 @@ class TestUnstructuredGetStats(MarqoTestCase):
 
     def test_get_status_error(self):
         with self.assertRaises(MarqoWebError) as cm:
-            self.client.index("A void index").get_stats()
-        self. assertIn("index_not_found", str(cm.exception.message))
+            self.client.index("A_void_index").get_stats()
+        self.assertIn("index_not_found", str(cm.exception.message))
