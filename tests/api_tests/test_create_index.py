@@ -39,12 +39,12 @@ class TestCreateIndex(MarqoTestCase):
             'filterStringMaxLength': 20,
             'model': 'hf/all_datasets_v4_MiniLM-L6',
             'normalizeEmbeddings': True,
-            'textPreprocessing': {'split_length': 2, 'split_overlap': 0, 'split_method': 'sentence'},
+            'textPreprocessing': {'splitLength': 2, 'splitOverlap': 0, 'splitMethod': 'sentence'},
             'imagePreprocessing': {},
             'vectorNumericType': 'float',
             'annParameters': {
                 'spaceType': 'prenormalized-angular', 'parameters': {
-                    'ef_construction': 512, 'm': 16}
+                    'efConstruction': 512, 'm': 16}
             }
         }
         self.assertEqual(expected_settings, index_settings)
@@ -140,10 +140,10 @@ class TestCreateIndex(MarqoTestCase):
             'tensorFields': ['test'],
             'model': 'hf/all_datasets_v4_MiniLM-L6',
             'normalizeEmbeddings': True,
-            'textPreprocessing': {'split_length': 2, 'split_overlap': 0, 'split_method': 'sentence'},
+            'textPreprocessing': {'splitLength': 2, 'splitOverlap': 0, 'splitMethod': 'sentence'},
             'imagePreprocessing': {},
             'vectorNumericType': 'float',
-            'annParameters': {'spaceType': 'prenormalized-angular', 'parameters': {'ef_construction': 512, 'm': 16}}}
+            'annParameters': {'spaceType': 'prenormalized-angular', 'parameters': {'efConstruction': 512, 'm': 16}}}
         self.assertEqual(expected_index_settings, index_settings)
 
     def test_create_structured_image_index(self):
