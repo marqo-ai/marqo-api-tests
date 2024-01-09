@@ -75,7 +75,7 @@ class TestUnstructuredSearch(MarqoTestCase):
         assert len(search_res["hits"]) == 1
         assert self.strip_marqo_fields(search_res["hits"][0]) == d1
         assert len(search_res["hits"][0]["_highlights"]) > 0
-        assert ("Title" in search_res["hits"][0]["_highlights"]) or ("Description" in search_res["hits"][0]["_highlights"])
+        assert ("Title" in search_res["hits"][0]["_highlights"][0]) or ("Description" in search_res["hits"][0]["_highlights"][0])
 
     def test_search_empty_index(self):
         search_res = self.client.index(self.text_index_name).search(
@@ -99,7 +99,7 @@ class TestUnstructuredSearch(MarqoTestCase):
         search_res = self.client.index(self.text_index_name).search(
             "this is a solid doc")
         assert d2 == self.strip_marqo_fields(search_res['hits'][0], strip_id=False)
-        assert search_res['hits'][0]['_highlights']["field_X"] == "this is a solid doc"
+        assert search_res['hits'][0]['_highlights'][0]["field_X"] == "this is a solid doc"
 
     def test_select_lexical(self):
         d1 = {
@@ -121,7 +121,7 @@ class TestUnstructuredSearch(MarqoTestCase):
         search_res = self.client.index(self.text_index_name).search(
             "Examples of leadership", search_method=enums.SearchMethods.TENSOR)
         assert d2 == self.strip_marqo_fields(search_res["hits"][0], strip_id=False)
-        assert search_res["hits"][0]['_highlights']["doc_title"].startswith("The captain bravely lead her followers")
+        assert search_res["hits"][0]['_highlights'][0]["doc_title"].startswith("The captain bravely lead her followers")
 
         # try it with lexical search:
         #    can't find the above with synonym
@@ -227,7 +227,7 @@ class TestUnstructuredSearch(MarqoTestCase):
             docs, tensor_fields=["tensorise_me"]
         )
         search_res = self.client.index(index_name=self.text_index_name).search("Dog")
-        assert list(search_res['hits'][0]['_highlights'].keys()) == ['tensorise_me']
+        assert list(search_res['hits'][0]['_highlights'][0].keys()) == ['tensorise_me']
 
     def test_multi_queries(self):
         docs = [

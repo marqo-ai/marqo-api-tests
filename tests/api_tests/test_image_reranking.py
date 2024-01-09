@@ -61,7 +61,7 @@ class TestImageReranking(MarqoTestCase):
                                                                  , searchable_attributes=['image_content_1'])
 
         self.assertEqual(documents[0]['image_content_1'], reranking_results['hits'][0]['image_content_1'])
-        self.assertIn("image_content_1", reranking_results['hits'][0]['_highlights'])
+        self.assertIn("image_content_1", reranking_results['hits'][0]['_highlights'][0])
 
     def test_image_reranking_searchable_is_none(self):
         documents = [{'_id': '1',
@@ -109,6 +109,6 @@ class TestImageReranking(MarqoTestCase):
 
         results = self.client.index(self.structured_simple_image_processing_index_name). \
             search('brain', searchable_attributes=["image_content_1"])
-        r = results['hits'][0]['_highlights']['image_content_1']
+        r = results['hits'][0]['_highlights'][0]['image_content_1']
         self.assertTrue(isinstance(eval(r), tuple))
         self.assertEqual(4, len(eval(r)))

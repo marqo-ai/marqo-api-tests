@@ -93,7 +93,7 @@ class TestStructuredSearch(MarqoTestCase):
         self.assertEqual(1, len(search_res["hits"]))
         self.assertEqual(d1, self.strip_marqo_fields(search_res["hits"][0]))
         assert len(search_res["hits"][0]["_highlights"]) > 0
-        assert ("title" in search_res["hits"][0]["_highlights"]) or ("content" in search_res["hits"][0]["_highlights"])
+        assert ("title" in search_res["hits"][0]["_highlights"][0]) or ("content" in search_res["hits"][0]["_highlights"][0])
 
     def test_search_empty_index(self):
         search_res = self.client.index(self.text_index_name).search(
@@ -117,7 +117,7 @@ class TestStructuredSearch(MarqoTestCase):
         search_res = self.client.index(self.text_index_name).search(
             "this is a solid doc")
         assert d2 == self.strip_marqo_fields(search_res['hits'][0], strip_id=False)
-        assert search_res['hits'][0]['_highlights']["content"] == "this is a solid doc"
+        assert search_res['hits'][0]['_highlights'][0]["content"] == "this is a solid doc"
 
     def test_select_lexical(self):
         d1 = {
@@ -139,7 +139,7 @@ class TestStructuredSearch(MarqoTestCase):
         search_res = self.client.index(self.text_index_name).search(
             "Examples of leadership", search_method=enums.SearchMethods.TENSOR)
         assert d2 == self.strip_marqo_fields(search_res["hits"][0], strip_id=False)
-        assert search_res["hits"][0]['_highlights']["title"].startswith("The captain bravely lead her followers")
+        assert search_res["hits"][0]['_highlights'][0]["title"].startswith("The captain bravely lead her followers")
 
         # try it with lexical search:
         #    can't find the above with synonym

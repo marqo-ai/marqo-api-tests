@@ -127,7 +127,7 @@ class TestSentenceChunking(MarqoTestCase):
                 self.assertEqual(document["text_field_1"], results['hits'][0]['text_field_1'])
                 self.assertEqual(document["text_field_2"], results['hits'][0]['text_field_2'])
                 self.assertEqual(document["text_field_3"], results['hits'][0]['text_field_3'])
-                self.assertEqual(document["text_field_1"], results["hits"][0]["_highlights"]["text_field_1"])
+                self.assertEqual(document["text_field_1"], results["hits"][0]["_highlights"][0]["text_field_1"])
 
     def test_sentence_chunking_no_overlap(self):
         test_cases = [
@@ -158,7 +158,7 @@ class TestSentenceChunking(MarqoTestCase):
                     )
 
                     res = self.client.index(index_name).search(search_term)
-                    returned_highlights = list(res["hits"][0]["_highlights"].values())[0]
+                    returned_highlights = list(res["hits"][0]["_highlights"][0].values())[0]
                     self.assertEqual(expected_highlights_chunk, returned_highlights)
 
     def test_sentence_chunking_overlap(self):
@@ -192,5 +192,5 @@ class TestSentenceChunking(MarqoTestCase):
                     )
 
                     res = self.client.index(index_name).search(search_term)
-                    returned_highlights = list(res["hits"][0]["_highlights"].values())[0]
+                    returned_highlights = list(res["hits"][0]["_highlights"][0].values())[0]
                     self.assertEqual(expected_highlights_chunk, returned_highlights)
