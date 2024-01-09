@@ -99,7 +99,7 @@ class TestCreateIndex(MarqoTestCase):
         self.client.create_index(index_name=self.index_name, type="unstructured",
                                  treat_urls_and_pointers_as_images=True,
                                  model="open_clip/ViT-B-16/laion400m_e31",
-                                 image_preprocessing={"patch_method": "simple"})
+                                 image_preprocessing={"patchMethod": "simple"})
         image_url = "https://raw.githubusercontent.com/marqo-ai/marqo/mainline/examples/ImageSearchGuide/data/image2.jpg"
         documents = [{"test": "test",
                       "image": image_url}]
@@ -116,7 +116,7 @@ class TestCreateIndex(MarqoTestCase):
         index_settings = self.client.index(self.index_name).get_settings()
         self.assertEqual(True, index_settings['treatUrlsAndPointersAsImages'])
         self.assertEqual("open_clip/ViT-B-16/laion400m_e31", index_settings['model'])
-        self.assertEqual("simple", index_settings['imagePreprocessing']['patch_method'])
+        self.assertEqual("simple", index_settings['imagePreprocessing']['patchMethod'])
 
     def test_create_simple_structured_index(self):
         self.client.create_index(index_name=self.index_name, type="structured",
@@ -202,7 +202,7 @@ class TestCreateIndex(MarqoTestCase):
         self.client.create_index(index_name=self.index_name,
                                  type="structured",
                                  model="open_clip/ViT-B-16/laion400m_e31",
-                                 image_preprocessing={"patch_method": "simple"},
+                                 image_preprocessing={"patchMethod": "simple"},
                                  all_fields=[{"name": "test", "type": "text", "features": ["lexical_search"]},
                                              {"name": "image", "type": "image_pointer"}],
                                  tensor_fields=["test", "image"])
@@ -224,7 +224,7 @@ class TestCreateIndex(MarqoTestCase):
 
         self.assertEqual(["test", "image"], index_settings["tensorFields"])
         self.assertEqual("open_clip/ViT-B-16/laion400m_e31", index_settings["model"])
-        self.assertEqual("simple", index_settings['imagePreprocessing']['patch_method'])
+        self.assertEqual("simple", index_settings['imagePreprocessing']['patchMethod'])
 
     def test_dash_in_index_name_structured(self):
         index_name = "test-index-test-index" + str(uuid.uuid4())

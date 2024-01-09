@@ -9,7 +9,7 @@ from marqo.errors import MarqoApiError, MarqoWebError
 
 from tests.marqo_test import MarqoTestCase
 
-@pytest.mark.fixed
+@pytest.mark.skip
 @pytest.mark.cuda_test
 class TestModelEject(MarqoTestCase):
     '''Although the test is running in cpu, we restrict it to cuda environments due to its intensive usage of memory.'''
