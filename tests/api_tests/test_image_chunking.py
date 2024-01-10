@@ -128,7 +128,7 @@ class TestUnstructuredImageChunking(MarqoTestCase):
                 results = self.client.index(index_name).search('a', **search_call)
                 self.assertEqual(temp_file_name, results['hits'][0]['image_content'])
                 # the highlight should be the location
-                self.assertEqual(temp_file_name, results['hits'][0]['_highlights']['image_content'])
+                self.assertEqual(temp_file_name, results['hits'][0]['_highlights'][0]['image_content'])
 
     def test_image_simple_chunking(self):
         # image_size = (256, 384)
@@ -156,8 +156,8 @@ class TestUnstructuredImageChunking(MarqoTestCase):
 
                 self.assertEqual(temp_file_name, results['hits'][0]['image_content'])
                 # the highlight should be a tuple with 4 elements representing the bounding box, in string format
-                r = results['hits'][0]['_highlights']['image_content']
-                self.assertTrue(isinstance(eval(r), tuple))
+                r = results['hits'][0]['_highlights'][0]['image_content']
+                self.assertTrue(isinstance(eval(r), list))
                 self.assertEqual(4, len(eval(r)))
 
     def test_image_frcnn_chunking(self):
@@ -186,8 +186,8 @@ class TestUnstructuredImageChunking(MarqoTestCase):
 
                 self.assertEqual(temp_file_name, results['hits'][0]['image_content'])
                 # the highlight should be a tuple with 4 elements representing
-                r = results['hits'][0]['_highlights']['image_content']
-                self.assertTrue(isinstance(eval(r), tuple))
+                r = results['hits'][0]['_highlights'][0]['image_content']
+                self.assertTrue(isinstance(eval(r), list))
                 self.assertEqual(4, len(eval(r)))
                 
     def test_image_dino_v1_chunking(self):
@@ -216,8 +216,8 @@ class TestUnstructuredImageChunking(MarqoTestCase):
 
                 self.assertEqual(temp_file_name, results['hits'][0]['image_content'])
                 # the highlight should be a tuple with 4 elements representing
-                r = results['hits'][0]['_highlights']['image_content']
-                self.assertTrue(isinstance(eval(r), tuple))
+                r = results['hits'][0]['_highlights'][0]['image_content']
+                self.assertTrue(isinstance(eval(r), list))
                 self.assertEqual(4, len(eval(r)))
     
     def test_image_dino_v2_chunking(self):
@@ -246,8 +246,8 @@ class TestUnstructuredImageChunking(MarqoTestCase):
 
                 self.assertEqual(temp_file_name, results['hits'][0]['image_content'])
                 # the highlight should be a tuple with 4 elements representing
-                r = results['hits'][0]['_highlights']['image_content']
-                self.assertTrue(isinstance(eval(r), tuple))
+                r = results['hits'][0]['_highlights'][0]['image_content']
+                self.assertTrue(isinstance(eval(r), list))
                 self.assertEqual(4, len(eval(r)))
                 
     def test_image_marqo_yolo_chunking(self):
@@ -277,6 +277,6 @@ class TestUnstructuredImageChunking(MarqoTestCase):
 
                 self.assertEqual(temp_file_name, results['hits'][0]['image_content'])
                 # the highlight should be a tuple with 4 elements representing
-                r = results['hits'][0]['_highlights']['image_content']
-                self.assertTrue(isinstance(eval(r), tuple))
+                r = results['hits'][0]['_highlights'][0]['image_content']
+                self.assertTrue(isinstance(eval(r), list))
                 self.assertEqual(4, len(eval(r)))
