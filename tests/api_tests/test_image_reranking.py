@@ -110,5 +110,5 @@ class TestImageReranking(MarqoTestCase):
         results = self.client.index(self.structured_simple_image_processing_index_name). \
             search('brain', searchable_attributes=["image_content_1"])
         r = results['hits'][0]['_highlights'][0]['image_content_1']
-        self.assertTrue(isinstance(eval(r), tuple))
+        self.assertTrue(isinstance(eval(r), list))
         self.assertEqual(4, len(eval(r)))

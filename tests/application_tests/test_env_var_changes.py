@@ -108,7 +108,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
         # Assert correct EF const
         assert self.client.index(index_name).get_settings() \
-                   ["annParameters"]["parameters"]["ef_construction"] == 5000
+                   ["annParameters"]["parameters"]["efConstruction"] == 5000
 
         # Assert correct models
         res = self.client.index(index_name).get_loaded_models()

@@ -27,10 +27,10 @@ class TestStructuredGetSettings(MarqoTestCase):
         'tensorFields': ['title'],
         'model': 'hf/all_datasets_v4_MiniLM-L6',
         'normalizeEmbeddings': True,
-        'textPreprocessing': {'split_length': 2, 'split_overlap': 0, 'split_method': 'sentence'},
+        'textPreprocessing': {'splitLength': 2, 'splitOverlap': 0, 'splitMethod': 'sentence'},
         'imagePreprocessing': {},
         'vectorNumericType': 'float',
-        'annParameters': {'spaceType': 'angular', 'parameters': {'ef_construction': 128, 'm': 16}}
+        'annParameters': {'spaceType': 'angular', 'parameters': {'efConstruction': 128, 'm': 16}}
         }
         """
         self.client.create_index(index_name=self.default_index_name,
@@ -54,10 +54,10 @@ class TestStructuredGetSettings(MarqoTestCase):
         'model': 'test-model',
         'modelProperties': {'name': 'sentence-transformers/multi-qa-MiniLM-L6-cos-v1', 'dimensions': 384, 'tokens': 128, 'type': 'sbert'},
         'normalizeEmbeddings': True,
-        'textPreprocessing': {'split_length': 2, 'split_overlap': 0, 'split_method': 'sentence'},
+        'textPreprocessing': {'splitLength': 2, 'splitOverlap': 0, 'splitMethod': 'sentence'},
         'imagePreprocessing': {},
         'vectorNumericType': 'float',
-        'annParameters': {'spaceType': 'angular', 'parameters': {'ef_construction': 128, 'm': 16}}
+        'annParameters': {'spaceType': 'angular', 'parameters': {'efConstruction': 128, 'm': 16}}
         }
         """
         model_properties = {'name': 'sentence-transformers/multi-qa-MiniLM-L6-cos-v1',
