@@ -19,9 +19,9 @@ set -x
 docker run -d --name marqo --privileged -p 8882:8882 --add-host host.docker.internal:host-gateway \
     -e MARQO_MAX_CPU_MODEL_MEMORY=1.6 \
     -e MARQO_ENABLE_BATCH_APIS=true \
-    -e VESPA_CONFIG_URL="http://localhost:19071" \
-    -e VESPA_DOCUMENT_URL="http://localhost:8080" \
-    -e VESPA_QUERY_URL="http://localhost:8080" \
+    -e VESPA_CONFIG_URL="http://host.docker.internal:19071" \
+    -e VESPA_DOCUMENT_URL="http://host.docker.internal:8080" \
+    -e VESPA_QUERY_URL="http://host.docker.internal:8080" \
     -e MARQO_MODELS_TO_PRELOAD='[]' \
     ${@:+"$@"} "$MARQO_DOCKER_IMAGE" --memory=6g
 set +x
