@@ -13,7 +13,8 @@ docker rm -f marqo;
 # ${@:+"$@"} adds ALL args (past $1) if any exist.
 
 set -x
-docker run -d --name marqo --privileged -p 8882:8882 --add-host host.docker.internal:host-gateway \
+docker run -d --name marqo -it -p 8882:8882 \
+    -e MARQO_ENABLE_BATCH_APIS=TRUE \
     -e "MARQO_MAX_CPU_MODEL_MEMORY=1.6" \
     ${@:+"$@"} "$MARQO_DOCKER_IMAGE"
 set +x
