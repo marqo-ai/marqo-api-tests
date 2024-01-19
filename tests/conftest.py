@@ -12,7 +12,7 @@ def pytest_collection_modifyitems(items):
     if not os.environ.get("TESTING_CONFIGURATION"):
         os.environ["TESTING_CONFIGURATION"] = "CUSTOM"
 
-    if os.environ["TESTING_CONFIGURATION"] in ["CUDA_DIND_MARQO_OS"]:
+    if os.environ["TESTING_CONFIGURATION"] in ["CUDA_DOCKER_MARQO"]:
         # Skip cpu_only_tests if the env is CUDA
         skip_cpu_only_test = pytest.mark.skip(reason="need to not set "
                                                      "'TESTING_CONFIGURATION=CUDA_DIND_MARQO_OS' to run")
@@ -22,7 +22,7 @@ def pytest_collection_modifyitems(items):
     else:
         # Skip cuda-tests if the env is NOT CUDA
         skip_cuda_test = pytest.mark.skip(reason="need to setEnvVars "
-                                                 "'TESTING_CONFIGURATION=CUDA_DIND_MARQO_OS' to run")
+                                                 "'TESTING_CONFIGURATION=CUDA_DOCKER_MARQO' to run")
         for item in items:
             if "cuda_test" in item.keywords:
                 item.add_marker(skip_cuda_test)
