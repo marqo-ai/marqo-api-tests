@@ -4,7 +4,7 @@
 # $@ : env_vars - strings representing all args to pass docker call
 
 
-python3 start_vespa.py
+python3 scripts/start_vespa.py
 
 MARQO_DOCKER_IMAGE="$1"
 shift
