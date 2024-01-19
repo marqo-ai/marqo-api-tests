@@ -1,6 +1,7 @@
 import pytest
 import os
 
+
 def pytest_configure(config):
     config.addinivalue_line("markers", "cuda_test: mark test as cuda_test to skip")
     config.addinivalue_line("markers", "cpu_only_test: mark test as cpu_only_test to skip")
