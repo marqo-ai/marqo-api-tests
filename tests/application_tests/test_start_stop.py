@@ -54,15 +54,15 @@ class TestStartStop(marqo_test.MarqoTestCase):
             stop_marqo_res = subprocess.run(["docker", "stop", "marqo"], check=True, capture_output=True)
             assert "marqo" in str(stop_marqo_res.stdout)
         elif sig == 'SIGINT':
-            stop_marqo_res = subprocess.run(["docker", "kill", "--signal=SIGINT", "marqo"], check=True, capture_output=True)
+            stop_marqo_res = subprocess.run(["docker", "kill", "--signal=SIGINT", "marqo"], check=True,
+                                            capture_output=True)
             assert "marqo" in str(stop_marqo_res.stdout)
-            time.sleep(10)
         elif sig == "SIGKILL":
             stop_marqo_res = subprocess.run(["docker", "kill", "marqo"], check=True, capture_output=True)
             assert "marqo" in str(stop_marqo_res.stdout)
-            time.sleep(10)
         else:
             raise ValueError(f"bad option used for sig: {sig}. Must be one of  ('SIGTERM', 'SIGINT', 'SIGKILL')")
+        time.sleep(10)  # wait for marqo to stop
 
         try:
             self.client.index(self.INDEX_NAME).search(q="General nature facts")
@@ -109,4 +109,3 @@ class TestStartStop(marqo_test.MarqoTestCase):
         for i in range(self.NUMBER_OF_RESTARTS):
             print(f"testing SIGKILL: starting restart number {i}")
             assert self.run_start_stop(sig="SIGKILL")
-
