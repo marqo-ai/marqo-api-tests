@@ -53,18 +53,15 @@ class TestStartStop(marqo_test.MarqoTestCase):
         if sig == 'SIGTERM':
             stop_marqo_res = subprocess.run(["docker", "stop", "marqo"], check=True, capture_output=True)
             assert "marqo" in str(stop_marqo_res.stdout)
-            time.sleep(10)
         elif sig == 'SIGINT':
             stop_marqo_res = subprocess.run(["docker", "kill", "--signal=SIGINT", "marqo"], check=True, capture_output=True)
             assert "marqo" in str(stop_marqo_res.stdout)
-            time.sleep(10)
         elif sig == "SIGKILL":
             stop_marqo_res = subprocess.run(["docker", "kill", "marqo"], check=True, capture_output=True)
             assert "marqo" in str(stop_marqo_res.stdout)
-            time.sleep(10)
         else:
             raise ValueError(f"bad option used for sig: {sig}. Must be one of  ('SIGTERM', 'SIGINT', 'SIGKILL')")
-
+        time.sleep(10)
         try:
             self.client.index(self.INDEX_NAME).search(q="General nature facts")
             raise AssertionError("Marqo is still accessible despite docker stopping!")
