@@ -1,43 +1,239 @@
-from marqo.client import Client
-from marqo.errors import MarqoApiError, MarqoWebError
-import unittest
-import pprint
+import uuid
+
+from marqo.errors import MarqoWebError
+from pytest import mark
+
 from tests.marqo_test import MarqoTestCase
 
 
+@mark.fixed
 class TestCreateIndex(MarqoTestCase):
 
     def setUp(self) -> None:
-        client_0 = Client(**self.client_settings)
-        self.index_name_1 = "my-test-index-1"
-        self.index_name_bulk_substring = "some-bulk"
-        
-        for ix_name in [self.index_name_bulk_substring, self.index_name_1]:
-            try:
-                client_0.delete_index(ix_name)
-            except MarqoApiError as s:
-                pass
+        """As this test class is testing index creation,
+        we need to create/delete index before/after each test"""
+        super().setUp()
+        self.index_name = "test_index"
 
-    def test_illegal_index_name_prevented(self):
-        client = Client(**self.client_settings)
-
-        client.create_index(self.index_name_bulk_substring)
+    def tearDown(self):
+        super().tearDown()
         try:
-            create_index_res = client.create_index('bulk')
-            raise AssertionError(
-                f'created index with illegal name `bulk`! '
-                f'Create index response: {create_index_res}')
-        except MarqoWebError as e:
-            assert e.code == 'invalid_index_name'
-        # ensure the index was not accidentally created despite the error:
-        assert 'bulk' not in [ix.index_name for ix in client.get_indexes()['results']]
-        # but an index name with 'bulk' as a substring should appear as expected:
-        assert 'some-bulk' in [ix.index_name for ix in client.get_indexes()['results']]
+            self.client.delete_index(index_name=self.index_name)
+        except MarqoWebError:
+            pass
 
-    def tearDown(self) -> None:
-        client_0 = Client(**self.client_settings)
-        for ix_name in [self.index_name_bulk_substring, self.index_name_1]:
-            try:
-                client_0.delete_index(ix_name)
-            except MarqoApiError as s:
-                pass
+    def test_simple_index_creation(self):
+        self.client.create_index(index_name=self.index_name)
+        self.client.index(self.index_name).add_documents([{"test": "test"}], tensor_fields=["test"])
+
+        lexical_search_res = self.client.index(self.index_name).search(q="test", search_method="LEXICAL")
+        tensor_search_res = self.client.index(self.index_name).search(q="test", search_method="TENSOR")
+
+        self.assertEqual(1, len(lexical_search_res['hits']))
+        self.assertEqual(1, len(tensor_search_res['hits']))
+        index_settings = self.client.index(self.index_name).get_settings()
+
+        expected_settings = {
+            'type': 'unstructured',
+            'treatUrlsAndPointersAsImages': False,
+            'filterStringMaxLength': 20,
+            'model': 'hf/all_datasets_v4_MiniLM-L6',
+            'normalizeEmbeddings': True,
+            'textPreprocessing': {'splitLength': 2, 'splitOverlap': 0, 'splitMethod': 'sentence'},
+            'imagePreprocessing': {},
+            'vectorNumericType': 'float',
+            'annParameters': {
+                'spaceType': 'prenormalized-angular', 'parameters': {
+                    'efConstruction': 512, 'm': 16}
+            }
+        }
+        self.assertEqual(expected_settings, index_settings)
+
+    def test_create_unstructured_image_index(self):
+        self.client.create_index(index_name=self.index_name, type="unstructured",
+                                 treat_urls_and_pointers_as_images=True, model="open_clip/ViT-B-32/laion400m_e32")
+        image_url = "https://raw.githubusercontent.com/marqo-ai/marqo/mainline/examples/ImageSearchGuide/data/image2.jpg"
+        documents = [{"test": "test",
+                      "image": image_url}]
+        self.client.index(self.index_name).add_documents(documents, tensor_fields=["test", "image"])
+
+        lexical_search_res = self.client.index(self.index_name).search(q="test", search_method="LEXICAL")
+        tensor_search_res = self.client.index(self.index_name).search(q="test", search_method="TENSOR")
+        tensor_search_res_image = self.client.index(self.index_name).search(q=image_url, search_method="TENSOR")
+
+        self.assertEqual(1, len(lexical_search_res['hits']))
+        self.assertEqual(1, len(tensor_search_res['hits']))
+        self.assertEqual(1, len(tensor_search_res_image['hits']))
+
+        index_settings = self.client.index(self.index_name).get_settings()
+        self.assertEqual(True, index_settings['treatUrlsAndPointersAsImages'])
+        self.assertEqual("open_clip/ViT-B-32/laion400m_e32", index_settings['model'])
+
+    def test_create_unstructured_text_index_custom_model(self):
+        self.client.create_index(index_name=self.index_name, type="unstructured",
+                                 treat_urls_and_pointers_as_images=False,
+                                 model="test-model",
+                                 model_properties={"name": "sentence-transformers/multi-qa-MiniLM-L6-cos-v1",
+                                                   "dimensions": 384,
+                                                   "tokens": 128,
+                                                   "type": "sbert"}
+                                 )
+        documents = [{"test": "test"}]
+        self.client.index(self.index_name).add_documents(documents, tensor_fields=["test"])
+
+        lexical_search_res = self.client.index(self.index_name).search(q="test", search_method="LEXICAL")
+        tensor_search_res = self.client.index(self.index_name).search(q="test", search_method="TENSOR")
+
+        self.assertEqual(1, len(lexical_search_res['hits']))
+        self.assertEqual(1, len(tensor_search_res['hits']))
+
+        index_settings = self.client.index(self.index_name).get_settings()
+        self.assertEqual(False, index_settings['treatUrlsAndPointersAsImages'])
+        self.assertEqual("test-model", index_settings['model'])
+        self.assertEqual({"name": "sentence-transformers/multi-qa-MiniLM-L6-cos-v1",
+                          "dimensions": 384,
+                          "tokens": 128,
+                          "type": "sbert"}, index_settings['modelProperties'])
+
+    def test_created_unstructured_image_index_with_preprocessing(self):
+        self.client.create_index(index_name=self.index_name, type="unstructured",
+                                 treat_urls_and_pointers_as_images=True,
+                                 model="open_clip/ViT-B-16/laion400m_e31",
+                                 image_preprocessing={"patchMethod": "simple"})
+        image_url = "https://raw.githubusercontent.com/marqo-ai/marqo/mainline/examples/ImageSearchGuide/data/image2.jpg"
+        documents = [{"test": "test",
+                      "image": image_url}]
+        self.client.index(self.index_name).add_documents(documents, tensor_fields=["test", "image"])
+
+        lexical_search_res = self.client.index(self.index_name).search(q="test", search_method="LEXICAL")
+        tensor_search_res = self.client.index(self.index_name).search(q="test", search_method="TENSOR")
+        tensor_search_res_image = self.client.index(self.index_name).search(q=image_url, search_method="TENSOR")
+
+        self.assertEqual(1, len(lexical_search_res['hits']))
+        self.assertEqual(1, len(tensor_search_res['hits']))
+        self.assertEqual(1, len(tensor_search_res_image['hits']))
+
+        index_settings = self.client.index(self.index_name).get_settings()
+        self.assertEqual(True, index_settings['treatUrlsAndPointersAsImages'])
+        self.assertEqual("open_clip/ViT-B-16/laion400m_e31", index_settings['model'])
+        self.assertEqual("simple", index_settings['imagePreprocessing']['patchMethod'])
+
+    def test_create_simple_structured_index(self):
+        self.client.create_index(index_name=self.index_name, type="structured",
+                                 model="hf/all_datasets_v4_MiniLM-L6",
+                                 all_fields=[{"name": "test", "type": "text",
+                                              "features": ["lexical_search"]}],
+                                 tensor_fields=["test"])
+        documents = [{"test": "test"}]
+        self.client.index(self.index_name).add_documents(documents)
+
+        lexical_search_res = self.client.index(self.index_name).search(q="test", search_method="LEXICAL")
+        tensor_search_res = self.client.index(self.index_name).search(q="test", search_method="TENSOR")
+
+        self.assertEqual(1, len(lexical_search_res['hits']))
+        self.assertEqual(1, len(tensor_search_res['hits']))
+
+        index_settings = self.client.index(self.index_name).get_settings()
+        expected_index_settings = {
+            'type': 'structured',
+            'allFields': [{'name': 'test', 'type': 'text', 'features': ['lexical_search']}],
+            'tensorFields': ['test'],
+            'model': 'hf/all_datasets_v4_MiniLM-L6',
+            'normalizeEmbeddings': True,
+            'textPreprocessing': {'splitLength': 2, 'splitOverlap': 0, 'splitMethod': 'sentence'},
+            'imagePreprocessing': {},
+            'vectorNumericType': 'float',
+            'annParameters': {'spaceType': 'prenormalized-angular', 'parameters': {'efConstruction': 512, 'm': 16}}}
+        self.assertEqual(expected_index_settings, index_settings)
+
+    def test_create_structured_image_index(self):
+        self.client.create_index(index_name=self.index_name,
+                                 type="structured",
+                                 model="open_clip/ViT-B-32/laion400m_e32",
+                                 all_fields=[{"name": "test", "type": "text", "features": ["lexical_search"]},
+                                             {"name": "image", "type": "image_pointer"}],
+                                 tensor_fields=["test", "image"])
+        image_url = "https://raw.githubusercontent.com/marqo-ai/marqo/mainline/examples/ImageSearchGuide/data/image2.jpg"
+        documents = [{"test": "test",
+                      "image": image_url}]
+
+        self.client.index(self.index_name).add_documents(documents)
+
+        lexical_search_res = self.client.index(self.index_name).search(q="test", search_method="LEXICAL")
+        tensor_search_res = self.client.index(self.index_name).search(q="test", search_method="TENSOR")
+        tensor_search_res_image = self.client.index(self.index_name).search(q=image_url, search_method="TENSOR")
+
+        self.assertEqual(1, len(lexical_search_res['hits']))
+        self.assertEqual(1, len(tensor_search_res['hits']))
+        self.assertEqual(1, len(tensor_search_res_image['hits']))
+
+        index_settings = self.client.index(self.index_name).get_settings()
+
+        self.assertEqual(["test", "image"], index_settings["tensorFields"])
+        self.assertEqual("open_clip/ViT-B-32/laion400m_e32", index_settings["model"])
+
+    def test_create_structured_index_with_custom_model(self):
+        self.client.create_index(index_name=self.index_name,
+                                 type="structured",
+                                 model="test-model",
+                                 model_properties={"name": "sentence-transformers/multi-qa-MiniLM-L6-cos-v1",
+                                                   "dimensions": 384,
+                                                   "tokens": 128,
+                                                   "type": "sbert"},
+                                 all_fields=[{"name": "test", "type": "text", "features": ["lexical_search"]}],
+                                 tensor_fields=["test"])
+        documents = [{"test": "test"}]
+        self.client.index(self.index_name).add_documents(documents)
+
+        lexical_search_res = self.client.index(self.index_name).search(q="test", search_method="LEXICAL")
+        tensor_search_res = self.client.index(self.index_name).search(q="test", search_method="TENSOR")
+
+        self.assertEqual(1, len(lexical_search_res['hits']))
+        self.assertEqual(1, len(tensor_search_res['hits']))
+
+        index_settings = self.client.index(self.index_name).get_settings()
+        self.assertEqual("test-model", index_settings['model'])
+        self.assertEqual({"name": "sentence-transformers/multi-qa-MiniLM-L6-cos-v1",
+                          "dimensions": 384,
+                          "tokens": 128,
+                          "type": "sbert"}, index_settings['modelProperties'])
+
+    def test_create_structured_image_index_with_preprocessing(self):
+        self.client.create_index(index_name=self.index_name,
+                                 type="structured",
+                                 model="open_clip/ViT-B-16/laion400m_e31",
+                                 image_preprocessing={"patchMethod": "simple"},
+                                 all_fields=[{"name": "test", "type": "text", "features": ["lexical_search"]},
+                                             {"name": "image", "type": "image_pointer"}],
+                                 tensor_fields=["test", "image"])
+        image_url = "https://raw.githubusercontent.com/marqo-ai/marqo/mainline/examples/ImageSearchGuide/data/image2.jpg"
+        documents = [{"test": "test",
+                      "image": image_url}]
+
+        self.client.index(self.index_name).add_documents(documents)
+
+        lexical_search_res = self.client.index(self.index_name).search(q="test", search_method="LEXICAL")
+        tensor_search_res = self.client.index(self.index_name).search(q="test", search_method="TENSOR")
+        tensor_search_res_image = self.client.index(self.index_name).search(q=image_url, search_method="TENSOR")
+
+        self.assertEqual(1, len(lexical_search_res['hits']))
+        self.assertEqual(1, len(tensor_search_res['hits']))
+        self.assertEqual(1, len(tensor_search_res_image['hits']))
+
+        index_settings = self.client.index(self.index_name).get_settings()
+
+        self.assertEqual(["test", "image"], index_settings["tensorFields"])
+        self.assertEqual("open_clip/ViT-B-16/laion400m_e31", index_settings["model"])
+        self.assertEqual("simple", index_settings['imagePreprocessing']['patchMethod'])
+
+    def test_dash_in_index_name_structured(self):
+        index_name = "test-index-test-index" + str(uuid.uuid4())
+        self.client.create_index(index_name, type="structured",
+                                 all_fields=[{"name": "title", "type": "text"}],
+                                 tensor_fields=["title"])
+        self.indexes_to_delete.append(index_name)
+
+    def test_dash_in_index_name_unstructured(self):
+        index_name = "test-index-test-index" + str(uuid.uuid4())
+        self.client.create_index(index_name, type="unstructured")
+        self.indexes_to_delete.append(index_name)

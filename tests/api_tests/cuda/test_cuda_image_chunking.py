@@ -1,112 +1,288 @@
-import requests
-from PIL import Image
-from marqo.client import Client
-from marqo.errors import MarqoApiError
-import unittest
-import numpy as np
-import pprint
-from tests.marqo_test import MarqoTestCase
+import uuid
+from typing import Dict
+
 import pytest
+
+from tests.marqo_test import MarqoTestCase
+
+
+def generate_structured_index_settings_dict(index_name, image_preprocessing_method) -> Dict:
+    return {
+        "indexName": index_name,
+        "type": "structured",
+        "model": "open_clip/ViT-B-32/openai",
+        "allFields": [{"name": "image_content", "type": "image_pointer"},
+                      {"name": "text_content", "type": "text"}],
+        "tensorFields": ["image_content", "text_content"],
+        "imagePreprocessing": {"patchMethod": image_preprocessing_method}
+    }
+
+
+def generate_unstructured_index_settings_dict(index_name, image_preprocessing_method) -> Dict:
+    return {
+        "indexName": index_name,
+        "type": "unstructured",
+        "model": "open_clip/ViT-B-32/openai",
+        "treatUrlsAndPointersAsImages": True,
+        "imagePreprocessing": {"patchMethod": image_preprocessing_method}
+    }
+
+
+@pytest.mark.fixed
 @pytest.mark.cuda_test
-class TestImageChunking(MarqoTestCase):
+class TestUnstructuredImageChunking(MarqoTestCase):
     """Test for image chunking as a preprocessing step
     """
-    def setUp(self) -> None:
-        client_0 = Client(**self.client_settings)
-        
-        self.index_name = 'image-chunk-test'
 
-        try:
-            client_0.delete_index(self.index_name)
-        except MarqoApiError as s:
-            pass
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+
+        cls.unstructured_no_image_processing_index_name = (
+                "unstructured_no_image_processing_index_name" + str(uuid.uuid4()).replace('-', ''))
+        cls.unstructured_simple_image_processing_index_name = (
+                "unstructured_simple_image_processing_index_name" + str(uuid.uuid4()).replace('-', ''))
+        cls.unstructured_frcnn_image_processing_index_name = (
+                "unstructured_frcnn_image_processing_index_name" + str(uuid.uuid4()).replace('-', ''))
+        cls.unstructured_dino_v1_image_processing_index_name = (
+                "unstructured_dino_v1_image_processing_index_name" + str(uuid.uuid4()).replace('-', ''))
+        cls.unstructured_dino_v2_image_processing_index_name = (
+                "unstructured_dino_v2_image_processing_index_name" + str(uuid.uuid4()).replace('-', ''))
+        cls.unstructured_marqo_yolo_image_processing_index_name = (
+                "unstructured_marqo_yolo_image_processing_index_name" + str(uuid.uuid4()).replace('-', ''))
+
+        cls.structured_no_image_processing_index_name = (
+                "structured_no_image_processing_index_name" + str(uuid.uuid4()).replace('-', ''))
+        cls.structured_simple_image_processing_index_name = (
+                "structured_simple_image_processing_index_name" + str(uuid.uuid4()).replace('-', ''))
+        cls.structured_frcnn_image_processing_index_name = (
+                "structured_frcnn_image_processing_index_name" + str(uuid.uuid4()).replace('-', ''))
+        cls.structured_dino_v1_image_processing_index_name = (
+                "structured_dino_v1_image_processing_index_name" + str(uuid.uuid4()).replace('-', ''))
+        cls.structured_dino_v2_image_processing_index_name = (
+                "structured_dino_v2_image_processing_index_name" + str(uuid.uuid4()).replace('-', ''))
+        cls.structured_marqo_yolo_image_processing_index_name = (
+                "structured_marqo_yolo_image_processing_index_name" + str(uuid.uuid4()).replace('-', ''))
+
+        # create the structured indexes
+        cls.create_indexes(
+            [
+                generate_structured_index_settings_dict(cls.structured_no_image_processing_index_name, None),
+                generate_structured_index_settings_dict(cls.structured_simple_image_processing_index_name, "simple"),
+                generate_structured_index_settings_dict(cls.structured_frcnn_image_processing_index_name, "frcnn"),
+                generate_structured_index_settings_dict(cls.structured_dino_v1_image_processing_index_name, "dino-v1"),
+                generate_structured_index_settings_dict(cls.structured_dino_v2_image_processing_index_name, "dino-v2"),
+                generate_structured_index_settings_dict(cls.structured_marqo_yolo_image_processing_index_name,
+                                                        "marqo-yolo"),
+            ]
+        )
+
+        # create the unstructured indexes
+        cls.create_indexes(
+            [
+                generate_unstructured_index_settings_dict(cls.unstructured_no_image_processing_index_name, None),
+                generate_unstructured_index_settings_dict(cls.unstructured_simple_image_processing_index_name,
+                                                          "simple"),
+                generate_unstructured_index_settings_dict(cls.unstructured_frcnn_image_processing_index_name, "frcnn"),
+                generate_unstructured_index_settings_dict(cls.unstructured_dino_v1_image_processing_index_name,
+                                                          "dino-v1"),
+                generate_unstructured_index_settings_dict(cls.unstructured_dino_v2_image_processing_index_name,
+                                                          "dino-v2"),
+                generate_unstructured_index_settings_dict(cls.unstructured_marqo_yolo_image_processing_index_name,
+                                                          "marqo-yolo"),
+            ]
+        )
+
+        cls.indexes_to_delete = [
+            cls.unstructured_no_image_processing_index_name,
+            cls.unstructured_simple_image_processing_index_name,
+            cls.unstructured_frcnn_image_processing_index_name,
+            cls.unstructured_dino_v1_image_processing_index_name,
+            cls.unstructured_dino_v2_image_processing_index_name,
+            cls.unstructured_marqo_yolo_image_processing_index_name,
+
+            cls.structured_no_image_processing_index_name,
+            cls.structured_simple_image_processing_index_name,
+            cls.structured_frcnn_image_processing_index_name,
+            cls.structured_dino_v1_image_processing_index_name,
+            cls.structured_dino_v2_image_processing_index_name,
+            cls.structured_marqo_yolo_image_processing_index_name
+        ]
 
     def test_image_no_chunking(self):
-
-        image_size = (256, 384)
-
-        client = Client(**self.client_settings)
-        
-        try:
-            client.delete_index(self.index_name)
-        except MarqoApiError as s:
-            pass
-
-        settings = {
-            "treat_urls_and_pointers_as_images":True,   # allows us to find an image file and index it 
-            "model":"ViT-B/16",
-             "image_preprocessing_method" : None
-            }
-        
-        client.create_index(self.index_name, **settings)
-
+        # image_size = (256, 384)
         temp_file_name = 'https://avatars.githubusercontent.com/u/13092433?v=4'
-        
-        document1 = {'_id': '1', # '_id' can be provided but is not required
-            'attributes': 'hello',
-            'description': 'the image chunking can (optionally) chunk the image into sub-patches (aking to segmenting text) by using either a learned model or simple box generation and cropping',
-            'location': temp_file_name}
 
-        client.index(self.index_name).add_documents([document1], device='cuda', non_tensor_fields=[], auto_refresh=True)
+        test_case = [
+            (self.unstructured_no_image_processing_index_name, {"tensor_fields": ["image_content"]}, {},
+             "unstructured_index, no image preprocessing"),
+            (self.structured_no_image_processing_index_name, {}, {"searchable_attributes": ["image_content"]},
+             "structured_index, no image preprocessing"),
+        ]
 
-        # test the search works
-        results = client.index(self.index_name).search('a', device="cuda")
-        print(results)
-        assert results['hits'][0]['location'] == temp_file_name
+        document = {
+            '_id': '1',  # '_id' can be provided but is not required
+            'text_content': 'hello',
+            'image_content': temp_file_name
+        }
 
-        # search only the image location
-        results = client.index(self.index_name).search('a', searchable_attributes=['location'], device="cuda")
-        print(results)
-        assert results['hits'][0]['location'] == temp_file_name
-        # the highlight should be the location
-        assert results['hits'][0]['_highlights']['location'] == temp_file_name
+        for index_name, add_docs_call, search_call, msg in test_case:
+            with self.subTest(msg):
+                self.client.index(index_name).add_documents([document], device = "cuda", **add_docs_call)
+
+                # test the search works
+                results = self.client.index(index_name).search('a', device = "cuda", **search_call)
+                self.assertEqual(temp_file_name, results['hits'][0]['image_content'])
+                # the highlight should be the location
+                self.assertEqual(temp_file_name, results['hits'][0]['_highlights'][0]['image_content'])
 
     def test_image_simple_chunking(self):
-
-        image_size = (256, 384)
-
-        client = Client(**self.client_settings)
-
-        try:
-            client.delete_index(self.index_name)
-        except MarqoApiError as s:
-            pass
-
-        settings = {
-            "treat_urls_and_pointers_as_images":True,   # allows us to find an image file and index it 
-            "model":"ViT-B/16",
-            "image_preprocessing_method":"simple"
-            }
-        
-        client.create_index(self.index_name, **settings)
-
-        
+        # image_size = (256, 384)
         temp_file_name = 'https://avatars.githubusercontent.com/u/13092433?v=4'
-        
-        img = Image.open(requests.get(temp_file_name, stream=True).raw)
 
-        document1 = {'_id': '1', # '_id' can be provided but is not required
-            'attributes': 'hello',
-            'description': 'the image chunking can (optionally) chunk the image into sub-patches (akin to segmenting text) by using either a learned model or simple box generation and cropping',
-            'location': temp_file_name}
+        test_case = [
+            (self.unstructured_simple_image_processing_index_name, {"tensor_fields": ["image_content"]}, {},
+             "unstructured_index, simple image preprocessing"),
+            (self.structured_simple_image_processing_index_name, {}, {"searchable_attributes": ["image_content"]},
+             "structured_index, simple image preprocessing"),
+        ]
 
-        client.index(self.index_name).add_documents([document1], device='cuda', non_tensor_fields=[], auto_refresh=True)
+        document = {
+            '_id': '1',  # '_id' can be provided but is not required
+            'text_content': 'hello',
+            'image_content': temp_file_name
+        }
 
-        # test the search works
-        results = client.index(self.index_name).search('a', device="cuda")
-        print(results)
-        assert results['hits'][0]['location'] == temp_file_name
+        for index_name, add_docs_call, search_call, msg in test_case:
+            with self.subTest(msg):
+                self.client.index(index_name).add_documents([document], device = "cuda", **add_docs_call)
 
-        # search only the image location
-        results = client.index(self.index_name).search('a', searchable_attributes=['location'], device="cuda")
-        print(results)
-        assert results['hits'][0]['location'] == temp_file_name
-        # the highlight should be the location
-        assert results['hits'][0]['_highlights']['location'] != temp_file_name
-        assert len(results['hits'][0]['_highlights']['location']) == 4
-        assert all(isinstance(_n, (float, int)) for _n in results['hits'][0]['_highlights']['location'])
+                # test the search works
+                results = self.client.index(index_name).search('a', device = "cuda", **search_call)
 
-        # search using the image itself, should return a full sized image as highlight
-        results = client.index(self.index_name).search(temp_file_name, device="cuda")
-        print(results)
-        assert abs(np.array(results['hits'][0]['_highlights']['location']) - np.array([0, 0, img.size[0], img.size[1]])).sum() < 1e-6
+                self.assertEqual(temp_file_name, results['hits'][0]['image_content'])
+                # the highlight should be a tuple with 4 elements representing the bounding box, in string format
+                r = results['hits'][0]['_highlights'][0]['image_content']
+                self.assertTrue(isinstance(eval(r), list))
+                self.assertEqual(4, len(eval(r)))
+
+    def test_image_frcnn_chunking(self):
+        # image_size = (256, 384)
+        temp_file_name = 'https://avatars.githubusercontent.com/u/13092433?v=4'
+
+        test_case = [
+            (self.unstructured_frcnn_image_processing_index_name, {"tensor_fields": ["image_content"]}, {},
+             "unstructured_index, frcnn image preprocessing"),
+            (self.structured_frcnn_image_processing_index_name, {}, {"searchable_attributes": ["image_content"]},
+             "structured_index, frcnn image preprocessing"),
+        ]
+
+        document = {
+            '_id': '1',  # '_id' can be provided but is not required
+            'text_content': 'hello',
+            'image_content': temp_file_name
+        }
+
+        for index_name, add_docs_call, search_call, msg in test_case:
+            with self.subTest(msg):
+                self.client.index(index_name).add_documents([document], device = "cuda", **add_docs_call)
+
+                # test the search works
+                results = self.client.index(index_name).search('a', device = "cuda", **search_call)
+
+                self.assertEqual(temp_file_name, results['hits'][0]['image_content'])
+                # the highlight should be a tuple with 4 elements representing
+                r = results['hits'][0]['_highlights'][0]['image_content']
+                self.assertTrue(isinstance(eval(r), list))
+                self.assertEqual(4, len(eval(r)))
+
+    def test_image_dino_v1_chunking(self):
+        # image_size = (256, 384)
+        temp_file_name = 'https://avatars.githubusercontent.com/u/13092433?v=4'
+
+        test_case = [
+            (self.unstructured_dino_v1_image_processing_index_name, {"tensor_fields": ["image_content"]}, {},
+             "unstructured_index, dino_v1 image preprocessing"),
+            (self.structured_dino_v1_image_processing_index_name, {}, {"searchable_attributes": ["image_content"]},
+             "structured_index, dino_v1 image preprocessing"),
+        ]
+
+        document = {
+            '_id': '1',  # '_id' can be provided but is not required
+            'text_content': 'hello',
+            'image_content': temp_file_name
+        }
+
+        for index_name, add_docs_call, search_call, msg in test_case:
+            with self.subTest(msg):
+                self.client.index(index_name).add_documents([document], device = "cuda", **add_docs_call)
+
+                # test the search works
+                results = self.client.index(index_name).search('a', device = "cuda", **search_call)
+
+                self.assertEqual(temp_file_name, results['hits'][0]['image_content'])
+                # the highlight should be a tuple with 4 elements representing
+                r = results['hits'][0]['_highlights'][0]['image_content']
+                self.assertTrue(isinstance(eval(r), list))
+                self.assertEqual(4, len(eval(r)))
+
+    def test_image_dino_v2_chunking(self):
+        # image_size = (256, 384)
+        temp_file_name = 'https://avatars.githubusercontent.com/u/13092433?v=4'
+
+        test_case = [
+            (self.unstructured_dino_v2_image_processing_index_name, {"tensor_fields": ["image_content"]}, {},
+             "unstructured_index, dino_v2 image preprocessing"),
+            (self.structured_dino_v2_image_processing_index_name, {}, {"searchable_attributes": ["image_content"]},
+             "structured_index, dino_v2 image preprocessing"),
+        ]
+
+        document = {
+            '_id': '1',  # '_id' can be provided but is not required
+            'text_content': 'hello',
+            'image_content': temp_file_name
+        }
+
+        for index_name, add_docs_call, search_call, msg in test_case:
+            with self.subTest(msg):
+                self.client.index(index_name).add_documents([document], device = "cuda", **add_docs_call)
+
+                # test the search works
+                results = self.client.index(index_name).search('a', device = "cuda", **search_call)
+
+                self.assertEqual(temp_file_name, results['hits'][0]['image_content'])
+                # the highlight should be a tuple with 4 elements representing
+                r = results['hits'][0]['_highlights'][0]['image_content']
+                self.assertTrue(isinstance(eval(r), list))
+                self.assertEqual(4, len(eval(r)))
+
+    def test_image_marqo_yolo_chunking(self):
+
+        # image_size = (256, 384)
+        temp_file_name = 'https://avatars.githubusercontent.com/u/13092433?v=4'
+
+        test_case = [
+            (self.unstructured_marqo_yolo_image_processing_index_name, {"tensor_fields": ["image_content"]}, {},
+             "unstructured_index, marqo_yolo image preprocessing"),
+            (self.structured_marqo_yolo_image_processing_index_name, {}, {"searchable_attributes": ["image_content"]},
+             "structured_index, marqo_yolo image preprocessing"),
+        ]
+
+        document = {
+            '_id': '1',  # '_id' can be provided but is not required
+            'text_content': 'hello',
+            'image_content': temp_file_name
+        }
+
+        for index_name, add_docs_call, search_call, msg in test_case:
+            with self.subTest(msg):
+                self.client.index(index_name).add_documents([document], device = "cuda", **add_docs_call)
+
+                # test the search works
+                results = self.client.index(index_name).search('a', device = "cuda", **search_call)
+
+                self.assertEqual(temp_file_name, results['hits'][0]['image_content'])
+                # the highlight should be a tuple with 4 elements representing
+                r = results['hits'][0]['_highlights'][0]['image_content']
+                self.assertTrue(isinstance(eval(r), list))
+                self.assertEqual(4, len(eval(r)))

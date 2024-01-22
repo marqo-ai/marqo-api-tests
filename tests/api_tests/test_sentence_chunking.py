@@ -1,166 +1,196 @@
-import requests
+import uuid
 
-from marqo.client import Client
-from marqo.errors import MarqoApiError
-import unittest
-import pprint
+import pytest
+
 from tests.marqo_test import MarqoTestCase
-import tempfile
-import os
 
 
+@pytest.mark.fixed
 class TestSentenceChunking(MarqoTestCase):
     """Test for sentence chunking
 
     Assumptions:
         - Local OpenSearch (not S2Search)
     """
-    def setUp(self) -> None:
-        client_0 = Client(**self.client_settings)
-        
-        self.index_name = 'sentence-chunk-test'
 
-        try:
-            client_0.delete_index(self.index_name)
-        except MarqoApiError as s:
-            pass
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+
+        # A very large split length
+        cls.large_structured_index_name = "structured_large" + str(uuid.uuid4()).replace('-', '')
+        # A standard split length 2, with 0 split overlap
+        cls.standard_structured_index_name = "structured_standard" + str(uuid.uuid4()).replace('-', '')
+        # A standard split length 2, with 1 split overlap
+        cls.overlap_structured_index_name = "structured_overlap" + str(uuid.uuid4()).replace('-', '')
+
+        cls.large_unstructured_index_name = "unstructured_large" + str(uuid.uuid4()).replace('-', '')
+        cls.standard_unstructured_index_name = "unstructured_standard" + str(uuid.uuid4()).replace('-', '')
+        cls.overlap_unstructured_index_name = "unstructured_overlap" + str(uuid.uuid4()).replace('-', '')
+
+        cls.create_indexes([
+            # Structured Indexes
+            {
+                "indexName": cls.large_structured_index_name,
+                "type": "structured",
+                "textPreprocessing": {
+                    "splitLength": int(1e3),
+                    "splitOverlap": 0,
+                    "splitMethod": "sentence"
+                },
+                "allFields": [{"name": "text_field_1", "type": "text"},
+                              {"name": "text_field_2", "type": "text"},
+                              {"name": "text_field_3", "type": "text"}],
+                "tensorFields": ["text_field_1", "text_field_2", "text_field_3"]
+            },
+            {
+                "indexName": cls.standard_structured_index_name,
+                "type": "structured",
+                "textPreprocessing": {
+                    "splitLength": 2,
+                    "splitOverlap": 0,
+                    "splitMethod": "sentence"
+                },
+                "allFields": [{"name": "text_field_1", "type": "text"},
+                              {"name": "text_field_2", "type": "text"},
+                              {"name": "text_field_3", "type": "text"}],
+                "tensorFields": ["text_field_1", "text_field_2", "text_field_3"]
+            },
+            {
+                "indexName": cls.overlap_structured_index_name,
+                "type": "structured",
+                "textPreprocessing": {
+                    "splitLength": 2,
+                    "splitOverlap": 1,
+                    "splitMethod": "sentence"
+                },
+                "allFields": [{"name": "text_field_1", "type": "text"},
+                              {"name": "text_field_2", "type": "text"},
+                              {"name": "text_field_3", "type": "text"}],
+                "tensorFields": ["text_field_1", "text_field_2", "text_field_3"]
+            },
+            # Unstructured Indexes
+            {
+                "indexName": cls.large_unstructured_index_name,
+                "type": "unstructured",
+                "textPreprocessing": {
+                    "splitLength": int(1e3),
+                    "splitOverlap": 0,
+                    "splitMethod": "sentence"
+                },
+            },
+            {
+                "indexName": cls.standard_unstructured_index_name,
+                "type": "unstructured",
+                "textPreprocessing": {
+                    "splitLength": 2,
+                    "splitOverlap": 0,
+                    "splitMethod": "sentence"
+                },
+            },
+            {
+                "indexName": cls.overlap_unstructured_index_name,
+                "type": "unstructured",
+                "textPreprocessing": {
+                    "splitLength": 2,
+                    "splitOverlap": 1,
+                    "splitMethod": "sentence"
+                },
+            }
+        ])
+
+        cls.indexes_to_delete = [
+            cls.large_structured_index_name,
+            cls.standard_structured_index_name,
+            cls.overlap_structured_index_name,
+
+            cls.large_unstructured_index_name,
+            cls.standard_unstructured_index_name,
+            cls.overlap_unstructured_index_name
+        ]
 
     def test_sentence_no_chunking(self):
+        document = {'_id': '1',  # '_id' can be provided but is not required
+                    'text_field_1': 'hello. how are you. another one.',
+                    'text_field_2': 'the image chunking. can (optionally) chunk. the image into sub-patches (aking to segmenting text). by using either. a learned model. or simple box generation and cropping.',
+                    'text_field_3': 'sasasasaifjfnonfqeno asadsdljknjdfln'}
 
-        client = Client(**self.client_settings)
-        
-        try:
-            client.delete_index(self.index_name)
-        except MarqoApiError as s:
-            pass
+        unstructured_tensor_fields = ["text_field_1", "text_field_2", "text_field_3"]
 
-        settings = {
-            "sentences_per_chunk":int(1e3),  
-            "sentence_overlap":0 
-            }
-        
-        client.create_index(self.index_name, **settings)
+        for index_name in [self.large_structured_index_name, self.large_structured_index_name]:
+            with self.subTest(index_name):
+                self.client.index(index_name).add_documents([document], tensor_fields=unstructured_tensor_fields if \
+                    index_name.startswith("un") else None)
 
-
-        document1 = {'_id': '1', # '_id' can be provided but is not required
-            'attributes': 'hello. how are you. another one.',
-            'description': 'the image chunking. can (optionally) chunk. the image into sub-patches (aking to segmenting text). by using either. a learned model. or simple box generation and cropping.',
-            'misc':'sasasasaifjfnonfqeno asadsdljknjdfln'}
-
-        client.index(self.index_name).add_documents([document1], non_tensor_fields=[], auto_refresh=True)
-
-        # test the search works
-        results = client.index(self.index_name).search('a')
-        print(results)
-        assert results['hits'][0]['attributes'] == document1['attributes']
-
-        assert results['hits'][0]['description'] == document1['description']
-
-        assert results['hits'][0]['misc'] == document1['misc']
+                # test the search works
+                results = self.client.index(index_name).search('hello how are you')
+                self.assertEqual(document["text_field_1"], results['hits'][0]['text_field_1'])
+                self.assertEqual(document["text_field_2"], results['hits'][0]['text_field_2'])
+                self.assertEqual(document["text_field_3"], results['hits'][0]['text_field_3'])
+                self.assertEqual(document["text_field_1"], results["hits"][0]["_highlights"][0]["text_field_1"])
 
     def test_sentence_chunking_no_overlap(self):
+        test_cases = [
+            ('hello. how are you.', 'hello. how are you.'),
+            ('the image into sub-patches (aking to segmenting text). by using either.',
+             'the image into sub-patches (aking to segmenting text). by using either.'),
+            ('sasasasaifjfnonfqeno asadsdljknjdfln', 'sasasasaifjfnonfqeno asadsdljknjdfln'),
+            ('can (optionally) chunk.', "the image chunking. can (optionally) chunk."),
+            ("the image chunking. can (optionally) chunk.",
+             "the image chunking. can (optionally) chunk."),
+            ("the image into sub-patches (aking to segmenting text). by using either.",
+             "the image into sub-patches (aking to segmenting text). by using either.")
+        ]
 
-        client = Client(**self.client_settings)
-        
-        try:
-            client.delete_index(self.index_name)
-        except MarqoApiError as s:
-            pass
+        document = {'_id': '1',  # '_id' can be provided but is not required
+                    'text_field_1': 'hello. how are you. another one.',
+                    'text_field_2': 'the image chunking. can (optionally) chunk. the image into sub-patches (aking to segmenting text). by using either. a learned model. or simple box generation and cropping.',
+                    'text_field_3': 'sasasasaifjfnonfqeno asadsdljknjdfln'}
 
-        settings = {
-            "sentences_per_chunk":2,  
-            "sentence_overlap":0 
-            }
-        
-        client.create_index(self.index_name, **settings)
+        unstructured_tensor_fields = ["text_field_1", "text_field_2", "text_field_3"]
 
+        for index_name in [self.standard_unstructured_index_name, self.standard_unstructured_index_name]:
+            for search_term, expected_highlights_chunk in test_cases:
+                with self.subTest(f"{search_term}, {index_name}"):
+                    self.client.index(index_name).add_documents(
+                        documents=[document], tensor_fields=unstructured_tensor_fields if \
+                            index_name.startswith("un") else None
+                    )
 
-        document1 = {'_id': '1', # '_id' can be provided but is not required
-            'attributes': 'hello. how are you. another one.',
-            'description': 'the image chunking. can (optionally) chunk. the image into sub-patches (aking to segmenting text). by using either. a learned model. or simple box generation and cropping.',
-            'misc':'sasasasaifjfnonfqeno asadsdljknjdfln'}
-
-        client.index(self.index_name).add_documents([document1], non_tensor_fields=[], auto_refresh=True)
-
-        # search with a term we know is an exact chunk and will then show in the highlights
-        search_term = 'hello. how are you.'
-        results = client.index(self.index_name).search(search_term)
-        print(results)
-        assert results['hits'][0]['_highlights']['attributes'] == search_term
-
-        # search with a term we know is an exact chunk and will then show in the highlights
-        search_term = 'the image into sub-patches (aking to segmenting text). by using either.'
-        results = client.index(self.index_name).search(search_term)
-        print(results)
-        assert results['hits'][0]['_highlights']['description'] == search_term
-
-        # search with a term we know is an exact chunk and will then show in the highlights
-        search_term = 'sasasasaifjfnonfqeno asadsdljknjdfln'
-        results = client.index(self.index_name).search(search_term)
-        print(results)
-        assert results['hits'][0]['_highlights']['misc'] == search_term
-
-        # search with a term we know is part of a sub-chunk and verify it is overlapping in the correct sentence
-        search_term = 'can (optionally) chunk.'
-        results = client.index(self.index_name).search(search_term)
-        print(results)
-        assert results['hits'][0]['_highlights']['description'] == 'the image chunking. can (optionally) chunk.'
+                    res = self.client.index(index_name).search(search_term)
+                    returned_highlights = list(res["hits"][0]["_highlights"][0].values())[0]
+                    self.assertEqual(expected_highlights_chunk, returned_highlights)
 
     def test_sentence_chunking_overlap(self):
+        test_cases = [
+            ('hello. how are you.', 'hello. how are you.'),
+            ('the image into sub-patches (aking to segmenting text). by using either.',
+             'the image into sub-patches (aking to segmenting text). by using either.'),
+            ('sasasasaifjfnonfqeno asadsdljknjdfln', 'sasasasaifjfnonfqeno asadsdljknjdfln'),
+            ('can (optionally) chunk.', "the image chunking. can (optionally) chunk."),
+            ("can (optionally) chunk. the image into sub-patches (aking to segmenting text).",
+             "can (optionally) chunk. the image into sub-patches (aking to segmenting text)."),
+            ("the image into sub-patches (aking to segmenting text). by using either.",
+             "the image into sub-patches (aking to segmenting text). by using either.")
+        ]
 
-        client = Client(**self.client_settings)
-        
-        try:
-            client.delete_index(self.index_name)
-        except MarqoApiError as s:
-            pass
+        document = {'_id': '1',  # '_id' can be provided but is not required
+                    'text_field_1': 'hello. how are you. another one.',
+                    'text_field_2': 'the image chunking. can (optionally) chunk. '
+                                    'the image into sub-patches (aking to segmenting text). '
+                                    'by using either. a learned model. or simple box generation and cropping.',
+                    'text_field_3': 'sasasasaifjfnonfqeno asadsdljknjdfln'}
 
-        settings = {
-            "sentences_per_chunk":2,  
-            "sentence_overlap":1
-            }
-        
-        client.create_index(self.index_name, **settings)
+        unstructured_tensor_fields = ["text_field_1", "text_field_2", "text_field_3"]
 
+        for index_name in [self.overlap_unstructured_index_name, self.overlap_unstructured_index_name]:
+            for search_term, expected_highlights_chunk in test_cases:
+                with self.subTest(f"{search_term}, {index_name}"):
+                    self.client.index(index_name).add_documents(
+                        documents=[document], tensor_fields=unstructured_tensor_fields if \
+                            index_name.startswith("un") else None
+                    )
 
-        document1 = {'_id': '1', # '_id' can be provided but is not required
-            'attributes': 'hello. how are you. another one.',
-            'description': 'the image chunking. can (optionally) chunk. the image into sub-patches (aking to segmenting text). by using either. a learned model. or simple box generation and cropping.',
-            'misc':'sasasasaifjfnonfqeno asadsdljknjdfln'}
-
-        client.index(self.index_name).add_documents([document1], non_tensor_fields=[], auto_refresh=True)
-
-        # search with a term we know is an exact chunk and will then show in the highlights
-        search_term = 'hello. how are you.'
-        results = client.index(self.index_name).search(search_term)
-        print(results)
-        assert results['hits'][0]['_highlights']['attributes'] == search_term
-
-        # search with a term we know is an exact chunk and will then show in the highlights
-        search_term = 'the image into sub-patches (aking to segmenting text). by using either.'
-        results = client.index(self.index_name).search(search_term)
-        print(results)
-        assert results['hits'][0]['_highlights']['description'] == search_term
-
-        # search with a term we know is an exact chunk and will then show in the highlights
-        search_term = 'sasasasaifjfnonfqeno asadsdljknjdfln'
-        results = client.index(self.index_name).search(search_term)
-        print(results)
-        assert results['hits'][0]['_highlights']['misc'] == search_term
-
-        # search with a term we know is part of a sub-chunk and verify it is overlapping in the correct sentence
-        search_term = 'can (optionally) chunk.'
-        results = client.index(self.index_name).search(search_term)
-        print(results)
-        assert results['hits'][0]['_highlights']['description'] == 'the image chunking. can (optionally) chunk.'
-
-        # check overlap
-        search_term = "can (optionally) chunk. the image into sub-patches (aking to segmenting text)."
-        results = client.index(self.index_name).search(search_term)
-        print(results)
-        assert results['hits'][0]['_highlights']['description'] == search_term
-
-        search_term = "the image into sub-patches (aking to segmenting text). by using either."
-        results = client.index(self.index_name).search(search_term)
-        print(results)
-        assert results['hits'][0]['_highlights']['description'] == search_term
+                    res = self.client.index(index_name).search(search_term)
+                    returned_highlights = list(res["hits"][0]["_highlights"][0].values())[0]
+                    self.assertEqual(expected_highlights_chunk, returned_highlights)

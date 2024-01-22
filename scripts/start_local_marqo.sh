@@ -3,19 +3,13 @@
 # $1 : marqo_image_name - name of the image you want to test
 # $@ : env_vars - strings representing all args to pass docker call
 
-export LOCAL_OPENSEARCH_URL="https://localhost:9200"
 
-docker rm -f marqo-os
-docker run --name marqo-os -id -p 9200:9200 -p 9600:9600 -e "discovery.type=single-node" marqoai/marqo-os:0.0.3 &
-# wait for marqo-os to start
-until [[ $(curl -v --silent --insecure "$LOCAL_OPENSEARCH_URL/_aliases" 2>&1 | grep Unauthorized) ]]; do
-    sleep 0.1;
-done;
+python3 scripts/start_vespa.py
 
 MARQO_DOCKER_IMAGE="$1"
 shift
 
-docker rm -f marqo
+docker rm -f marqo 2>/dev/null || true
 
 # Explanation:
 # -d detaches docker from process (so subprocess does not wait for it)
@@ -23,8 +17,12 @@ docker rm -f marqo
 
 set -x
 docker run -d --name marqo --privileged -p 8882:8882 --add-host host.docker.internal:host-gateway \
-    -e "MARQO_MAX_CPU_MODEL_MEMORY=1.6" \
-    -e "OPENSEARCH_URL=$LOCAL_OPENSEARCH_URL"  \
+    -e MARQO_MAX_CPU_MODEL_MEMORY=1.6 \
+    -e MARQO_ENABLE_BATCH_APIS=true \
+    -e VESPA_CONFIG_URL="http://host.docker.internal:19071" \
+    -e VESPA_DOCUMENT_URL="http://host.docker.internal:8080" \
+    -e VESPA_QUERY_URL="http://host.docker.internal:8080" \
+    -e MARQO_MODELS_TO_PRELOAD='[]' \
     ${@:+"$@"} "$MARQO_DOCKER_IMAGE" --memory=6g
 set +x
 

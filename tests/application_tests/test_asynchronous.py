@@ -1,65 +1,79 @@
-import asyncio
-import pprint
 import random
-import time
-import threading
-from tests import marqo_test
-from marqo import Client
-from marqo.errors import MarqoApiError
-import requests
-import logging
 import sys
+import threading
+import time
+import uuid
+
+import pytest
+import requests
+
+from tests import marqo_test
+
 sys.setswitchinterval(0.005)
 
-
+@pytest.mark.fixed
 class TestAsync (marqo_test.MarqoTestCase):
 
-    def setUp(self) -> None:
-        self.client = Client(**self.client_settings)
-        self.index_name_1 = "my-test-index-1"
-        try:
-            self.client.delete_index(self.index_name_1)
-        except MarqoApiError as s:
-            pass
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.standard_structured_index_name = "structured_standard" + str(uuid.uuid4()).replace('-', '')
+        cls.standard_unstructured_index_name = "unstructured_standard" + str(uuid.uuid4()).replace('-', '')
+
+        cls.create_indexes([
+            {
+                "indexName": cls.standard_unstructured_index_name,
+                "type": "unstructured"
+            },
+            {
+                "indexName": cls.standard_structured_index_name,
+                "type": "structured",
+                "allFields": [{"name": "text_field_1", "type": "text"},
+                              {"name": "text_field_2", "type": "text"}],
+                "tensorFields": ["text_field_1", "text_field_2"]
+            }
+        ])
+
+        cls.indexes_to_delete = [cls.standard_unstructured_index_name, cls.standard_structured_index_name]
 
     def test_async(self):
-        num_docs = 500
+        for index_name in [self.standard_unstructured_index_name, self.standard_structured_index_name]:
+            with self.subTest(f"test async for {index_name}"):
+                num_docs = 500
 
-        vocab_source = "https://www.mit.edu/~ecprice/wordlist.10000"
+                vocab_source = "https://www.mit.edu/~ecprice/wordlist.10000"
 
-        vocab = requests.get(vocab_source).text.splitlines()
+                vocab = requests.get(vocab_source).text.splitlines()
 
-        d1 = {
-            "doc title": "Just Your Average Doc",
-            "field X": "this is a solid doc",
-            "_id": "56"
-        }
-        self.client.create_index(self.index_name_1)
-        self.client.index(self.index_name_1).add_documents([d1], non_tensor_fields=[], auto_refresh=True)
-        assert self.client.index(self.index_name_1).get_stats()['numberOfDocuments'] == 1
+                d1 = {
+                    "text_field_1": "Just Your Average Doc",
+                    "text_field_2": "this is a solid doc",
+                    "_id": "56"
+                }
+                tensor_fields = ["text_field_1", "text_field_2"] if \
+                    index_name == self.standard_unstructured_index_name else None
+                self.client.index(index_name).add_documents([d1], tensor_fields=tensor_fields)
+                assert self.client.index(index_name).get_stats()['numberOfDocuments'] == 1
 
-        def significant_ingestion():
-            docs = [{"Title": " ".join(random.choices(population=vocab, k=10)),
-                          "Description": " ".join(random.choices(population=vocab, k=25)),
-                          } for _ in range(num_docs)]
-            self.client.index(self.index_name_1).add_documents(documents=docs, auto_refresh=True, client_batch_size=1,
-                                                               non_tensor_fields=[])
+                def significant_ingestion():
+                    docs = [{"text_field_1": " ".join(random.choices(population=vocab, k=10)),
+                                  "text_field_2": " ".join(random.choices(population=vocab, k=25)),
+                                  } for _ in range(num_docs)]
+                    self.client.index(index_name).add_documents(documents=docs, client_batch_size=1,
+                                                                tensor_fields=tensor_fields)
 
-        cache_update_thread = threading.Thread(
-            target=significant_ingestion)
-        cache_update_thread.start()
-        time.sleep(3)
-        refresh_res = self.client.index(self.index_name_1).refresh()
-        time.sleep(0.5)
-        assert cache_update_thread.is_alive()
-        assert self.client.index(self.index_name_1).get_stats()['numberOfDocuments'] > 1
-        assert cache_update_thread.is_alive()
-        assert self.client.index(self.index_name_1).get_stats()['numberOfDocuments'] < 251
+                cache_update_thread = threading.Thread(
+                    target=significant_ingestion)
+                cache_update_thread.start()
+                time.sleep(3)
+                assert cache_update_thread.is_alive()
+                assert self.client.index(index_name).get_stats()['numberOfDocuments'] > 1
+                assert cache_update_thread.is_alive()
+                assert self.client.index(index_name).get_stats()['numberOfDocuments'] < 251
 
-        while cache_update_thread.is_alive():
-            time.sleep(1)
+                while cache_update_thread.is_alive():
+                    time.sleep(1)
 
-        self.client.index(self.index_name_1).refresh()
-        assert self.client.index(self.index_name_1).get_stats()['numberOfDocuments'] == 501
+                assert self.client.index(index_name).get_stats()['numberOfDocuments'] == 501
 
 

@@ -1,7 +1,9 @@
-from marqo import utils
 import unittest
+import pytest
 
+from marqo import utils
 
+@pytest.mark.fixed
 class TestUtils(unittest.TestCase):
 
     def test_construct_authorized_url(self):

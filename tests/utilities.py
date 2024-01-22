@@ -1,9 +1,7 @@
 import os
-import time
 import subprocess
+import time
 import typing
-import threading
-import inspect
 
 
 def disallow_environments(disallowed_configurations: typing.List[str]):
@@ -72,16 +70,17 @@ def rerun_marqo_with_env_vars(env_vars: list = [], calling_class: str = ""):
     # Rerun the appropriate start script
     test_config = os.environ["TESTING_CONFIGURATION"]
 
-    if test_config == "LOCAL_MARQO_OS":
-        start_script_name = "start_local_marqo_os.sh"
-    elif test_config == "DIND_MARQO_OS":
-        start_script_name = "start_dind_marqo_os.sh"
-    elif test_config == "S2SEARCH_OS":
-        start_script_name = "start_s2search_backend.sh"
-    elif test_config == "ARM64_LOCAL_MARQO_OS":
-        start_script_name = "start_arm64_local_marqo_os.sh"
-    elif test_config == "CUDA_DIND_MARQO_OS":
-        start_script_name = "start_cuda_dind_marqo_os.sh"
+    if test_config == "CPU_LOCAL_MARQO":
+        start_script_name = "start_local_marqo.sh"
+    elif test_config == "CPU_DOCKER_MARQO":
+        start_script_name = "start_docker_marqo.sh"
+    elif test_config == "CUDA_DOCKER_MARQO":
+        start_script_name = "start_cuda_docker_marqo.sh"
+    else:
+        raise RuntimeError(f"Invalid testing configuration: {test_config}. "
+                           f"Must be one of ('CPU_LOCAL_MARQO', 'CPU_DOCKER_MARQO', "
+                           f"'CUDA_DOCKER_MARQO') to run the application tests."
+                           f"If you are using a 'CUSTOM', please only run the tests under 'tests/api_tests'")
     full_script_path = f"{os.environ['MARQO_API_TESTS_ROOT']}/scripts/{start_script_name}"
 
     run_process = subprocess.Popen(
