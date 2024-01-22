@@ -14,6 +14,12 @@ class TestStartStop(marqo_test.MarqoTestCase):
     NUMBER_OF_RESTARTS = 3
     INDEX_NAME = "test_start_stop_index" + str(uuid.uuid4()).replace('-', '')
 
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.client.create_index(index_name=cls.INDEX_NAME)
+        cls.client.index(cls.INDEX_NAME).delete()
+
     def run_start_stop(self, sig: str):
         """
         restart_number: an int which prints the restart number this
@@ -27,6 +33,10 @@ class TestStartStop(marqo_test.MarqoTestCase):
         NUMBER_OF_TRIES = 40
         d1 = {"Title": "The colour of plants", "_id": "fact_1"}
         d2 = {"Title": "some frogs", "_id": "fact_2"}
+        try:
+            self.client.index(self.INDEX_NAME).delete()
+        except MarqoWebError:
+            pass
         self.client.create_index(index_name=self.INDEX_NAME)
         self.client.index(self.INDEX_NAME).add_documents(documents=[d1, d2], tensor_fields=["Title"])
         search_res_0 = self.client.index(self.INDEX_NAME).search(q="General nature facts")
