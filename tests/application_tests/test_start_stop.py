@@ -9,6 +9,11 @@ from requests import HTTPError
 from tests import marqo_test
 
 
+def is_container_stopped(container_name):
+    result = subprocess.run(["docker", "inspect", "-f", "{{.State.Status}}", container_name], capture_output=True, text=True)
+    return result.stdout.strip() == "exited"
+
+
 @pytest.mark.fixed
 class TestStartStop(marqo_test.MarqoTestCase):
     NUMBER_OF_RESTARTS = 3
@@ -62,7 +67,14 @@ class TestStartStop(marqo_test.MarqoTestCase):
             assert "marqo" in str(stop_marqo_res.stdout)
         else:
             raise ValueError(f"bad option used for sig: {sig}. Must be one of  ('SIGTERM', 'SIGINT', 'SIGKILL')")
-        time.sleep(10)  # wait for marqo to stop
+
+        # Polling the container status with timeout
+        timeout = 60  # seconds
+        start_time = time.time()
+        while not is_container_stopped("marqo"):
+            if time.time() - start_time > timeout:
+                raise TimeoutError(f"Container 'marqo' failed to stop within {timeout} seconds.")
+            time.sleep(1)
 
         try:
             self.client.index(self.INDEX_NAME).search(q="General nature facts")
