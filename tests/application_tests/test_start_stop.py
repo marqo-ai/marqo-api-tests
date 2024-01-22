@@ -20,6 +20,13 @@ class TestStartStop(marqo_test.MarqoTestCase):
         cls.client.create_index(index_name=cls.INDEX_NAME)
         cls.client.index(cls.INDEX_NAME).delete()
 
+    def tearDown(self):
+        pass
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        pass
+
     def run_start_stop(self, sig: str):
         """
         restart_number: an int which prints the restart number this
