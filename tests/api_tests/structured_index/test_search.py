@@ -301,8 +301,10 @@ class TestStructuredSearch(MarqoTestCase):
         valid_documents = [
             {'long_field_1': 1, '_id': '0', "field_a": "some text"},  # small positive integer
             {'long_field_1': -1, '_id': '1', "field_a": "some text"},  # small negative integer
-            {'long_field_1': 100232142, '_id': '2', "field_a": "some text"},  # large positive integer
-            {'long_field_1': -923217213, '_id': '3', "field_a": "some text"},  # large positive integer
+            # large positive integer that can't be handled by int
+            {'long_field_1': 1002321422948, '_id': '2', "field_a": "some text"},
+            # large negative integer that can't be handled by int
+            {'long_field_1': -9232172132345, '_id': '3', "field_a": "some text"},
             # large positive integer mathematical expression
             {'double_field_1': 10000000000.0, '_id': '4', "field_a": "some text"},
             # large negative integer mathematical expression

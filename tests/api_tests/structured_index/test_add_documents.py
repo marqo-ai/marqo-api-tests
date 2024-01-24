@@ -197,8 +197,8 @@ class TestStructuredAddDocuments(MarqoTestCase):
         test_documents = [
             ({"long_field_1": 1}, False),  # small positive integer
             ({"long_field_1": -1}, False),  # small negative integer
-            ({"long_field_1": 100232142}, False),  # large positive integer
-            ({"long_field_1": -923217213}, False),  # large positive integer
+            ({"long_field_1": 1002321422948}, False),  # large positive integer that can't be handled by int
+            ({"long_field_1": -9232172132345}, False),  # large negative integer that can't be handled by int
             ({'long_field_1': int("1" * 50)}, True),  # overlarge positive integer, should raise error in long field
             # overlarge negative integer, should raise error in long field
             ({'long_field_1': -1 * int("1" * 50)}, True),
@@ -207,7 +207,8 @@ class TestStructuredAddDocuments(MarqoTestCase):
             ({"double_field_1": 1e10 + 0.123249357987123}, False),  # large positive float
             ({"double_field_1": - 1e10 + 0.123249357987123}, False),  # large negative float
             ({"array_double_field_1": [1e10, 1e10 + 0.123249357987123]}, False),  # large float array
-            ({"array_long_field_1": [1002321423, -4923217213, 12390809]}, False),  # large integer array
+            # large integer array that can't be handled by int
+            ({"array_long_field_1": [10023214229483, -4923217213, 12390809]}, False),
             # large integer array with one overlarge integer, should raise error
             ({"array_long_field_1": [1002321423, -4923217213, 12390809, int("9" * 50)]}, True)
         ]
