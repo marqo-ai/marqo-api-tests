@@ -37,7 +37,7 @@ class TestCreateIndex(MarqoTestCase):
             'type': 'unstructured',
             'treatUrlsAndPointersAsImages': False,
             'filterStringMaxLength': 20,
-            'model': 'hf/all_datasets_v4_MiniLM-L6',
+            'model': 'hf/e5-base-v2',
             'normalizeEmbeddings': True,
             'textPreprocessing': {'splitLength': 2, 'splitOverlap': 0, 'splitMethod': 'sentence'},
             'imagePreprocessing': {},
