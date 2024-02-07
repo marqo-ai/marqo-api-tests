@@ -13,11 +13,13 @@ Note: Vespa CLI is not needed as we use the REST API to deploy the application p
 """
 
 import os
+import shutil
+import subprocess
+import textwrap
 import time
 
 import requests
-import shutil
-import textwrap
+
 
 def start_vespa() -> None:
     os.system("docker rm -f vespa 2>/dev/null || true")
@@ -159,9 +161,31 @@ def is_vespa_up(waiting_time: int = 60) -> bool:
     print(f"Vespa is not up and running after {waiting_time}s")
 
 
+def wait_vespa_container_running(max_wait_time: int = 60):
+    start_time = time.time()
+    # Check if the container is running
+    while True:
+        if time.time() - start_time > max_wait_time:
+            print("Maximum wait time exceeded. Vespa container may not be running.")
+            break
+
+        try:
+            output = subprocess.check_output(["docker", "inspect", "--format", "{{.State.Status}}", "vespa"])
+            if output.decode().strip() == "running":
+                print("Vespa container is up and running.")
+                break
+        except subprocess.CalledProcessError:
+            pass
+
+        print("Waiting for Vespa container to start...")
+        time.sleep(5)
+
+
 def main():
     # Start Vespa
     start_vespa()
+    # Wait for the container is pulled and running
+    wait_vespa_container_running()
     # Generate the application package
     zip_file_path = generate_application_package()
     # Deploy the application package
