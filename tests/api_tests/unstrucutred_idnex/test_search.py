@@ -6,6 +6,7 @@ import marqo
 import pytest
 from marqo import enums
 from marqo.client import Client
+from marqo.enums import SearchMethods
 
 from tests.marqo_test import MarqoTestCase
 
@@ -294,3 +295,45 @@ class TestUnstructuredSearch(MarqoTestCase):
         original_score = original_res["hits"][0]["_score"]
         custom_score = custom_res["hits"][0]["_score"]
         self.assertEqual(custom_score, original_score)
+    
+    def test_filter_on_large_integer_and_float(self):
+        valid_documents = [
+            {'long_field_1': 1, '_id': '0', "field_a": "some text"},  # small positive integer
+            {'long_field_1': -1, '_id': '1', "field_a": "some text"},  # small negative integer
+            # large positive integer that can't be handled by int
+            {'long_field_1': 1002321422323, '_id': '2', "field_a": "some text"},
+            # large negative integer that can't be handled by int
+            {'long_field_1': -9232172132345, '_id': '3', "field_a": "some text"},
+            # large positive integer mathematical expression
+            {'double_field_1': 10000000000.0, '_id': '4', "field_a": "some text"},
+            # large negative integer mathematical expression
+            {'double_field_1': -1000000000000.0, '_id': '5', "field_a": "some text"},
+            # large positive float
+            {'double_field_1': 10000000000.12325, '_id': '6', "field_a": "some text"},
+            # large negative float
+            {'double_field_1': -9999999999.87675, '_id': '7', "field_a": "some text"},
+        ]
+
+        self.client.index(self.text_index_name).add_documents(
+                documents=valid_documents, tensor_fields=[]
+        )
+
+        self.assertEqual(len(valid_documents),
+                         self.client.index(self.text_index_name).get_stats()["numberOfDocuments"])
+
+        for document in valid_documents:
+            for search_method in [SearchMethods.LEXICAL, SearchMethods.TENSOR]:
+                numeric_field = list(document.keys())[0]
+                numeric_value = document[numeric_field] if isinstance(document[numeric_field], (int, float)) \
+                    else document[numeric_field][0]
+                filter_string = f"{numeric_field}:{numeric_value}"
+                expected_document_ids = document["_id"]
+                with self.subTest(f"filter_string = {filter_string}, "
+                                  f"expected_document_ids = {expected_document_ids}, "
+                                  f"search_method = {search_method}"):
+                    res = self.client.index(self.text_index_name).search(
+                        q="some text",
+                        filter_string=filter_string, search_method=SearchMethods.LEXICAL
+                    )
+                    self.assertEqual(1, len(res["hits"]))
+                    self.assertEqual(expected_document_ids, res["hits"][0]["_id"])
