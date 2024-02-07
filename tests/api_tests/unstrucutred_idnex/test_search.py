@@ -6,6 +6,7 @@ import marqo
 import pytest
 from marqo import enums
 from marqo.client import Client
+from marqo.errors import MarqoWebError
 
 from tests.marqo_test import MarqoTestCase
 
@@ -294,3 +295,34 @@ class TestUnstructuredSearch(MarqoTestCase):
         original_score = original_res["hits"][0]["_score"]
         custom_score = custom_res["hits"][0]["_score"]
         self.assertEqual(custom_score, original_score)
+
+    def test_filter_on_id(self):
+        """A test to check that filtering on _id works"""
+        docs = [
+            {
+                "title": "Cool Document 1",
+                "content": "some extra info",
+                "_id": "e197e580-039"
+            },
+            {
+                "title": "Just Your Average Doc",
+                "content": "this is a solid doc",
+                "_id": "123456"
+            }
+        ]
+        res = self.client.index(self.text_index_name).add_documents(docs, tensor_fields=["title", "content"])
+        test_case = [
+            ("_id:e197e580-039", ["e197e580-039"], "single _id filter"),
+            ("_id:e197e580-039 OR _id:123456", ["e197e580-039", "123456"], "multiple _id filter with OR"),
+            ("_id:e197e580-039 AND _id:123456", [], "multiple _id filter with AND"),
+            ("_id:e197e580-039 AND title:(Cool Document 1)", ["e197e580-039"],
+             "multiple _id filter with AND and title filter"),
+        ]
+        for search_method in ["TENSOR", "LEXICAL"]:
+            for filter_string, expected, msg in test_case:
+                with self.subTest(f"{search_method} - {msg}"):
+                    search_res = self.client.index(self.text_index_name).search(q = "title", filter_string=filter_string)
+                    actual_ids = set([hit["_id"] for hit in search_res["hits"]])
+                    self.assertEqual(len(search_res["hits"]), len(expected),
+                                     f"Failed count check for filter '{filter_string}'.")
+                    self.assertEqual(actual_ids, set(expected), f"Failed ID match for filter '{filter_string}'")

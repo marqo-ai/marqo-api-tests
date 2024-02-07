@@ -327,9 +327,9 @@ class TestStructuredSearch(MarqoTestCase):
     def test_filter_on_id_error_message(self):
         """A test to check that filtering on _id has a proper error message"""
         test_case = [
-            ("id:e197e580-039", "Invalid filter string: id:e197e580-039"),
-            ("ID:e197e580-039", "Invalid filter string: ID:e197e580-039"),
-            ("id__:e197e580-039", "Invalid filter string: id__:e197e580-039"),
+            ("id:e197e580-039", "Invalid field 'id', it should be '_id'"),
+            ("ID:e197e580-039", "Invalid field 'ID', it should be '_id'"),
+            ("id__:e197e580-039", "Invalid field 'id__', it should be '_id'"),
         ]
         for filter_string, msg in test_case:
             with self.subTest(filter_string=filter_string):
