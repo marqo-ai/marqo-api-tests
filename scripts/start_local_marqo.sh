@@ -23,7 +23,7 @@ docker run -d --name marqo --privileged -p 8882:8882 --add-host host.docker.inte
     -e VESPA_DOCUMENT_URL="http://host.docker.internal:8080" \
     -e VESPA_QUERY_URL="http://host.docker.internal:8080" \
     -e MARQO_MODELS_TO_PRELOAD='[]' \
-    ${@:+"$@"} "$MARQO_DOCKER_IMAGE" --memory=6g
+    ${@:+"$@"} "$MARQO_DOCKER_IMAGE" --memory=8g
 set +x
 
 # Follow docker logs (since it is detached)
