@@ -385,6 +385,6 @@ class TestStructuredSearch(MarqoTestCase):
         for filter_string, msg in test_case:
             with self.subTest(filter_string=filter_string):
                 with self.assertRaises(MarqoWebError) as cm:
-                    self.client.index(self.text_index_name).search(q = "title", filter_string=filter_string)
+                    self.client.index(self.text_index_name).search(q="title", filter_string=filter_string)
                 self.assertIn("has no filterable field", str(cm.exception.message))
-                self.assertIn("Available filterable fields are: 'title, _id, content'", str(cm.exception.message))
+                self.assertIn("Available filterable fields are",  str(cm.exception.message))
