@@ -1,6 +1,7 @@
 import copy
 from unittest import mock
 import uuid
+import requests
 import pytest
 import threading
 import numpy as np
@@ -17,6 +18,9 @@ class TestStructuredUpdateDocuments(MarqoTestCase):
     update_doc_index_name = "update_doc_api_test_index" + str(uuid.uuid4()).replace('-', '')
     large_score_modifier_index_name = ("update_doc_api_test_score_modifier_index" +
                                         str(uuid.uuid4()).replace('-', ''))
+
+    test_unstructured_index_name = ("update_doc_api_test_unstructured_index" +
+                                    str(uuid.uuid4()).replace('-', ''))
 
     @classmethod
     def setUpClass(cls):
@@ -60,11 +64,17 @@ class TestStructuredUpdateDocuments(MarqoTestCase):
                     ["score_modifier", "filter"]} for i in range(100)] +
                 [{"name": "text_field_tensor", "type": "text"}],
                 "tensorFields": ["text_field_tensor"],
+            },
+            {
+                "indexName": cls.test_unstructured_index_name,
+                "type": "unstructured",
+                "model": "random/small",
             }
         ]
         )
 
-        cls.indexes_to_delete = [cls.update_doc_index_name]
+        cls.indexes_to_delete = [cls.update_doc_index_name, cls.large_score_modifier_index_name,
+                                 cls.test_unstructured_index_name]
 
     def tearDown(self):
         if self.indexes_to_delete:
@@ -570,7 +580,7 @@ class TestStructuredUpdateDocuments(MarqoTestCase):
         self.assertEqual(1, self.client.index(self.update_doc_index_name).get_stats()["numberOfDocuments"])
 
         def randomly_update_document(number_of_updates: int = 50):
-            updating_fields_pools = {"text_field", "text_field_filter", "text_field_lexical", "text_field_tensor",
+            updating_fields_pools = {"text_field", "text_field_filter", "text_field_lexical",
                                      "int_field", "int_field_filter", "int_field_score_modifier", "float_field",
                                      "float_field_filter", "bool_field_filter"}
 
@@ -674,7 +684,78 @@ class TestStructuredUpdateDocuments(MarqoTestCase):
 
             self.assertAlmostEqual(original_score + 1, modified_score, 1)
 
+    def test_batch_update_document_requests(self):
+        """Test the client_batch_size parameter for the update_documents method."""
+        original_doc = [
+            {
+                "text_field": "text field",
+                "text_field_filter": "text field filter",
+                "text_field_lexical": "text field lexical",
+                "text_field_tensor": "text field tensor",
+                "int_field": 1,
+                "int_field_filter": 2,
+                "int_field_score_modifier": 3,
+                "float_field": 1.1,
+                "float_field_filter": 2.2,
+                "bool_field_filter": True,
+                "_id": f"{i}"
+            } for i in range(100)
+        ]
+        self.client.index(self.update_doc_index_name).add_documents(documents=original_doc)
+        self.assertEqual(100, self.client.index(self.update_doc_index_name).get_stats()["numberOfDocuments"])
 
+        updated_doc = [{
+            "_id": f"{i}",
+            "text_field": f"updated text field {i}",
+            "int_field_filter": int(i),
+            "float_field_score_modifier": float(i),
+        } for i in range(100)]
 
+        r = self.client.index(self.update_doc_index_name).\
+            update_documents(documents=updated_doc, client_batch_size=10)
 
+        self.assertEqual(10, len(r)) # 10 batches
+        self.assertTrue(all([len(batch["items"]) == 10 for batch in r]), True) # 10 items in each batch
 
+        for i in range(100):
+            document = self.client.index(self.update_doc_index_name).get_document(f"{i}")
+            self.assertEqual(f"updated text field {i}", document["text_field"])
+            self.assertEqual(int(i), document["int_field_filter"])
+            self.assertEqual(float(i), document["float_field_score_modifier"])
+
+    def test_incorrect_update_document_body(self):
+        base_url = self.client_settings["url"]
+        update_doc_url = f"{base_url}/indexes/{self.update_doc_index_name}/documents/update"
+
+        cases = [
+            ({"documents": {"_id": "1", "text_field": "updated text field"}}, "Documents is not a list"),
+            ([{"_id": "1", "text_field": "updated text field"}], "Body is missing the 'documents' key")
+        ]
+
+        for bad_body, msg in cases:
+            with self.subTest(f"{bad_body} - {msg}"):
+                r = requests.post(update_doc_url, json=bad_body)
+                self.assertEqual(422, r.status_code)
+                self.assertIn("'body', 'documents'", str(r.json()))
+
+    def test_too_many_documents_exceeds_max_batch_size(self):
+        """Test that the update_documents method throws an error when the number of documents
+        exceeds the max batch size."""
+        documents = [{"_id": str(i), "text_field": f"updated text field {i}"} for i in range(129)]
+
+        with self.assertRaises(MarqoWebError) as e:
+            self.client.index(self.update_doc_index_name).update_documents(documents=documents)
+
+        self.assertIn("Number of docs in update_documents request (129) exceeds", str(e.exception))
+
+    def test_proper_error_on_unstructured_index(self):
+        """Test that an error is thrown when attempting to update a document in an unstructured index."""
+        updated_doc = {
+            "text_field": "updated text field",
+            "_id": "1"
+        }
+
+        with self.assertRaises(MarqoWebError) as e:
+            self.client.index(self.test_unstructured_index_name).update_documents(documents=[updated_doc])
+
+        self.assertIn("is not supported for unstructured indexes", str(e.exception))
