@@ -36,8 +36,9 @@ class TestStructuredAddDocuments(MarqoTestCase):
                     {"name": "array_float_field_1", "type": "array<float>"},
                     {"name": "array_long_field_1", "type": "array<long>"},
                     {"name": "array_double_field_1", "type": "array<double>"},
+                    {"name": "custom_vector_field_1", "type": "custom_vector", "features": ["lexical_search", "filter"]},
                 ],
-                "tensorFields": ["title", "content"],
+                "tensorFields": ["title", "content", "custom_vector_field_1"],
             },
             {
                 "indexName": cls.image_index_name,
@@ -266,3 +267,57 @@ class TestStructuredAddDocuments(MarqoTestCase):
                     document_id, False
                 )
                 self.assertEqual(expected_doc, returned_doc)
+
+    def test_custom_vector_doc(self):
+        """
+        Tests the custom_vector field type.
+        Ensures the following features work on this field:
+        1. lexical search
+        2. filter string search
+        3. tensor search
+        4. get document
+        """
+
+        DEFAULT_DIMENSIONS = 384
+
+        add_docs_res = self.client.index(index_name=self.text_index_name).add_documents(
+            documents=[
+                {
+                    "custom_vector_field_1": {
+                        "content": "custom vector text",
+                        "vector": [1.0 for _ in range(DEFAULT_DIMENSIONS)],
+                    },
+                    "content": "normal text",
+                    "_id": "doc1",
+                },
+                {
+                    "content": "second doc",
+                    "_id": "doc2"
+                }
+            ])
+
+        # lexical search test
+        lexical_res = self.client.index(self.text_index_name).search(
+            "custom vector text", search_method="lexical")
+        assert lexical_res["hits"][0]["_id"] == "doc1"
+
+        # filter string test
+        filtering_res = self.client.index(self.text_index_name).search(
+            "", filter_string="custom_vector_field_1:(custom vector text)")
+        assert filtering_res["hits"][0]["_id"] == "doc1"
+
+        # tensor search test
+        tensor_res = self.client.index(self.text_index_name).search(q={"dummy text": 0}, context={
+            "tensor": [{"vector": [1.0 for _ in range(DEFAULT_DIMENSIONS)], "weight": 1}]})
+        assert tensor_res["hits"][0]["_id"] == "doc1"
+
+        # get document test
+        doc_res = self.client.index(self.text_index_name).get_document(
+            document_id="doc1",
+            expose_facets=True
+        )
+        assert doc_res["custom_vector_field_1"] == "custom vector text"
+        assert doc_res['_tensor_facets'][0]["custom_vector_field_1"] == "custom vector text"
+        assert doc_res['_tensor_facets'][0]['_embedding'] == [1.0 for _ in range(DEFAULT_DIMENSIONS)]
+
+
