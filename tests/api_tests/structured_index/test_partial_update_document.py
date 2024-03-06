@@ -725,7 +725,7 @@ class TestStructuredUpdateDocuments(MarqoTestCase):
 
     def test_incorrect_update_document_body(self):
         base_url = self.client_settings["url"]
-        update_doc_url = f"{base_url}/indexes/{self.update_doc_index_name}/documents/update"
+        update_doc_url = f"{base_url}/indexes/{self.update_doc_index_name}/documents"
 
         cases = [
             ({"documents": {"_id": "1", "text_field": "updated text field"}}, "Documents is not a list"),
@@ -734,7 +734,7 @@ class TestStructuredUpdateDocuments(MarqoTestCase):
 
         for bad_body, msg in cases:
             with self.subTest(f"{bad_body} - {msg}"):
-                r = requests.post(update_doc_url, json=bad_body)
+                r = requests.patch(update_doc_url, json=bad_body)
                 self.assertEqual(422, r.status_code)
                 self.assertIn("'body', 'documents'", str(r.json()))
 
