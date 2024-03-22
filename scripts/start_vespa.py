@@ -141,6 +141,8 @@ def deploy_application_package(zip_file_path: str, max_retries: int = 5, backoff
         print("Zip file does not exist.")
         return
 
+    print("Start deploying the application package...")
+
     # Attempt to send the request with retries
     for attempt in range(max_retries):
         try:
