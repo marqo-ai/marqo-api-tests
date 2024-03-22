@@ -17,6 +17,7 @@ import shutil
 import subprocess
 import textwrap
 import time
+import sys
 
 import requests
 
@@ -128,7 +129,7 @@ def generate_application_package() -> str:
         print("Failed to create the zip file.")
 
 
-def deploy_application_package(zip_file_path: str) -> None:
+def deploy_application_package(zip_file_path: str, max_retries: int = 5, backoff_factor: float = 0.5) -> None:
     # URL and headers
     url = "http://localhost:19071/application/v2/tenant/default/prepareandactivate"
     headers = {
@@ -136,14 +137,33 @@ def deploy_application_package(zip_file_path: str) -> None:
     }
 
     # Ensure the zip file exists
-    if os.path.isfile(zip_file_path):
-        # Open the zip file in binary read mode and send it through a POST request
-        with open(zip_file_path, 'rb') as zip_file:
-            response = requests.post(url, headers=headers, data=zip_file)
-        print(response.text)
+    if not os.path.isfile(zip_file_path):
+        print("Zip file does not exist.")
+        return
 
+    print("Start deploying the application package...")
+
+    # Attempt to send the request with retries
+    for attempt in range(max_retries):
+        try:
+            with open(zip_file_path, 'rb') as zip_file:
+                response = requests.post(url, headers=headers, data=zip_file)
+            print(response.text)
+            break  # Success, exit the retry loop
+        except requests.exceptions.RequestException as e:
+            print(f"Attempt {attempt + 1} failed due to a request error: {e}")
+            if attempt < max_retries - 1:
+                # Calculate sleep time using exponential backoff
+                sleep_time = backoff_factor * (2 ** attempt)
+                print(f"Retrying in {sleep_time} seconds...")
+                time.sleep(sleep_time)
+            else:
+                print("Max retries reached. Aborting.")
+                return
+
+    # Cleanup
     os.remove(zip_file_path)
-    print("zip file removed.")
+    print("Zip file removed.")
 
 
 def is_vespa_up(waiting_time: int = 60) -> bool:
@@ -182,19 +202,24 @@ def wait_vespa_container_running(max_wait_time: int = 60):
 
 
 def main():
-    # Start Vespa
-    start_vespa()
-    # Wait for the container is pulled and running
-    wait_vespa_container_running()
-    # Generate the application package
-    zip_file_path = generate_application_package()
-    # Deploy the application package
-    time.sleep(10)
-    deploy_application_package(zip_file_path)
-    # Check if Vespa is up and running
-    is_vespa_up()
+    try:
+        # Start Vespa
+        start_vespa()
+        # Wait for the container is pulled and running
+        wait_vespa_container_running()
+        # Generate the application package
+        zip_file_path = generate_application_package()
+        # Deploy the application package
+        time.sleep(10)
+        deploy_application_package(zip_file_path)
+        # Check if Vespa is up and running
+        is_vespa_up()
+    except Exception as e:
+        print(f"An error occurred when staring vespa: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
     main()
+
 
