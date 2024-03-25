@@ -388,3 +388,26 @@ class TestStructuredSearch(MarqoTestCase):
                     self.client.index(self.text_index_name).search(q="title", filter_string=filter_string)
                 self.assertIn("has no filterable field", str(cm.exception.message))
                 self.assertIn("Available filterable fields are",  str(cm.exception.message))
+
+    def test_lexical_query_can_not_be_none(self):
+        context = {"tensor": [{"vector": [1, ] * 384, "weight": 1},
+                          {"vector": [2, ] * 384, "weight": 2}]}
+
+        test_case = [
+            (None, context, "with context"),
+            (None, None, "without context")
+        ]
+
+        for query, context, msg in test_case:
+            with self.subTest(msg):
+                with self.assertRaises(MarqoWebError) as e:
+                    res = self.client.index(self.text_index_name).search(q=None, context = context,
+                                                                         search_method="LEXICAL")
+                self.assertIn("Query(q) is required for lexical search", str(e.exception.message))
+
+    def test_tensor_search_query_can_be_none(self):
+        context = {"tensor": [{"vector": [1, ] * 384, "weight": 1},
+                          {"vector": [2, ] * 384, "weight": 2}]}
+
+        res = self.client.index(self.text_index_name).search(q=None, context=context)
+        self.assertIn("hits", res)
