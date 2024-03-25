@@ -298,7 +298,7 @@ class TestStructuredAddDocuments(MarqoTestCase):
 
         # lexical search test
         lexical_res = self.client.index(self.text_index_name).search(
-            "custom vector text", search_method="lexical")
+            "custom vector text", search_method="LEXICAL")
         assert lexical_res["hits"][0]["_id"] == "doc1"
 
         # filter string test
