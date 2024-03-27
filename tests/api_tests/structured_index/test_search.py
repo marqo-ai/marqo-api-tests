@@ -220,6 +220,16 @@ class TestStructuredSearch(MarqoTestCase):
                 "filter_string": "str_for_filtering:banana AND int_for_filtering:1",
                 "expected": ["3"]
             },
+            {   # filter string (IN with AND)
+                "query": "random content",
+                "filter_string": "str_for_filtering in (banana, orange) AND int_for_filtering in (0, 1)",
+                "expected": ["1", "3"]
+            },
+            {   # filter string (IN with OR)
+                "query": "random content",
+                "filter_string": "str_for_filtering in (banana, orange) OR int_for_filtering in (1)",
+                "expected": ["1", "2", "3"]
+            }
         ]
 
         for case in test_cases:
@@ -365,6 +375,9 @@ class TestStructuredSearch(MarqoTestCase):
             ("_id:e197e580-039 AND _id:123456", [], "multiple _id filter with AND"),
             ("_id:e197e580-039 AND title:(Cool Document 1)", ["e197e580-039"],
              "multiple _id filter with AND and title filter"),
+            ("_id in (e197e580-039, 123456)", ["e197e580-039", "123456"], "IN, multiple IDs"),
+            ("_id in (e197e580-039)", ["e197e580-039"], "IN, single ID"),
+            ("_id in (e197e580-039) OR title:(Just Your Average Doc)", ["e197e580-039", "123456"], "IN, single ID with OR"),
         ]
         for search_method in ["TENSOR", "LEXICAL"]:
             for filter_string, expected, msg in test_case:
