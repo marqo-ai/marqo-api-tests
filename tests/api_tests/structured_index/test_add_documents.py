@@ -301,23 +301,21 @@ class TestStructuredAddDocuments(MarqoTestCase):
             "custom vector text", search_method="lexical")
         assert lexical_res["hits"][0]["_id"] == "doc1"
 
-        # # filter string test
-        # filtering_res = self.client.index(self.text_index_name).search(
-        #     "", filter_string="custom_vector_field_1:(custom vector text)")
-        # assert filtering_res["hits"][0]["_id"] == "doc1"
-        #
-        # # tensor search test
-        # tensor_res = self.client.index(self.text_index_name).search(q={"dummy text": 0}, context={
-        #     "tensor": [{"vector": [1.0 for _ in range(DEFAULT_DIMENSIONS)], "weight": 1}]})
-        # assert tensor_res["hits"][0]["_id"] == "doc1"
-        #
-        # # get document test
-        # doc_res = self.client.index(self.text_index_name).get_document(
-        #     document_id="doc1",
-        #     expose_facets=True
-        # )
-        # assert doc_res["custom_vector_field_1"] == "custom vector text"
-        # assert doc_res['_tensor_facets'][0]["custom_vector_field_1"] == "custom vector text"
-        # assert doc_res['_tensor_facets'][0]['_embedding'] == [1.0 for _ in range(DEFAULT_DIMENSIONS)]
+        # filter string test
+        filtering_res = self.client.index(self.text_index_name).search(
+            "", filter_string="custom_vector_field_1:(custom vector text)")
+        assert filtering_res["hits"][0]["_id"] == "doc1"
 
+        # tensor search test
+        tensor_res = self.client.index(self.text_index_name).search(q={"dummy text": 0}, context={
+            "tensor": [{"vector": [1.0 for _ in range(DEFAULT_DIMENSIONS)], "weight": 1}]})
+        assert tensor_res["hits"][0]["_id"] == "doc1"
 
+        # get document test
+        doc_res = self.client.index(self.text_index_name).get_document(
+            document_id="doc1",
+            expose_facets=True
+        )
+        assert doc_res["custom_vector_field_1"] == "custom vector text"
+        assert doc_res['_tensor_facets'][0]["custom_vector_field_1"] == "custom vector text"
+        assert doc_res['_tensor_facets'][0]['_embedding'] == [1.0 for _ in range(DEFAULT_DIMENSIONS)]
