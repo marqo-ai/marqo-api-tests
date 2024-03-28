@@ -319,5 +319,3 @@ class TestStructuredAddDocuments(MarqoTestCase):
         assert doc_res["custom_vector_field_1"] == "custom vector text"
         assert doc_res['_tensor_facets'][0]["custom_vector_field_1"] == "custom vector text"
         assert doc_res['_tensor_facets'][0]['_embedding'] == [1.0 for _ in range(DEFAULT_DIMENSIONS)]
-
-
