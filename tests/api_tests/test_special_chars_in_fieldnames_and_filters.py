@@ -9,13 +9,11 @@ TestFieldNames tests the following:
 """
 import uuid
 
-import pytest
-
-from tests.marqo_test import MarqoTestCase
 from marqo.errors import MarqoWebError
 
+from tests.marqo_test import MarqoTestCase
 
-@pytest.mark.fixed
+
 class TestSpecialCharacterInValue(MarqoTestCase):
     """We test whether these special characters can be included in the
     value of a document for indexing and filtering"""
@@ -113,7 +111,7 @@ class TestSpecialCharacterInValue(MarqoTestCase):
                     self.assertEqual(400, item["status"])
                     self.assertIn("could not parse field", item["message"])
 
-@pytest.mark.fixed
+
 class TestSpecialCharsFieldNamesUnstructured(MarqoTestCase):
     """This test class tests the supported and illegal field names for structured and unstructured indexes."""
     supported_field_name = ['longdy3h0r', 'bkf3f1dvedkn', 'p7dqwtisyxpu', 'MyString', 'a', "id"]

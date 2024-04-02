@@ -5,7 +5,6 @@ import os
 def pytest_configure(config):
     config.addinivalue_line("markers", "cuda_test: mark test as cuda_test to skip")
     config.addinivalue_line("markers", "cpu_only_test: mark test as cpu_only_test to skip")
-    config.addinivalue_line("markers", "fixed: mark test to run as part of fixed tests")
 
 
 def pytest_collection_modifyitems(items):
@@ -27,7 +26,3 @@ def pytest_collection_modifyitems(items):
         for item in items:
             if "cuda_test" in item.keywords:
                 item.add_marker(skip_cuda_test)
-
-    for item in items:
-        if "fixed" not in item.keywords:
-            item.add_marker(pytest.mark.skip(reason="not marked as fixed"))

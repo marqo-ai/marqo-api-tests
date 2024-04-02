@@ -28,7 +28,6 @@ def generate_unstructured_index_settings_dict(index_name, image_preprocessing_me
     }
 
 
-@pytest.mark.fixed
 @pytest.mark.cuda_test
 class TestUnstructuredImageChunking(MarqoTestCase):
     """Test for image chunking as a preprocessing step

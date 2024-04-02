@@ -10,7 +10,6 @@ from tests.marqo_test import MarqoTestCase
 
 
 @pytest.mark.cuda_test
-@pytest.mark.fixed
 class TestCudaStructuredSearch(MarqoTestCase):
     text_index_name = "api_test_structured_index_text" + str(uuid.uuid4()).replace('-', '')
     image_index_name = "api_test_structured_image_index_image" + str(uuid.uuid4()).replace('-', '')
@@ -276,7 +275,7 @@ class TestCudaStructuredSearch(MarqoTestCase):
 
 
 @pytest.mark.cuda_test
-@pytest.mark.fixed
+
 class TestCudaUnstructuredSearch(MarqoTestCase):
 
     @classmethod

@@ -2,7 +2,6 @@ import subprocess
 import time
 import uuid
 
-import pytest
 from marqo.errors import BackendCommunicationError, MarqoWebError
 from requests import HTTPError
 
@@ -14,7 +13,7 @@ def is_container_stopped(container_name):
     return result.stdout.strip() == "exited"
 
 
-@pytest.mark.fixed
+
 class TestStartStop(marqo_test.MarqoTestCase):
     NUMBER_OF_RESTARTS = 3
     INDEX_NAME = "test_start_stop_index" + str(uuid.uuid4()).replace('-', '')

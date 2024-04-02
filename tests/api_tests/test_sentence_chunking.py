@@ -1,11 +1,8 @@
 import uuid
 
-import pytest
-
 from tests.marqo_test import MarqoTestCase
 
 
-@pytest.mark.fixed
 class TestSentenceChunking(MarqoTestCase):
     """Test for sentence chunking
 

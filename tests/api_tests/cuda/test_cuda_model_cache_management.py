@@ -7,7 +7,6 @@ from tests.marqo_test import MarqoTestCase
 
 
 @pytest.mark.cuda_test
-@pytest.mark.fixed
 class TestModlCacheManagement(MarqoTestCase):
 
     @classmethod

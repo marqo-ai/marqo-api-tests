@@ -1,12 +1,10 @@
 import uuid
 
 from marqo.errors import MarqoWebError
-from pytest import mark
 
 from tests.marqo_test import MarqoTestCase
 
 
-@mark.fixed
 class TestCreateIndex(MarqoTestCase):
 
     def setUp(self) -> None:

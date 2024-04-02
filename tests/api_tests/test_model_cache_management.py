@@ -1,10 +1,11 @@
 import uuid
+
 import pytest
 from marqo.errors import MarqoWebError
 
 from tests.marqo_test import MarqoTestCase
 
-@pytest.mark.fixed
+
 class TestModlCacheManagement(MarqoTestCase):
 
     @classmethod

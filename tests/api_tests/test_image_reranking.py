@@ -1,6 +1,5 @@
 import uuid
 
-import pytest
 from marqo.errors import MarqoWebError
 
 from tests.marqo_test import MarqoTestCase
@@ -19,7 +18,6 @@ def generate_structured_index_settings_dict(index_name, image_preprocessing_meth
     }
 
 
-@pytest.mark.fixed
 class TestImageReranking(MarqoTestCase):
     """Test image reranking features. Note that this feature is available only for structured indexes as
     the feature requires searchable attributes."""

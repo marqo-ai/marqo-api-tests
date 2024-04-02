@@ -4,14 +4,13 @@ import threading
 import time
 import uuid
 
-import pytest
 import requests
 
 from tests import marqo_test
 
 sys.setswitchinterval(0.005)
 
-@pytest.mark.fixed
+
 class TestAsync (marqo_test.MarqoTestCase):
 
     @classmethod

@@ -1,13 +1,11 @@
 import uuid
 
 import numpy as np
-import pytest
 from marqo.errors import MarqoWebError
 
 from tests.marqo_test import MarqoTestCase
 
 
-@pytest.mark.fixed
 class TestScoreModifierSearch(MarqoTestCase):
 
     @classmethod

@@ -4,12 +4,11 @@ import time
 import uuid
 
 import pytest
-from marqo.client import Client
-from marqo.errors import MarqoApiError, MarqoWebError
+from marqo.errors import MarqoWebError
 
 from tests.marqo_test import MarqoTestCase
 
-@pytest.mark.fixed
+
 @pytest.mark.cuda_test
 class TestModelEject(MarqoTestCase):
     '''Although the test is running in cpu, we restrict it to cuda environments due to its intensive usage of memory.'''
@@ -80,7 +79,7 @@ class TestModelEject(MarqoTestCase):
             time.sleep(5)
         return True
 
-@pytest.mark.fixed
+
 class TestConcurrencyRequestsBlock(MarqoTestCase):
     @classmethod
     def setUpClass(cls) -> None:

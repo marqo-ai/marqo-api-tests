@@ -1,12 +1,9 @@
 import uuid
 from unittest.mock import patch
 
-import pytest
-
 from tests.marqo_test import MarqoTestCase
 
 
-@pytest.mark.fixed
 class TestHealth(MarqoTestCase):
 
 

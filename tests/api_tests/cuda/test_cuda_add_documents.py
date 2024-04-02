@@ -9,7 +9,6 @@ from tests.marqo_test import MarqoTestCase
 
 
 @pytest.mark.cuda_test
-@pytest.mark.fixed
 class TestCudaStructuredAddDocuments(MarqoTestCase):
     text_index_name = "add_doc_api_test_structured_index" + str(uuid.uuid4()).replace('-', '')
     image_index_name = "add_doc_api_test_structured_image_index" + str(uuid.uuid4()).replace('-', '')
@@ -157,7 +156,7 @@ class TestCudaStructuredAddDocuments(MarqoTestCase):
 
 
 @pytest.mark.cuda_test
-@pytest.mark.fixed
+
 class TestCudaUnstructuredAddDocuments(MarqoTestCase):
 
     @classmethod

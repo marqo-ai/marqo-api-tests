@@ -1,8 +1,6 @@
 import uuid
 from typing import Dict
 
-import pytest
-
 from tests.marqo_test import MarqoTestCase
 
 
@@ -28,7 +26,7 @@ def generate_unstructured_index_settings_dict(index_name, image_preprocessing_me
     }
 
 
-@pytest.mark.fixed
+
 class TestUnstructuredImageChunking(MarqoTestCase):
     """Test for image chunking as a preprocessing step
     """

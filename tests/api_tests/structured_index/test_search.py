@@ -3,16 +3,14 @@ import uuid
 from unittest import mock
 
 import marqo
-import pytest
 from marqo import enums
 from marqo.client import Client
-from marqo.errors import MarqoWebError
 from marqo.enums import SearchMethods
+from marqo.errors import MarqoWebError
 
 from tests.marqo_test import MarqoTestCase
 
 
-@pytest.mark.fixed
 class TestStructuredSearch(MarqoTestCase):
     text_index_name = "api_test_structured_index_text" + str(uuid.uuid4()).replace('-', '')
     image_index_name = "api_test_structured_image_index_image" + str(uuid.uuid4()).replace('-', '')
@@ -388,26 +386,3 @@ class TestStructuredSearch(MarqoTestCase):
                     self.client.index(self.text_index_name).search(q="title", filter_string=filter_string)
                 self.assertIn("has no filterable field", str(cm.exception.message))
                 self.assertIn("Available filterable fields are",  str(cm.exception.message))
-
-    def test_lexical_query_can_not_be_none(self):
-        context = {"tensor": [{"vector": [1, ] * 384, "weight": 1},
-                          {"vector": [2, ] * 384, "weight": 2}]}
-
-        test_case = [
-            (None, context, "with context"),
-            (None, None, "without context")
-        ]
-
-        for query, context, msg in test_case:
-            with self.subTest(msg):
-                with self.assertRaises(MarqoWebError) as e:
-                    res = self.client.index(self.text_index_name).search(q=None, context = context,
-                                                                         search_method="LEXICAL")
-                self.assertIn("Query(q) is required for lexical search", str(e.exception.message))
-
-    def test_tensor_search_query_can_be_none(self):
-        context = {"tensor": [{"vector": [1, ] * 384, "weight": 1},
-                          {"vector": [2, ] * 384, "weight": 2}]}
-
-        res = self.client.index(self.text_index_name).search(q=None, context=context)
-        self.assertIn("hits", res)

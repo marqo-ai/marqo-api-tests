@@ -1,19 +1,16 @@
-import copy
-from unittest import mock
 import uuid
-import requests
-import pytest
-import threading
-import numpy as np
 import random
+import threading
+import uuid
 
+import numpy as np
+import requests
 from marqo.client import Client
 from marqo.errors import MarqoWebError
 
 from tests.marqo_test import MarqoTestCase
 
 
-@pytest.mark.fixed
 class TestStructuredUpdateDocuments(MarqoTestCase):
     update_doc_index_name = "update_doc_api_test_index" + str(uuid.uuid4()).replace('-', '')
     large_score_modifier_index_name = ("update_doc_api_test_score_modifier_index" +

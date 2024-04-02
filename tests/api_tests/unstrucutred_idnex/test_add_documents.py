@@ -2,14 +2,12 @@ import copy
 import uuid
 from unittest import mock
 
-import pytest
 from marqo.client import Client
 from marqo.errors import MarqoWebError
 
 from tests.marqo_test import MarqoTestCase
 
 
-@pytest.mark.fixed
 class TestUnstructuredAddDocuments(MarqoTestCase):
     
     @classmethod

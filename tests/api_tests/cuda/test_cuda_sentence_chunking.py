@@ -4,8 +4,8 @@ import pytest
 
 from tests.marqo_test import MarqoTestCase
 
+
 @pytest.mark.cuda_test
-@pytest.mark.fixed
 class TestCudaSentenceChunking(MarqoTestCase):
     """Test for sentence chunking
 
