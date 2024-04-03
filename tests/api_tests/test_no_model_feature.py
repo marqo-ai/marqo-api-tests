@@ -149,7 +149,7 @@ class TestNoModelFeature(MarqoTestCase):
     def test_no_model_work_with_context_vectors_in_search(self):
         """Test to ensure that context vectors work with no_model by setting query as None"""
 
-        custom_vector = [0.655 for _ in range(self.DIMENSION)]
+        custom_vector = np.random.randn(self.DIMENSION).tolist()
 
         docs = [
             {
@@ -185,7 +185,6 @@ class TestNoModelFeature(MarqoTestCase):
                 r = self.client.index(index_name).search(q=None,
                                                          context={"tensor": [{"vector": custom_vector,
                                                                               "weight": 1}], })
-
                 self.assertEqual(2, len(r["hits"]))
                 self.assertEqual("2", r["hits"][0]["_id"])
                 self.assertAlmostEqual(1, r["hits"][0]["_score"], places=1)
