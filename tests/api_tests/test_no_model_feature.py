@@ -148,57 +148,54 @@ class TestNoModelFeature(MarqoTestCase):
 
     def test_no_model_work_with_context_vectors_in_search(self):
         """Test to ensure that context vectors work with no_model by setting query as None"""
+        # We need to normalise the vectors as the default distance metric is prenormalized-angular
+        custom_vector = np.random.randn(self.DIMENSION)
+        custom_vector = (np.array(custom_vector) / np.linalg.norm(custom_vector)).tolist()
 
-        def test_no_model_work_with_context_vectors_in_search(self):
-            """Test to ensure that context vectors work with no_model by setting query as None"""
-            # We need to normalise the vectors as the default distance metric is prenormalized-angular
-            custom_vector = np.random.randn(self.DIMENSION)
-            custom_vector = (np.array(custom_vector) / np.linalg.norm(custom_vector)).tolist()
+        random_vector = np.random.randn(self.DIMENSION)
+        random_vector = (random_vector / np.linalg.norm(random_vector)).tolist()
 
-            random_vector = np.random.randn(self.DIMENSION)
-            random_vector = (random_vector / np.linalg.norm(random_vector)).tolist()
+        docs = [
+            {
+                "_id": "1",
+                "custom_field_1":
+                    {
+                        "content": "test custom field content_1",
+                        "vector": random_vector
+                    }
+            },
+            {
+                "_id": "2",
+                "custom_field_1":
+                    {
+                        "content": "test custom field content_2",
+                        "vector": custom_vector
+                    }
+            }
+        ]
 
-            docs = [
-                {
-                    "_id": "1",
-                    "custom_field_1":
-                        {
-                            "content": "test custom field content_1",
-                            "vector": random_vector
-                        }
-                },
-                {
-                    "_id": "2",
-                    "custom_field_1":
-                        {
-                            "content": "test custom field content_2",
-                            "vector": custom_vector
-                        }
-                }
-            ]
+        for index_name in [self.structured_no_model_index_name, self.unstructured_no_model_index_name]:
+            with (self.subTest(index_name=index_name)):
+                tensor_fields = ["text_field_1", "custom_field_1"] if \
+                    index_name == self.unstructured_no_model_index_name else None
+                mappings = {"custom_field_1": {"type": "custom_vector"}} if \
+                    index_name == self.unstructured_no_model_index_name else None
 
-            for index_name in [self.structured_no_model_index_name, self.unstructured_no_model_index_name]:
-                with (self.subTest(index_name=index_name)):
-                    tensor_fields = ["text_field_1", "custom_field_1"] if \
-                        index_name == self.unstructured_no_model_index_name else None
-                    mappings = {"custom_field_1": {"type": "custom_vector"}} if \
-                        index_name == self.unstructured_no_model_index_name else None
+                r = self.client.index(index_name).add_documents(
+                    documents=docs,
+                    tensor_fields=tensor_fields,
+                    mappings=mappings
+                )
+                r = self.client.index(index_name).search(q=None,
+                                                         context={"tensor": [{"vector": custom_vector,
+                                                                              "weight": 1}], })
 
-                    r = self.client.index(index_name).add_documents(
-                        documents=docs,
-                        tensor_fields=tensor_fields,
-                        mappings=mappings
-                    )
-                    r = self.client.index(index_name).search(q=None,
-                                                             context={"tensor": [{"vector": custom_vector,
-                                                                                  "weight": 1}], })
+                self.assertEqual(2, len(r["hits"]))
+                self.assertEqual("2", r["hits"][0]["_id"])
+                self.assertAlmostEqual(1, r["hits"][0]["_score"], places=1)
 
-                    self.assertEqual(2, len(r["hits"]))
-                    self.assertEqual("2", r["hits"][0]["_id"])
-                    self.assertAlmostEqual(1, r["hits"][0]["_score"], places=1)
-
-                    self.assertEqual("1", r["hits"][1]["_id"])
-                    self.assertTrue(r["hits"][1]["_score"], r["hits"][0]["_score"])
+                self.assertEqual("1", r["hits"][1]["_id"])
+                self.assertTrue(r["hits"][1]["_score"], r["hits"][0]["_score"])
 
     def test_no_model_work_with_custom_vectors_in_search(self):
         """Test to ensure that context vectors work with no_model by setting query as None"""
