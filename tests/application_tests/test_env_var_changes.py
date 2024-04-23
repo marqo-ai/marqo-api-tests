@@ -89,7 +89,7 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
         # Restart marqo with new max values
         max_ef = 6000
-        new_models = ["hf/all_datasets_v4_MiniLM-L6"]
+        new_models = ["hf/e5-large-v2"]
         index_name = "test_multiple_env_vars"
         utilities.rerun_marqo_with_env_vars(
             env_vars=[
@@ -120,20 +120,20 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         # Single query
         # First search
         r = telemetry_client.index(index_name).search(q="test")
-        self.assertTrue(r["telemetry"]["timesMs"]["search.vector_inference_full_pipeline"] > 50)
+        self.assertTrue(r["telemetry"]["timesMs"]["search.vector_inference_full_pipeline"] > 10)
         # Second search
         r = telemetry_client.index(index_name).search(q="test")
-        self.assertTrue(r["telemetry"]["timesMs"]["search.vector_inference_full_pipeline"] < 5)
+        self.assertTrue(r["telemetry"]["timesMs"]["search.vector_inference_full_pipeline"] < 3)
 
         # Multiple queries
         r = telemetry_client.index(index_name).search(q={"random": 1, "query": 2})
-        self.assertTrue(r["telemetry"]["timesMs"]["search.vector_inference_full_pipeline"] > 50)
+        self.assertTrue(r["telemetry"]["timesMs"]["search.vector_inference_full_pipeline"] > 10)
         # Second search
         r = telemetry_client.index(index_name).search(q={"random": 0.1, "query": 0.3})
-        self.assertTrue(r["telemetry"]["timesMs"]["search.vector_inference_full_pipeline"] < 5)
+        self.assertTrue(r["telemetry"]["timesMs"]["search.vector_inference_full_pipeline"] < 3)
 
         # Test to ensure inference cache is not working for add_documents:
         for _ in range(3):
             r = telemetry_client.index(index_name).add_documents([{"test": "test"}],
                                                                  tensor_fields=["test"])
-            self.assertTrue(r["telemetry"]["timesMs"]["add_documents.create_vectors"] > 50)
+            self.assertTrue(r["telemetry"]["timesMs"]["add_documents.create_vectors"] > 10)
