@@ -1,10 +1,8 @@
 import uuid
-from unittest.mock import patch
 
-import pytest
+import numpy as np
 
 from tests.marqo_test import MarqoTestCase
-import numpy as np
 
 
 class TestEmbed(MarqoTestCase):
