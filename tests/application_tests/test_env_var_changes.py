@@ -22,6 +22,8 @@ import json
 from tests import marqo_test
 from tests import utilities
 
+from marqo import Client
+
 
 class TestEnvVarChanges(marqo_test.MarqoTestCase):
 
@@ -93,7 +95,8 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
             env_vars=[
                 "-e", f"MARQO_EF_CONSTRUCTION_MAX_VALUE={max_ef}",
                 "-e", f"MARQO_MODELS_TO_PRELOAD={json.dumps(new_models)}",
-                "-e", f"MARQO_LOG_LEVEL=debug"
+                "-e", f"MARQO_LOG_LEVEL=debug",
+                "-e", f"MARQO_INFERENCE_CACHE_SIZE=10"
             ],
             calling_class=self.__class__.__name__
         )
@@ -110,3 +113,27 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         # Assert correct models
         res = self.client.index(index_name).get_loaded_models()
         assert set([item["model_name"] for item in res["models"]]) == set(new_models)
+
+        # Test inference cache
+        telemetry_client = Client(**self.client_settings, return_telemetry=True)
+
+        # Single query
+        # First search
+        r = telemetry_client.index(index_name).search(q="test")
+        self.assertTrue(r["telemetry"]["timesMs"]["search.vector_inference_full_pipeline"] > 50)
+        # Second search
+        r = telemetry_client.index(index_name).search(q="test")
+        self.assertTrue(r["telemetry"]["timesMs"]["search.vector_inference_full_pipeline"] < 5)
+
+        # Multiple queries
+        r = telemetry_client.index(index_name).search(q={"random": 1, "query": 2})
+        self.assertTrue(r["telemetry"]["timesMs"]["search.vector_inference_full_pipeline"] > 50)
+        # Second search
+        r = telemetry_client.index(index_name).search(q={"random": 0.1, "query": 0.3})
+        self.assertTrue(r["telemetry"]["timesMs"]["search.vector_inference_full_pipeline"] < 5)
+
+        # Test to ensure inference cache is not working for add_documents:
+        for _ in range(3):
+            r = telemetry_client.index(index_name).add_documents([{"test": "test"}],
+                                                                 tensor_fields=["test"])
+            self.assertTrue(r["telemetry"]["timesMs"]["add_documents.create_vectors"] > 50)
