@@ -41,7 +41,7 @@ class TestModlCacheManagement(MarqoTestCase):
             with self.subTest(index_name):
                 with self.assertRaises(MarqoWebError) as e:
                     _ = self.client.index(index_name).get_cuda_info()
-                self.assertIn("cuda is not supported in your machine", str(e.exception.message))
+                self.assertIn("CUDA is not available on this instance", str(e.exception.message))
 
     def test_get_cpu_info(self) -> None:
         for index_name in [self.structured_index_name, self.unstructured_index_name]:
