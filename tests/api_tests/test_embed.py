@@ -7,7 +7,6 @@ from tests.marqo_test import MarqoTestCase
 import numpy as np
 
 
-@pytest.mark.fixed
 class TestEmbed(MarqoTestCase):
     @classmethod
     def setUpClass(cls) -> None:
