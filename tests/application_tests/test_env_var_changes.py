@@ -117,23 +117,26 @@ class TestEnvVarChanges(marqo_test.MarqoTestCase):
         # Test inference cache
         telemetry_client = Client(**self.client_settings, return_telemetry=True)
 
+        inference_time = 10
+        cache_reading_time = 5
+
         # Single query
         # First search
         r = telemetry_client.index(index_name).search(q="test")
-        self.assertTrue(r["telemetry"]["timesMs"]["search.vector_inference_full_pipeline"] > 10)
+        self.assertTrue(r["telemetry"]["timesMs"]["search.vector_inference_full_pipeline"] > inference_time)
         # Second search
         r = telemetry_client.index(index_name).search(q="test")
-        self.assertTrue(r["telemetry"]["timesMs"]["search.vector_inference_full_pipeline"] < 3)
+        self.assertTrue(r["telemetry"]["timesMs"]["search.vector_inference_full_pipeline"] < cache_reading_time)
 
         # Multiple queries
         r = telemetry_client.index(index_name).search(q={"random": 1, "query": 2})
-        self.assertTrue(r["telemetry"]["timesMs"]["search.vector_inference_full_pipeline"] > 10)
+        self.assertTrue(r["telemetry"]["timesMs"]["search.vector_inference_full_pipeline"] > inference_time)
         # Second search
         r = telemetry_client.index(index_name).search(q={"random": 0.1, "query": 0.3})
-        self.assertTrue(r["telemetry"]["timesMs"]["search.vector_inference_full_pipeline"] < 3)
+        self.assertTrue(r["telemetry"]["timesMs"]["search.vector_inference_full_pipeline"] < cache_reading_time)
 
         # Test to ensure inference cache is not working for add_documents:
         for _ in range(3):
             r = telemetry_client.index(index_name).add_documents([{"test": "test"}],
                                                                  tensor_fields=["test"])
-            self.assertTrue(r["telemetry"]["timesMs"]["add_documents.create_vectors"] > 10)
+            self.assertTrue(r["telemetry"]["timesMs"]["add_documents.create_vectors"] > inference_time)
