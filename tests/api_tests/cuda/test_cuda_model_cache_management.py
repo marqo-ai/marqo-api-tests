@@ -40,6 +40,13 @@ class TestModlCacheManagement(MarqoTestCase):
             with self.subTest(index_name):
                 r = self.client.index(index_name).get_cuda_info()
                 self.assertIn("cuda_devices", r)
+                for device in r["cuda_devices"]:
+                    self.assertIn("device_name", device)
+                    self.assertIn("device_id", device)
+                    self.assertIn("memory_used", device)
+                    self.assertIn("total_memory", device)
+                    self.assertIn("utilization", device)
+                    self.assertIn("memory_used_percent", device)
 
     def test_get_cpu_info(self) -> None:
         for index_name in [self.structured_index_name, self.unstructured_index_name]:
@@ -71,8 +78,3 @@ class TestModlCacheManagement(MarqoTestCase):
                 r = self.client.index(index_name).search("q", device="cuda")
                 res = self.client.index(index_name).eject_model("sentence-transformers/all-MiniLM-L6-v2", "cuda")
                 self.assertIn("successfully eject", str(res))
-
-
-
-
-
