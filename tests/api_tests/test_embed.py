@@ -53,7 +53,7 @@ class TestEmbed(MarqoTestCase):
                     document_id="doc1", expose_facets=True)
 
                 # Call embed
-                embed_res = self.client.index(test_index_name).embed("Jimmy Butler is the GOAT.")
+                embed_res = self.client.index(test_index_name).embed("Jimmy Butler is the GOAT.", device="cpu", content_type="document")
 
                 self.assertIn("processingTimeMs", embed_res)
                 self.assertEqual(embed_res["content"], "Jimmy Butler is the GOAT.")
@@ -80,7 +80,7 @@ class TestEmbed(MarqoTestCase):
                     document_id="doc1", expose_facets=True)
 
                 # Call embed
-                embed_res = self.client.index(test_index_name).embed(content="Jimmy Butler is the GOAT.", device="cpu")
+                embed_res = self.client.index(test_index_name).embed(content="Jimmy Butler is the GOAT.", device="cpu", content_type="document")
                 self.assertIn("processingTimeMs", embed_res)
                 self.assertEqual(embed_res["content"], "Jimmy Butler is the GOAT.")
                 self.assertTrue(np.allclose(embed_res["embeddings"][0], retrieved_d1["_tensor_facets"][0] ["_embedding"], atol=1e-6))
@@ -105,7 +105,7 @@ class TestEmbed(MarqoTestCase):
                     document_id="doc1", expose_facets=True)
 
                 # Call embed
-                embed_res = self.client.index(test_index_name).embed(content={"Jimmy Butler is the GOAT.": 1})
+                embed_res = self.client.index(test_index_name).embed(content={"Jimmy Butler is the GOAT.": 1},content_type="document")
 
                 self.assertIn("processingTimeMs", embed_res)
                 self.assertEqual(embed_res["content"], {"Jimmy Butler is the GOAT.": 1})
@@ -136,8 +136,13 @@ class TestEmbed(MarqoTestCase):
 
                 # Call embed
                 embed_res = self.client.index(test_index_name).embed(
-                    content=[{"Jimmy Butler is the GOAT.": 1}, "Alex Caruso is the GOAT."]
+                    content=[{"Jimmy Butler is the GOAT.": 1}, "Alex Caruso is the GOAT."],
+                    content_type="document"
                 )
+
+                print(f"model: {self.client.index(test_index_name).get_settings()['model']}")
+                print(f"retrieved_docs: {retrieved_docs}")
+                print(f"embed_res: {embed_res}")
 
                 self.assertIn("processingTimeMs", embed_res)
                 self.assertEqual(embed_res["content"], [{"Jimmy Butler is the GOAT.": 1}, "Alex Caruso is the GOAT."])
