@@ -27,7 +27,7 @@ def start_vespa() -> None:
     os.system("docker run --detach "
               "--name vespa "
               "--hostname vespa-container "
-              "--publish 8080:8080 --publish 19071:19071 "
+              "--publish 8080:8080 --publish 19071:19071 --publish 2181:2181 "
               "vespaengine/vespa")
 
 
