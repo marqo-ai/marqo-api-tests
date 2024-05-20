@@ -371,5 +371,3 @@ class TestCreateIndex(MarqoTestCase):
         res = self.client.delete_index(index_name=index_name)
         self.assertEqual(res["message"], f"Index {index_name} not found")
         self.assertEqual(res["code"], "index_not_found")
-
-
