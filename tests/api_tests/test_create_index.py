@@ -328,16 +328,18 @@ class TestCreateIndex(MarqoTestCase):
         t1.start()
         time.sleep(0.5)
 
-        with self.assertRaises(MarqoWebError) as e:
-            self.client.create_index(index_name=index_name_2)
-        self.assertIn("Another index creation/deletion operation is in progress",
-                      str(e.exception))
+        try:
+            with self.assertRaises(MarqoWebError) as e:
+                self.client.create_index(index_name=index_name_2)
+            self.assertIn("Another index creation/deletion operation is in progress",
+                          str(e.exception))
 
-        with self.assertRaises(MarqoWebError) as e:
-            self.client.delete_index(index_name=index_name_1)
-        self.assertIn("Another index creation/deletion operation is in progress",
-                      str(e.exception))
-        t1.join()
+            with self.assertRaises(MarqoWebError) as e:
+                self.client.delete_index(index_name=index_name_1)
+            self.assertIn("Another index creation/deletion operation is in progress",
+                          str(e.exception))
+        finally:
+            t1.join()
 
     def test_deleteIndexCanBlockOtherRequests(self):
         """Test if delete_index request can block other create/delete index requests."""
@@ -354,16 +356,18 @@ class TestCreateIndex(MarqoTestCase):
         t1.start()
         time.sleep(0.5)
 
-        with self.assertRaises(MarqoWebError) as e:
-            self.client.create_index(index_name=index_name_2)
-        self.assertIn("Another index creation/deletion operation is in progress",
-                      str(e.exception))
+        try:
+            with self.assertRaises(MarqoWebError) as e:
+                self.client.create_index(index_name=index_name_2)
+            self.assertIn("Another index creation/deletion operation is in progress",
+                          str(e.exception))
 
-        with self.assertRaises(MarqoWebError) as e:
-            self.client.delete_index(index_name=index_name_1)
-        self.assertIn("Another index creation/deletion operation is in progress",
-                      str(e.exception))
-        t1.join()
+            with self.assertRaises(MarqoWebError) as e:
+                self.client.delete_index(index_name=index_name_1)
+            self.assertIn("Another index creation/deletion operation is in progress",
+                          str(e.exception))
+        finally:
+            t1.join()
 
     def test_indexNotFoundErrorNotRaised(self):
         """Test to ensure index_not_found error is not raised but returned as message in delete_index response"""
