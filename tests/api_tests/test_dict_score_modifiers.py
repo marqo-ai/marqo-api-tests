@@ -236,11 +236,11 @@ class TestEmbed(MarqoTestCase):
                         "add_to_score": [{"field_name": "map_score_mods.a", "weight": 2}],
                     }
                 )
-                # Assert that the first result is  7
+                # Assert that the first result is  1
                 first_result_id = res["hits"][0]["_id"]
                 self.assertTrue(first_result_id in ["1"])
 
-                # Assert that 3.68 <= _score <= 4
+                # Assert that 3 <= _score <= 4
                 first_result_score = res["hits"][0]["_score"]
                 self.assertTrue(3 <= first_result_score <= 4)
 
