@@ -64,7 +64,6 @@ class TestEmbed(MarqoTestCase):
                     {"_id": "7", "text_field": "a photo of a cat", "map_score_mods_int": {"c": 1},
                      "map_score_mods": {"a": 0.5}},
                 ]
-                print("index name:", test_index_name)
 
                 tensor_fields = ["text_field"] if "unstr" in test_index_name else None
                 mappings = {
@@ -73,7 +72,6 @@ class TestEmbed(MarqoTestCase):
                 } if "unstr" in test_index_name else None
                 res = self.client.index(test_index_name).add_documents(documents=docs, tensor_fields=tensor_fields,
                                                                        mappings=mappings)
-                print(f"add documents response: {res}")
 
                 # Search
                 # 0.68 + 1 * 5 = 5.68
@@ -83,7 +81,6 @@ class TestEmbed(MarqoTestCase):
                         "add_to_score": [{"field_name": "map_score_mods_int.c", "weight": 5}],
                     }
                 )
-                print(f"search result: {res}")
 
                 # Assert that the first result is either 6 or 7
                 first_result_id = res["hits"][0]["_id"]
@@ -122,7 +119,6 @@ class TestEmbed(MarqoTestCase):
                 } if "unstr" in test_index_name else None
                 res = self.client.index(test_index_name).add_documents(documents=docs, tensor_fields=tensor_fields,
                                                                        mappings=mappings)
-                print(f"add documents response: {res}")
 
                 # Search
                 # 0.68 * 0.5 * 4 = 1.36 (1 and 7)
@@ -132,7 +128,6 @@ class TestEmbed(MarqoTestCase):
                         "multiply_score_by": [{"field_name": "map_score_mods.a", "weight": 4}]
                     }
                 )
-                print(f"search result: {res}")
 
                 # Assert that the first result is either 1 or 7
                 first_result_id = res["hits"][0]["_id"]
@@ -162,7 +157,6 @@ class TestEmbed(MarqoTestCase):
                     {"_id": "7", "text_field": "a photo of a cat", "map_score_mods_int": {"c": 1},
                      "map_score_mods": {"a": 0.5}},
                 ]
-                print("index name:", test_index_name)
 
                 tensor_fields = ["text_field"] if "unstr" in test_index_name else None
                 mappings = {
@@ -171,7 +165,6 @@ class TestEmbed(MarqoTestCase):
                 } if "unstr" in test_index_name else None
                 res = self.client.index(test_index_name).add_documents(documents=docs, tensor_fields=tensor_fields,
                                                                        mappings=mappings)
-                print(f"add documents response: {res}")
 
                 # Search
                 # 0.68 * 1 * 4 = 2.72
@@ -183,7 +176,6 @@ class TestEmbed(MarqoTestCase):
                         "multiply_score_by": [{"field_name": "map_score_mods.a", "weight": 4}]
                     }
                 )
-                print(f"search result: {res}")
 
                 # Assert that the first result is  7
                 first_result_id = res["hits"][0]["_id"]
@@ -192,3 +184,47 @@ class TestEmbed(MarqoTestCase):
                 # Assert that 3 <= _score <= 3.5
                 first_result_score = res["hits"][0]["_score"]
                 self.assertTrue(3 <= first_result_score <= 3.5)
+    
+    def test_partial_document_update(self):
+        """
+        Test that partial document update works for a map score modifier.
+        """
+        test_cases = [self.structured_index_name]
+
+        for test_index_name in test_cases:
+            with (self.subTest(test_index_name)):
+                # Add document
+                docs = [
+                    {"_id": "1", "text_field": "a photo of a cat", "map_score_mods": {"a": 0.5}},
+                    {"_id": "2", "text_field": "a photo of a dog", "map_score_mods": {"b": 0.5}},
+                    {"_id": "3", "text_field": "a photo of a cat", "map_score_mods": {"c": 0.5}},
+                    {"_id": "4", "text_field": "a photo of a cat", "map_score_mods_int": {"a": 1}},
+                    {"_id": "5", "text_field": "a photo of a cat", "map_score_mods_int": {"b": 1}},
+                    {"_id": "6", "text_field": "a photo of a cat", "map_score_mods_int": {"c": 1}},
+                    {"_id": "7", "text_field": "a photo of a cat", "map_score_mods_int": {"c": 1},
+                     "map_score_mods": {"a": 0.5}},
+                ]
+                print("index name:", test_index_name)
+                # Add documents
+                res = self.client.index(test_index_name).add_documents(documents=docs)
+
+                # Get document and assert that the score modifier is 0.5
+                res = self.client.index(test_index_name).get_documents(
+                    document_ids=["1"]
+                )
+                self.assertTrue(res["results"][0]["_id"] == "1")
+                self.assertTrue(res["results"][0]["map_score_mods"]["a"] == 0.5)
+
+                # Update the document
+                res = self.client.index(test_index_name).update_documents(
+                    documents=[{"_id": "1", "map_score_mods": {"a": 1.5}}]
+                )
+
+                # Fetch Document
+                res = self.client.index(test_index_name).get_documents(
+                    document_ids=["1"]
+                )
+
+                # Assert that the document has been updated
+                self.assertTrue(res["results"][0]["_id"] == "1")
+                self.assertTrue(res["results"][0]["map_score_mods"]["a"] == 1.5)
