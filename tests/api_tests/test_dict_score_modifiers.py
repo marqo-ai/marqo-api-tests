@@ -110,7 +110,6 @@ class TestEmbed(MarqoTestCase):
                     {"_id": "7", "text_field": "a photo of a cat", "map_score_mods_int": {"c": 1},
                      "map_score_mods": {"a": 0.5}},
                 ]
-                print("index name:", test_index_name)
 
                 tensor_fields = ["text_field"] if "unstr" in test_index_name else None
                 mappings = {
@@ -204,7 +203,7 @@ class TestEmbed(MarqoTestCase):
                     {"_id": "7", "text_field": "a photo of a cat", "map_score_mods_int": {"c": 1},
                      "map_score_mods": {"a": 0.5}},
                 ]
-                print("index name:", test_index_name)
+
                 # Add documents
                 res = self.client.index(test_index_name).add_documents(documents=docs)
 
@@ -228,3 +227,20 @@ class TestEmbed(MarqoTestCase):
                 # Assert that the document has been updated
                 self.assertTrue(res["results"][0]["_id"] == "1")
                 self.assertTrue(res["results"][0]["map_score_mods"]["a"] == 1.5)
+
+                # Search with score modifiers
+                # 0.68 + 1.5 * 2 = 3.88
+                res = self.client.index(test_index_name).search(
+                    q="",
+                    score_modifiers={
+                        "add_to_score": [{"field_name": "map_score_mods.a", "weight": 2}],
+                    }
+                )
+                # Assert that the first result is  7
+                first_result_id = res["hits"][0]["_id"]
+                self.assertTrue(first_result_id in ["1"])
+
+                # Assert that 3.68 <= _score <= 4
+                first_result_score = res["hits"][0]["_score"]
+                self.assertTrue(3 <= first_result_score <= 4)
+
