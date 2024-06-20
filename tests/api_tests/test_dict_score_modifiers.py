@@ -26,6 +26,8 @@ class TestEmbed(MarqoTestCase):
                 "imagePreprocessing": {"patchMethod": None},
                 "allFields": [
                     {"name": "text_field", "type": "text", "features": ["lexical_search"]},
+                    {"name": "double_score_mods", "type": "double", "features": ["score_modifier"]},
+                    {"name": "long_score_mods", "type": "long", "features": ["score_modifier"]},
                     {"name": "map_score_mods", "type": "map<text, float>", "features": ["score_modifier"]},
                     {"name": "map_score_mods_int", "type": "map<text, int>", "features": ["score_modifier"]},
                 ],
@@ -43,6 +45,81 @@ class TestEmbed(MarqoTestCase):
         ])
 
         cls.indexes_to_delete = [cls.structured_index_name, cls.unstructured_index_name]
+    
+    # Test Double score modifier
+    def test_double_score_modifier(self):
+        """
+        Test that adding to score works for a double score modifier.
+        """
+        test_cases = [self.structured_index_name, self.unstructured_index_name]
+
+        for test_index_name in test_cases:
+            with (self.subTest(test_index_name)):
+                # Add document
+                docs=[
+                    {"_id": "1", "text_field": "a photo of a cat", "double_score_mods": 0.5 * 1**39},
+                    {"_id": "2", "text_field": "a photo of a cat", "double_score_mods": 4.5 * 1**39},
+                    {"_id": "3", "text_field": "a photo of a cat", "double_score_mods": 5.5 * 1**39},
+                    {"_id": "4", "text_field": "a photo of a cat"}
+                ]
+                tensor_fields = ["text_field"] if "unstr" in test_index_name else None
+                mappings = {
+                    "double_score_mods": {"type": "map_numerical"}
+                } if "unstr" in test_index_name else None
+                res = self.client.index(test_index_name).add_documents(documents=docs, tensor_fields=tensor_fields,
+                                                                       mappings=mappings)
+                
+                # Search
+                # 0.5 + 5.5 * 2 = 11.5
+                res = self.client.index(test_index_name).search(
+                    q="",
+                    score_modifiers={
+                        "add_to_score": [{"field_name": "double_score_mods", "weight": 2}]
+                    }
+                )
+                # Get the score of the first result and divide by 1**39
+                score_of_first_result = res["hits"][0]["_score"] / 1**39
+                # Assert that the first result has _id "3" and 11 <= score <= 12
+                self.assertEqual(res["hits"][0]["_id"], "3")
+                self.assertTrue(11 <= score_of_first_result <= 12)
+
+    # Test Long score modifier
+    def test_long_score_modifier(self):
+        """
+        Test that adding to score works for a long score modifier.
+        """
+        test_cases = [self.structured_index_name, self.unstructured_index_name]
+
+        for test_index_name in test_cases:
+            with (self.subTest(test_index_name)):
+                # Add document
+                docs=[
+                    {"_id": "1", "text_field": "a photo of a cat", "long_score_mods": 2**34},
+                    {"_id": "2", "text_field": "a photo of a cat", "long_score_mods": 2**35},
+                    {"_id": "3", "text_field": "a photo of a cat", "long_score_mods": 2**36},
+                    {"_id": "4", "text_field": "a photo of a cat"}
+                ]
+                tensor_fields = ["text_field"] if "unstr" in test_index_name else None
+                mappings = {
+                    "double_score_mods": {"type": "map_numerical"}
+                } if "unstr" in test_index_name else None
+                res = self.client.index(test_index_name).add_documents(documents=docs, tensor_fields=tensor_fields,
+                                                                       mappings=mappings)
+                
+                # Search
+                # 0.5 + 2**36 * 2 = 2**37
+                res = self.client.index(test_index_name).search(
+                    q="",
+                    score_modifiers={
+                        "add_to_score": [{"field_name": "long_score_mods", "weight": 2}]
+                    }
+                )
+
+                # Get the score of the first result and divide by 1**39
+                score_of_first_result = res["hits"][0]["_score"] / 1**39
+                # Assert that the first result has _id "3" and 2**37-1 <= score <= 2**37+1
+                self.assertEqual(res["hits"][0]["_id"], "3")
+                self.assertTrue(2**37 - 1 <= score_of_first_result <= 2**37 + 1)
 
     # Test Add to score
     def test_add_to_score_map_score_modifier(self):
@@ -67,8 +144,8 @@ class TestEmbed(MarqoTestCase):
 
                 tensor_fields = ["text_field"] if "unstr" in test_index_name else None
                 mappings = {
-                    "map_score_mods": {"type": "map_score_modifiers"},
-                    "map_score_mods_int": {"type": "map_score_modifiers"}
+                    "map_score_mods": {"type": "map_numerical"},
+                    "map_score_mods_int": {"type": "map_numerical"}
                 } if "unstr" in test_index_name else None
                 res = self.client.index(test_index_name).add_documents(documents=docs, tensor_fields=tensor_fields,
                                                                        mappings=mappings)
@@ -113,8 +190,8 @@ class TestEmbed(MarqoTestCase):
 
                 tensor_fields = ["text_field"] if "unstr" in test_index_name else None
                 mappings = {
-                    "map_score_mods": {"type": "map_score_modifiers"},
-                    "map_score_mods_int": {"type": "map_score_modifiers"}
+                    "map_score_mods": {"type": "map_numerical"},
+                    "map_score_mods_int": {"type": "map_numerical"}
                 } if "unstr" in test_index_name else None
                 res = self.client.index(test_index_name).add_documents(documents=docs, tensor_fields=tensor_fields,
                                                                        mappings=mappings)
@@ -159,8 +236,8 @@ class TestEmbed(MarqoTestCase):
 
                 tensor_fields = ["text_field"] if "unstr" in test_index_name else None
                 mappings = {
-                    "map_score_mods": {"type": "map_score_modifiers"},
-                    "map_score_mods_int": {"type": "map_score_modifiers"}
+                    "map_score_mods": {"type": "map_numerical"},
+                    "map_score_mods_int": {"type": "map_numerical"}
                 } if "unstr" in test_index_name else None
                 res = self.client.index(test_index_name).add_documents(documents=docs, tensor_fields=tensor_fields,
                                                                        mappings=mappings)
