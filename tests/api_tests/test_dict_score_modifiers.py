@@ -3,7 +3,7 @@ import uuid
 from tests.marqo_test import MarqoTestCase
 
 
-class TestEmbed(MarqoTestCase):
+class TestDictScoreModifiers(MarqoTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
