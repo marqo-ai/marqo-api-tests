@@ -63,11 +63,7 @@ class TestDictScoreModifiers(MarqoTestCase):
                     {"_id": "4", "text_field": "a photo of a cat"}
                 ]
                 tensor_fields = ["text_field"] if "unstr" in test_index_name else None
-                mappings = {
-                    "double_score_mods": {"type": "map_numerical"}
-                } if "unstr" in test_index_name else None
-                res = self.client.index(test_index_name).add_documents(documents=docs, tensor_fields=tensor_fields,
-                                                                       mappings=mappings)
+                res = self.client.index(test_index_name).add_documents(documents=docs, tensor_fields=tensor_fields)
                 
                 # Search
                 # 0.5 + 5.5 * 2 = 11.5
@@ -100,11 +96,7 @@ class TestDictScoreModifiers(MarqoTestCase):
                     {"_id": "4", "text_field": "a photo of a cat"}
                 ]
                 tensor_fields = ["text_field"] if "unstr" in test_index_name else None
-                mappings = {
-                    "double_score_mods": {"type": "map_numerical"}
-                } if "unstr" in test_index_name else None
-                res = self.client.index(test_index_name).add_documents(documents=docs, tensor_fields=tensor_fields,
-                                                                       mappings=mappings)
+                res = self.client.index(test_index_name).add_documents(documents=docs, tensor_fields=tensor_fields)
                 
                 # Search
                 # 0.5 + 2**36 * 2 = 2**37
@@ -143,12 +135,7 @@ class TestDictScoreModifiers(MarqoTestCase):
                 ]
 
                 tensor_fields = ["text_field"] if "unstr" in test_index_name else None
-                mappings = {
-                    "map_score_mods": {"type": "map_numerical"},
-                    "map_score_mods_int": {"type": "map_numerical"}
-                } if "unstr" in test_index_name else None
-                res = self.client.index(test_index_name).add_documents(documents=docs, tensor_fields=tensor_fields,
-                                                                       mappings=mappings)
+                res = self.client.index(test_index_name).add_documents(documents=docs, tensor_fields=tensor_fields)
 
                 # Search
                 # 0.68 + 1 * 5 = 5.68
@@ -189,12 +176,7 @@ class TestDictScoreModifiers(MarqoTestCase):
                 ]
 
                 tensor_fields = ["text_field"] if "unstr" in test_index_name else None
-                mappings = {
-                    "map_score_mods": {"type": "map_numerical"},
-                    "map_score_mods_int": {"type": "map_numerical"}
-                } if "unstr" in test_index_name else None
-                res = self.client.index(test_index_name).add_documents(documents=docs, tensor_fields=tensor_fields,
-                                                                       mappings=mappings)
+                res = self.client.index(test_index_name).add_documents(documents=docs, tensor_fields=tensor_fields)
 
                 # Search
                 # 0.68 * 0.5 * 4 = 1.36 (1 and 7)
@@ -235,12 +217,7 @@ class TestDictScoreModifiers(MarqoTestCase):
                 ]
 
                 tensor_fields = ["text_field"] if "unstr" in test_index_name else None
-                mappings = {
-                    "map_score_mods": {"type": "map_numerical"},
-                    "map_score_mods_int": {"type": "map_numerical"}
-                } if "unstr" in test_index_name else None
-                res = self.client.index(test_index_name).add_documents(documents=docs, tensor_fields=tensor_fields,
-                                                                       mappings=mappings)
+                res = self.client.index(test_index_name).add_documents(documents=docs, tensor_fields=tensor_fields)
 
                 # Search
                 # 0.68 * 1 * 4 = 2.72
