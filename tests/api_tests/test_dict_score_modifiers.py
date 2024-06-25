@@ -301,6 +301,47 @@ class TestDictScoreModifiers(MarqoTestCase):
                 first_result_score = res["hits"][0]["_score"]
                 self.assertTrue(3 <= first_result_score <= 4)
 
+    def test_multiple_map_values_score_modifiers(self):
+        """Test multiple map values score modifiers"""
+        for index_name in [self.structured_index_name, self.unstructured_index_name]:
+            with self.subTest(index_name=index_name):
+                docs = [
+                    {"_id": "1", "text_field": "test", "map_score_mods": {"a": 1.5, "b": 2, "c":5}},
+                    {"_id": "2", "text_field": "test", "map_score_mods": {"a": 1.5, "b": 2}},
+                    {"_id": "3", "text_field": "test", "map_score_mods": {"a": 1.5}},
+                    {"_id": "4", "text_field": "test"},
+                ]
+                tensor_fields = ["text_field"] if "unstr" in index_name else None
+                self.client.index(index_name).add_documents(documents=docs, tensor_fields=tensor_fields)
+
+                res = self.client.index(index_name).search(
+                    q="",
+                    score_modifiers={
+                        "multiply_score_by": [
+                            {"field_name": "map_score_mods.a", "weight": 2},
+                        ],
+                        "add_to_score": [
+                            {"field_name": "map_score_mods.b", "weight": 1},
+                            {"field_name": "map_score_mods.c", "weight": 3},
+                        ]
+                    }
+                )
+
+                # Expected score calculation:
+                # Doc 1: base_score * (1.5 * 2) + (2 * 1) + (5 * 3) = base_score * 3 + 17
+                # Doc 2: base_score * (1.5 * 2) + (2 * 1) = base_score * 3 + 2
+                # Doc 3: base_score * (1.5 * 2) = base_score * 3
+                # Doc 4: base_score
+                base_score = 0.845687427
+                expected_score_doc1 = base_score * 3 + 17
+                expected_score_doc2 = base_score * 3 + 2
+                expected_score_doc3 = base_score * 3
+
+                tolerance = 0.1
+                self.assertTrue(abs(res["hits"][0]["_score"] - expected_score_doc1) <= tolerance)
+                self.assertTrue(abs(res["hits"][1]["_score"] - expected_score_doc2) <= tolerance)
+                self.assertTrue(abs(res["hits"][2]["_score"] - expected_score_doc3) <= tolerance)
+
     def test_combination_score_modifiers(self):
         """Test combination of standard score modifier fields and maps"""
         for index_name in [self.structured_index_name, self.unstructured_index_name]:
@@ -339,7 +380,7 @@ class TestDictScoreModifiers(MarqoTestCase):
                 self.assertTrue(abs(res["hits"][1]["_score"] - expected_score_doc1) <= tolerance)
 
     def test_missing_score_modifiers(self):
-        """Test cases where some or all specified score modifiers are missing in documents"""
+        """Test cases where some or all specified score modifiers are missing in document"""
         for index_name in [self.structured_index_name, self.unstructured_index_name]:
             with self.subTest(index_name=index_name):
                 docs = [
