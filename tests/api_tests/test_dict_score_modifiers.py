@@ -1,6 +1,8 @@
 import uuid
+import math
 
 from tests.marqo_test import MarqoTestCase
+from marqo.errors import MarqoWebError
 
 
 class TestDictScoreModifiers(MarqoTestCase):
@@ -29,7 +31,8 @@ class TestDictScoreModifiers(MarqoTestCase):
                     {"name": "double_score_mods", "type": "double", "features": ["score_modifier"]},
                     {"name": "long_score_mods", "type": "long", "features": ["score_modifier"]},
                     {"name": "map_score_mods", "type": "map<text, float>", "features": ["score_modifier"]},
-                    {"name": "map_score_mods_int", "type": "map<text, int>", "features": ["score_modifier"]},
+                    {"name": "map_score_mods_int", "type": "map<text,int>", "features": ["score_modifier"]},
+                    # test no whitespace
                 ],
                 "tensorFields": ["text_field"],
                 "annParameters": {
@@ -45,7 +48,7 @@ class TestDictScoreModifiers(MarqoTestCase):
         ])
 
         cls.indexes_to_delete = [cls.structured_index_name, cls.unstructured_index_name]
-    
+
     # Test Double score modifier
     def test_double_score_modifier(self):
         """
@@ -56,15 +59,15 @@ class TestDictScoreModifiers(MarqoTestCase):
         for test_index_name in test_cases:
             with (self.subTest(test_index_name)):
                 # Add document
-                docs=[
-                    {"_id": "1", "text_field": "a photo of a cat", "double_score_mods": 0.5 * 1**39},
-                    {"_id": "2", "text_field": "a photo of a cat", "double_score_mods": 4.5 * 1**39},
-                    {"_id": "3", "text_field": "a photo of a cat", "double_score_mods": 5.5 * 1**39},
+                docs = [
+                    {"_id": "1", "text_field": "a photo of a cat", "double_score_mods": 0.5 * 1 ** 39},
+                    {"_id": "2", "text_field": "a photo of a cat", "double_score_mods": 4.5 * 1 ** 39},
+                    {"_id": "3", "text_field": "a photo of a cat", "double_score_mods": 5.5 * 1 ** 39},
                     {"_id": "4", "text_field": "a photo of a cat"}
                 ]
                 tensor_fields = ["text_field"] if "unstr" in test_index_name else None
                 res = self.client.index(test_index_name).add_documents(documents=docs, tensor_fields=tensor_fields)
-                
+
                 # Search
                 # 0.5 + 5.5 * 2 = 11.5
                 res = self.client.index(test_index_name).search(
@@ -74,7 +77,7 @@ class TestDictScoreModifiers(MarqoTestCase):
                     }
                 )
                 # Get the score of the first result and divide by 1**39
-                score_of_first_result = res["hits"][0]["_score"] / 1**39
+                score_of_first_result = res["hits"][0]["_score"] / 1 ** 39
                 # Assert that the first result has _id "3" and 11 <= score <= 12
                 self.assertEqual(res["hits"][0]["_id"], "3")
                 self.assertTrue(11 <= score_of_first_result <= 12)
@@ -89,15 +92,15 @@ class TestDictScoreModifiers(MarqoTestCase):
         for test_index_name in test_cases:
             with (self.subTest(test_index_name)):
                 # Add document
-                docs=[
-                    {"_id": "1", "text_field": "a photo of a cat", "long_score_mods": 2**34},
-                    {"_id": "2", "text_field": "a photo of a cat", "long_score_mods": 2**35},
-                    {"_id": "3", "text_field": "a photo of a cat", "long_score_mods": 2**36},
+                docs = [
+                    {"_id": "1", "text_field": "a photo of a cat", "long_score_mods": 2 ** 34},
+                    {"_id": "2", "text_field": "a photo of a cat", "long_score_mods": 2 ** 35},
+                    {"_id": "3", "text_field": "a photo of a cat", "long_score_mods": 2 ** 36},
                     {"_id": "4", "text_field": "a photo of a cat"}
                 ]
                 tensor_fields = ["text_field"] if "unstr" in test_index_name else None
                 res = self.client.index(test_index_name).add_documents(documents=docs, tensor_fields=tensor_fields)
-                
+
                 # Search
                 # 0.5 + 2**36 * 2 = 2**37
                 res = self.client.index(test_index_name).search(
@@ -108,10 +111,10 @@ class TestDictScoreModifiers(MarqoTestCase):
                 )
 
                 # Get the score of the first result and divide by 1**39
-                score_of_first_result = res["hits"][0]["_score"] / 1**39
+                score_of_first_result = res["hits"][0]["_score"] / 1 ** 39
                 # Assert that the first result has _id "3" and 2**37-1 <= score <= 2**37+1
                 self.assertEqual(res["hits"][0]["_id"], "3")
-                self.assertTrue(2**37 - 1 <= score_of_first_result <= 2**37 + 1)
+                self.assertTrue(2 ** 37 - 1 <= score_of_first_result <= 2 ** 37 + 1)
 
     # Test Add to score
     def test_add_to_score_map_score_modifier(self):
@@ -223,7 +226,7 @@ class TestDictScoreModifiers(MarqoTestCase):
                 # 0.68 * 1 * 4 = 2.72
                 # 0.68 * 0.5 * 4 + 1 * 2 = 3.36
                 res = self.client.index(test_index_name).search(
-                    q="",
+                    q="photo",
                     score_modifiers={
                         "add_to_score": [{"field_name": "map_score_mods_int.c", "weight": 2}],
                         "multiply_score_by": [{"field_name": "map_score_mods.a", "weight": 4}]
@@ -237,7 +240,7 @@ class TestDictScoreModifiers(MarqoTestCase):
                 # Assert that 3 <= _score <= 3.5
                 first_result_score = res["hits"][0]["_score"]
                 self.assertTrue(3 <= first_result_score <= 3.5)
-    
+
     def test_partial_document_update(self):
         """
         Test that partial document update works for a map score modifier.
@@ -298,3 +301,239 @@ class TestDictScoreModifiers(MarqoTestCase):
                 first_result_score = res["hits"][0]["_score"]
                 self.assertTrue(3 <= first_result_score <= 4)
 
+    def test_combination_score_modifiers(self):
+        """Test combination of standard score modifier fields and maps"""
+        for index_name in [self.structured_index_name, self.unstructured_index_name]:
+            with self.subTest(index_name=index_name):
+                docs = [
+                    {"_id": "1", "text_field": "test", "double_score_mods": 2.0, "map_score_mods": {"a": 1.5}},
+                    {"_id": "2", "text_field": "test", "long_score_mods": 3, "map_score_mods_int": {"b": 2}},
+                    {"_id": "3", "text_field": "test"},
+                ]
+                tensor_fields = ["text_field"] if "unstr" in index_name else None
+                self.client.index(index_name).add_documents(documents=docs, tensor_fields=tensor_fields)
+
+                res = self.client.index(index_name).search(
+                    q="",
+                    score_modifiers={
+                        "multiply_score_by": [
+                            {"field_name": "double_score_mods", "weight": 1},
+                            {"field_name": "map_score_mods.a", "weight": 2},
+                        ],
+                        "add_to_score": [
+                            {"field_name": "long_score_mods", "weight": 1},
+                            {"field_name": "map_score_mods_int.b", "weight": 1},
+                        ]
+                    }
+                )
+
+                # Expected score calculation:
+                # Doc 1: base_score * 2.0 * (1.5 * 2) = base_score * 6 
+                # Doc 2: base_score + (3 * 1) + (2 * 1) = base_score + 5
+                base_score = 0.845687427
+                expected_score_doc1 = base_score * 6
+                expected_score_doc2 = base_score + 5
+
+                tolerance = 0.1
+                self.assertTrue(abs(res["hits"][0]["_score"] - expected_score_doc2) <= tolerance)
+                self.assertTrue(abs(res["hits"][1]["_score"] - expected_score_doc1) <= tolerance)
+
+    def test_missing_score_modifiers(self):
+        """Test cases where some or all specified score modifiers are missing in documents"""
+        for index_name in [self.structured_index_name, self.unstructured_index_name]:
+            with self.subTest(index_name=index_name):
+                docs = [
+                    {"_id": "1", "text_field": "test", "double_score_mods": 2.0},
+                    {"_id": "2", "text_field": "test", "map_score_mods": {"a": 1.5}},
+                    {"_id": "3", "text_field": "test"},
+                ]
+                tensor_fields = ["text_field"] if "unstr" in index_name else None
+                self.client.index(index_name).add_documents(documents=docs, tensor_fields=tensor_fields)
+
+                res = self.client.index(index_name).search(
+                    q="",
+                    score_modifiers={
+                        "multiply_score_by": [
+                            {"field_name": "double_score_mods", "weight": 2},
+                            {"field_name": "map_score_mods.a", "weight": 2},
+                        ]
+                    }
+                )
+
+                # Expected score calculation:
+                # Doc 1: base_score * (2.0 * 2) = base_score * 4
+                # Doc 2: base_score * (1.5 * 2) = base_score * 3
+                # Doc 3: base_score (no matching fields)
+                base_score = 0.845687427
+                expected_score_doc1 = base_score * 4
+                expected_score_doc2 = base_score * 3
+
+                self.assertAlmostEqual(res["hits"][0]["_score"], expected_score_doc1, places=2)
+                self.assertAlmostEqual(res["hits"][1]["_score"], expected_score_doc2, places=2)
+                self.assertNotEqual(res["hits"][2]["_score"], 0)  # Make sure that doc 3 has a non-zero score
+
+    def test_empty_map_score_modifier(self):
+        """Test behavior when a map score modifier is empty"""
+        for index_name in [self.structured_index_name, self.unstructured_index_name]:
+            with self.subTest(index_name=index_name):
+                docs = [
+                    {"_id": "1", "text_field": "test", "map_score_mods": {}},
+                    {"_id": "2", "text_field": "test", "map_score_mods": {"a": 1.5}},
+                ]
+                tensor_fields = ["text_field"] if "unstr" in index_name else None
+                self.client.index(index_name).add_documents(documents=docs, tensor_fields=tensor_fields)
+
+                res = self.client.index(index_name).search(
+                    q="",
+                    score_modifiers={
+                        "multiply_score_by": [{"field_name": "map_score_mods.a", "weight": 2}]
+                    }
+                )
+
+                # Expected score calculation:
+                # Doc 1: base_score (empty map, no modification)
+                # Doc 2: base_score * (1.5 * 2) = base_score * 3
+                base_score = 0.845687427
+                expected_score_doc2 = base_score * 3
+
+                self.assertEqual(res["hits"][0]["_id"], "2")
+                self.assertAlmostEqual(res["hits"][0]["_score"], expected_score_doc2, places=2)
+                self.assertGreater(res["hits"][0]["_score"], res["hits"][1]["_score"])
+
+    def test_nonexistent_score_modifier(self):
+        """Test behavior when a specified score modifier doesn't exist in the document"""
+        for index_name in [self.structured_index_name, self.unstructured_index_name]:
+            with self.subTest(index_name=index_name):
+                docs = [
+                    {"_id": "1", "text_field": "test", "double_score_mods": 2.0},
+                    {"_id": "2", "text_field": "test", "map_score_mods": {"a": 1.5}},
+                ]
+                tensor_fields = ["text_field"] if "unstr" in index_name else None
+                self.client.index(index_name).add_documents(documents=docs, tensor_fields=tensor_fields)
+                
+                try:
+                    res = self.client.index(index_name).search(
+                        q="",
+                        score_modifiers={
+                            "multiply_score_by": [{"field_name": "nonexistent_field", "weight": 2}]
+                        }
+                    )
+                except MarqoWebError as e:
+                    print(f"Caught MarqoWebError: {e}")
+                    self.assertIn('has no score modifier field nonexistent_field', str(e))
+                except Exception as e:
+                    print(f"Unexpected exception: {e}")
+                    raise
+
+    def test_score_modifier_with_zero_value(self):
+        """Test behavior when a score modifier has a zero value"""
+        for index_name in [self.structured_index_name, self.unstructured_index_name]:
+            with self.subTest(index_name=index_name):
+                docs = [
+                    {"_id": "1", "text_field": "test", "double_score_mods": 0.0},
+                    {"_id": "2", "text_field": "test", "double_score_mods": 1.0},
+                ]
+                tensor_fields = ["text_field"] if "unstr" in index_name else None
+                self.client.index(index_name).add_documents(documents=docs, tensor_fields=tensor_fields)
+
+                res = self.client.index(index_name).search(
+                    q="",
+                    score_modifiers={
+                        "multiply_score_by": [{"field_name": "double_score_mods", "weight": 1}]
+                    }
+                )
+                
+                # Expected score calculation:
+                # Doc 1: base_score * 0.0 = 0
+                # Doc 2: base_score * 1.0 = base_score
+                base_score = 0.845687427
+                self.assertGreater(res["hits"][0]["_score"], res["hits"][1]["_score"])
+                self.assertNotEqual(res["hits"][0]["_score"], 0)
+                self.assertLess(res["hits"][1]["_score"], base_score)
+
+    def test_score_modifier_with_negative_value(self):
+        """Test behavior when a score modifier has a negative value"""
+        for index_name in [self.structured_index_name, self.unstructured_index_name]:
+            with self.subTest(index_name=index_name):
+                docs = [
+                    {"_id": "1", "text_field": "test", "double_score_mods": -1.0},
+                    {"_id": "2", "text_field": "test", "double_score_mods": 1.0},
+                ]
+                tensor_fields = ["text_field"] if "unstr" in index_name else None
+                self.client.index(index_name).add_documents(documents=docs, tensor_fields=tensor_fields)
+
+                res = self.client.index(index_name).search(
+                    q="",
+                    score_modifiers={
+                        "add_to_score": [{"field_name": "double_score_mods", "weight": 1}]
+                    }
+                )
+
+                # Expected score calculation:
+                # Doc 1: base_score + (-1.0 * 1) = base_score - 1
+                # Doc 2: base_score + (1.0 * 1) = base_score + 1
+                base_score = 0.845687427
+                expected_score_doc1 = base_score - 1
+                expected_score_doc2 = base_score + 1
+
+                self.assertAlmostEqual(res["hits"][0]["_score"], expected_score_doc2, places=2)
+                self.assertAlmostEqual(res["hits"][1]["_score"], expected_score_doc1, places=2)
+                self.assertGreater(res["hits"][0]["_score"], res["hits"][1]["_score"])
+
+    def test_score_modifier_with_large_values(self):
+        """Test behavior with very large score modifier values"""
+        for index_name in [self.structured_index_name, self.unstructured_index_name]:
+            with self.subTest(index_name=index_name):
+                docs = [
+                    {"_id": "1", "text_field": "test", "double_score_mods": 1e20},
+                    {"_id": "2", "text_field": "test", "double_score_mods": 1e10},
+                ]
+                tensor_fields = ["text_field"] if "unstr" in index_name else None
+                self.client.index(index_name).add_documents(documents=docs, tensor_fields=tensor_fields)
+
+                res = self.client.index(index_name).search(
+                    q="",
+                    score_modifiers={
+                        "multiply_score_by": [{"field_name": "double_score_mods", "weight": 1}]
+                    }
+                )
+
+                # Expected score calculation:
+                # Doc 1: base_score * 1e20
+                # Doc 2: base_score * 1e10
+                # The exact values might cause overflow, so we'll check the ratio
+                score_ratio = res["hits"][0]["_score"] / res["hits"][1]["_score"]
+                expected_ratio = 1e10  # (1e20 / 1e10)
+
+                self.assertGreater(res["hits"][0]["_score"], res["hits"][1]["_score"])
+                self.assertAlmostEqual(math.log10(score_ratio), math.log10(expected_ratio), places=1)
+
+    def test_multiple_score_modifiers_same_field(self):
+        """Test using multiple score modifiers on the same field"""
+        for index_name in [self.structured_index_name, self.unstructured_index_name]:
+            with self.subTest(index_name=index_name):
+                docs = [
+                    {"_id": "1", "text_field": "test", "double_score_mods": 2.0},
+                    {"_id": "2", "text_field": "test", "double_score_mods": 3.0},
+                ]
+                tensor_fields = ["text_field"] if "unstr" in index_name else None
+                self.client.index(index_name).add_documents(documents=docs, tensor_fields=tensor_fields)
+
+                res = self.client.index(index_name).search(
+                    q="",
+                    score_modifiers={
+                        "multiply_score_by": [{"field_name": "double_score_mods", "weight": 2}],
+                        "add_to_score": [{"field_name": "double_score_mods", "weight": 1}]
+                    }
+                )
+                
+                # Expected score calculation:
+                # Doc 1: (base_score * 2.0 * 2) + (2.0 * 1) = base_score * 4 + 2
+                # Doc 2: (base_score * 3.0 * 2) + (3.0 * 1) = base_score * 6 + 3
+                base_score = 0.845687427
+                expected_score_doc1 = base_score * 4 + 2
+                expected_score_doc2 = base_score * 6 + 3
+
+                self.assertAlmostEqual(res["hits"][0]["_score"], expected_score_doc2, places=2)
+                self.assertAlmostEqual(res["hits"][1]["_score"], expected_score_doc1, places=2)
+                self.assertGreater(res["hits"][0]["_score"], res["hits"][1]["_score"])
