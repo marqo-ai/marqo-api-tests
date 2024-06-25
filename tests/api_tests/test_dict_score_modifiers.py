@@ -397,6 +397,7 @@ class TestDictScoreModifiers(MarqoTestCase):
                         "multiply_score_by": [
                             {"field_name": "double_score_mods", "weight": 2},
                             {"field_name": "map_score_mods.a", "weight": 2},
+                            {"field_name": "map_score_mods.b", "weight": 2},
                         ]
                     }
                 )
