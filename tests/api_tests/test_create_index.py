@@ -36,7 +36,7 @@ class TestCreateIndex(MarqoTestCase):
         expected_settings = {
             'type': 'unstructured',
             'treatUrlsAndPointersAsImages': False,
-            'filterStringMaxLength': 20,
+            'filterStringMaxLength': 50,
             'model': 'hf/e5-base-v2',
             'normalizeEmbeddings': True,
             'textPreprocessing': {'splitLength': 2, 'splitOverlap': 0, 'splitMethod': 'sentence'},
