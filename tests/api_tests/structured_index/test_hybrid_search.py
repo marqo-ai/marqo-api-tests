@@ -96,8 +96,8 @@ class TestStructuredHybridSearch(MarqoTestCase):
     def test_hybrid_search_disjunction_rrf_zero_alpha_same_as_lexical(self):
         """
         Tests that hybrid search with:
-        retrieval_method = "disjunction"
-        ranking_method = "rrf"
+        retrievalMethod = "disjunction"
+        rankingMethod = "rrf"
         alpha = 0.0
 
         is the same as a lexical search (in terms of result order).
@@ -109,8 +109,8 @@ class TestStructuredHybridSearch(MarqoTestCase):
             "dogs",
             search_method="HYBRID",
             hybrid_parameters={
-                "retrieval_method": "disjunction",
-                "ranking_method": "rrf",
+                "retrievalMethod": "disjunction",
+                "rankingMethod": "rrf",
                 "alpha": 0
             },
             limit=10
@@ -129,8 +129,8 @@ class TestStructuredHybridSearch(MarqoTestCase):
     def test_hybrid_search_disjunction_rrf_one_alpha_same_as_tensor(self):
         """
         Tests that hybrid search with:
-        retrieval_method = "disjunction"
-        ranking_method = "rrf"
+        retrievalMethod = "disjunction"
+        rankingMethod = "rrf"
         alpha = 1.0
 
         is the same as a tensor search (in terms of result order).
@@ -142,8 +142,8 @@ class TestStructuredHybridSearch(MarqoTestCase):
             "dogs",
             search_method="HYBRID",
             hybrid_parameters={
-                "retrieval_method": "disjunction",
-                "ranking_method": "rrf",
+                "retrievalMethod": "disjunction",
+                "rankingMethod": "rrf",
                 "alpha": 1
             },
             limit=10
@@ -171,11 +171,11 @@ class TestStructuredHybridSearch(MarqoTestCase):
                 "puppies",
                 search_method="HYBRID",
                 hybrid_parameters={
-                    "retrieval_method": "disjunction",
-                    "ranking_method": "rrf",
+                    "retrievalMethod": "disjunction",
+                    "rankingMethod": "rrf",
                     "alpha": 0.5,
-                    "searchable_attributes_lexical": ["text_field_2"],
-                    "searchable_attributes_tensor": ["text_field_2"]
+                    "searchableAttributesLexical": ["text_field_2"],
+                    "searchableAttributesTensor": ["text_field_2"]
                 },
                 limit=10
             )
@@ -189,9 +189,9 @@ class TestStructuredHybridSearch(MarqoTestCase):
                 "puppies",
                 search_method="HYBRID",
                 hybrid_parameters={
-                    "retrieval_method": "lexical",
-                    "ranking_method": "tensor",
-                    "searchable_attributes_lexical": ["text_field_2"]
+                    "retrievalMethod": "lexical",
+                    "rankingMethod": "tensor",
+                    "searchableAttributesLexical": ["text_field_2"]
                 },
                 limit=10
             )
@@ -204,9 +204,9 @@ class TestStructuredHybridSearch(MarqoTestCase):
                 "puppies",
                 search_method="HYBRID",
                 hybrid_parameters={
-                    "retrieval_method": "tensor",
-                    "ranking_method": "lexical",
-                    "searchable_attributes_tensor": ["text_field_2"]
+                    "retrievalMethod": "tensor",
+                    "rankingMethod": "lexical",
+                    "searchableAttributesTensor": ["text_field_2"]
                 },
                 limit=10
             )
@@ -236,9 +236,9 @@ class TestStructuredHybridSearch(MarqoTestCase):
                 "HELLO WORLD",
                 search_method="HYBRID",
                 hybrid_parameters={
-                    "retrieval_method": "lexical",
-                    "ranking_method": "tensor",
-                    "score_modifiers_tensor":{
+                    "retrievalMethod": "lexical",
+                    "rankingMethod": "tensor",
+                    "scoreModifiersTensor":{
                         "multiply_score_by": [
                             {"field_name": "mult_field_1", "weight": 10},
                             {"field_name": "mult_field_2", "weight": -10}
@@ -267,9 +267,9 @@ class TestStructuredHybridSearch(MarqoTestCase):
                 "HELLO WORLD",
                 search_method="HYBRID",
                 hybrid_parameters={
-                    "retrieval_method": "tensor",
-                    "ranking_method": "lexical",
-                    "score_modifiers_lexical":{
+                    "retrievalMethod": "tensor",
+                    "rankingMethod": "lexical",
+                    "scoreModifiersLexical":{
                         "multiply_score_by": [
                             {"field_name": "mult_field_1", "weight": 10},
                             {"field_name": "mult_field_2", "weight": -10}
@@ -299,9 +299,9 @@ class TestStructuredHybridSearch(MarqoTestCase):
                 "HELLO WORLD",
                 search_method="HYBRID",
                 hybrid_parameters={
-                    "retrieval_method": "disjunction",
-                    "ranking_method": "rrf",
-                    "score_modifiers_lexical":{
+                    "retrievalMethod": "disjunction",
+                    "rankingMethod": "rrf",
+                    "scoreModifiersLexical":{
                         "multiply_score_by": [
                             {"field_name": "mult_field_1", "weight": 10},
                             {"field_name": "mult_field_2", "weight": -10}
@@ -310,7 +310,7 @@ class TestStructuredHybridSearch(MarqoTestCase):
                             {"field_name": "add_field_1", "weight": 5}
                         ]
                     },
-                    "score_modifiers_tensor":{
+                    "scoreModifiersTensor":{
                         "multiply_score_by": [
                             {"field_name": "mult_field_1", "weight": 10},
                             {"field_name": "mult_field_2", "weight": -10}
@@ -326,30 +326,30 @@ class TestStructuredHybridSearch(MarqoTestCase):
 
             # Score without score modifiers
             self.assertEqual(hybrid_res["hits"][3]["_id"], "doc6")  # (score)
-            base_lexical_score = hybrid_res["hits"][3]["_raw_lexical_score"]
-            base_tensor_score = hybrid_res["hits"][3]["_raw_tensor_score"]
+            base_lexical_score = hybrid_res["hits"][3]["_lexical_score"]
+            base_tensor_score = hybrid_res["hits"][3]["_tensor_score"]
 
             self.assertEqual(hybrid_res["hits"][0]["_id"], "doc9")  # highest score (score*10*3)
-            self.assertAlmostEqual(hybrid_res["hits"][0]["_raw_lexical_score"], base_lexical_score * 10 * 3)
-            self.assertEqual(hybrid_res["hits"][0]["_raw_tensor_score"], base_tensor_score * 10 * 3)
+            self.assertAlmostEqual(hybrid_res["hits"][0]["_lexical_score"], base_lexical_score * 10 * 3)
+            self.assertEqual(hybrid_res["hits"][0]["_tensor_score"], base_tensor_score * 10 * 3)
 
             self.assertEqual(hybrid_res["hits"][1]["_id"], "doc8")  # (score*10*2)
-            self.assertAlmostEqual(hybrid_res["hits"][1]["_raw_lexical_score"], base_lexical_score * 10 * 2)
-            self.assertAlmostEqual(hybrid_res["hits"][1]["_raw_tensor_score"], base_tensor_score * 10 * 2)
+            self.assertAlmostEqual(hybrid_res["hits"][1]["_lexical_score"], base_lexical_score * 10 * 2)
+            self.assertAlmostEqual(hybrid_res["hits"][1]["_tensor_score"], base_tensor_score * 10 * 2)
 
             self.assertEqual(hybrid_res["hits"][2]["_id"], "doc7")  # (score + 5*1)
-            self.assertAlmostEqual(hybrid_res["hits"][2]["_raw_lexical_score"], base_lexical_score + 5 * 1)
-            self.assertAlmostEqual(hybrid_res["hits"][2]["_raw_tensor_score"], base_tensor_score + 5 * 1)
+            self.assertAlmostEqual(hybrid_res["hits"][2]["_lexical_score"], base_lexical_score + 5 * 1)
+            self.assertAlmostEqual(hybrid_res["hits"][2]["_tensor_score"], base_tensor_score + 5 * 1)
 
             self.assertEqual(hybrid_res["hits"][-1]["_id"], "doc10")  # lowest score (score*-10*3)
-            self.assertAlmostEqual(hybrid_res["hits"][-1]["_raw_lexical_score"], base_lexical_score * -10 * 3)
-            self.assertAlmostEqual(hybrid_res["hits"][-1]["_raw_tensor_score"], base_tensor_score * -10 * 3)
+            self.assertAlmostEqual(hybrid_res["hits"][-1]["_lexical_score"], base_lexical_score * -10 * 3)
+            self.assertAlmostEqual(hybrid_res["hits"][-1]["_tensor_score"], base_tensor_score * -10 * 3)
 
     def test_hybrid_search_same_retrieval_and_ranking_matches_original_method(self):
         """
         Tests that hybrid search with:
-        retrieval_method = "lexical", ranking_method = "lexical" and
-        retrieval_method = "tensor", ranking_method = "tensor"
+        retrievalMethod = "lexical", rankingMethod = "lexical" and
+        retrievalMethod = "tensor", rankingMethod = "tensor"
 
         Results must be the same as lexical search and tensor search respectively.
         """
@@ -361,21 +361,21 @@ class TestStructuredHybridSearch(MarqoTestCase):
             ("tensor", "tensor")
         ]
 
-        for retrieval_method, ranking_method in test_cases:
-            with self.subTest(retrieval=retrieval_method, ranking=ranking_method):
+        for retrievalMethod, rankingMethod in test_cases:
+            with self.subTest(retrieval=retrievalMethod, ranking=rankingMethod):
                 hybrid_res = self.client.index(self.text_index_name).search(
                     "dogs",
                     search_method="HYBRID",
                     hybrid_parameters={
-                        "retrieval_method": retrieval_method,
-                        "ranking_method": ranking_method
+                        "retrievalMethod": retrievalMethod,
+                        "rankingMethod": rankingMethod
                     },
                     limit=10
                 )
 
                 base_res = self.client.index(self.text_index_name).search(
                     "dogs",
-                    search_method=retrieval_method,     # will be either lexical or tensor
+                    search_method=retrievalMethod,     # will be either lexical or tensor
                     limit=10
                 )
 
@@ -396,15 +396,15 @@ class TestStructuredHybridSearch(MarqoTestCase):
             ("tensor", "tensor")
         ]
 
-        for retrieval_method, ranking_method in test_cases:
-            with self.subTest(retrieval=retrieval_method, ranking=ranking_method):
+        for retrievalMethod, rankingMethod in test_cases:
+            with self.subTest(retrieval=retrievalMethod, ranking=rankingMethod):
                 hybrid_res = self.client.index(self.text_index_name).search(
                     "dogs",
                     search_method="HYBRID",
                     filter_string="text_field_1:(something something dogs)",
                     hybrid_parameters={
-                        "retrieval_method": retrieval_method,
-                        "ranking_method": ranking_method
+                        "retrievalMethod": retrievalMethod,
+                        "rankingMethod": rankingMethod
                     },
                     limit=10
                 )
@@ -416,68 +416,68 @@ class TestStructuredHybridSearch(MarqoTestCase):
         test_cases = [
             ({
                  "alpha": 0.6,
-                 "ranking_method": "tensor"
+                 "rankingMethod": "tensor"
              }, "can only be defined for 'rrf'"),
             ({
-                 "rrf_k": 61,
-                 "ranking_method": "normalize_linear"
+                 "rrfK": 61,
+                 "rankingMethod": "normalize_linear"
              }, "can only be defined for 'rrf'"),
             ({
-                 "rrf_k": 60.1,
+                 "rrfK": 60.1,
              }, "must be an integer"),
             ({
                 "alpha": 1.1
             }, "between 0 and 1"),
             ({
-                 "rrf_k": -1
+                 "rrfK": -1
              }, "greater than or equal to 0"),
             ({
-                "retrieval_method": "disjunction",
-                "ranking_method": "lexical"
-            }, "ranking_method must be: rrf"),
+                "retrievalMethod": "disjunction",
+                "rankingMethod": "lexical"
+            }, "rankingMethod must be: rrf"),
             ({
-                 "retrieval_method": "tensor",
-                 "ranking_method": "rrf"
-             }, "ranking_method must be: tensor or lexical"),
+                 "retrievalMethod": "tensor",
+                 "rankingMethod": "rrf"
+             }, "rankingMethod must be: tensor or lexical"),
             ({
-                 "retrieval_method": "lexical",
-                 "ranking_method": "rrf"
-             }, "ranking_method must be: tensor or lexical"),
+                 "retrievalMethod": "lexical",
+                 "rankingMethod": "rrf"
+             }, "rankingMethod must be: tensor or lexical"),
             # Searchable attributes need to match retrieval method
             ({
-                "retrieval_method": "tensor",
-                "ranking_method": "tensor",
-                "searchable_attributes_lexical": ["text_field_1"]
+                "retrievalMethod": "tensor",
+                "rankingMethod": "tensor",
+                "searchableAttributesLexical": ["text_field_1"]
              }, "can only be defined for 'lexical',"),
             ({
-                "retrieval_method": "lexical",
-                "ranking_method": "lexical",
-                "searchable_attributes_tensor": ["text_field_1"]
+                "retrievalMethod": "lexical",
+                "rankingMethod": "lexical",
+                "searchableAttributesTensor": ["text_field_1"]
              }, "can only be defined for 'tensor',"),
             # Score modifiers need to match ranking method
             ({
-                 "retrieval_method": "tensor",
-                 "ranking_method": "tensor",
-                 "score_modifiers_lexical": {
+                 "retrievalMethod": "tensor",
+                 "rankingMethod": "tensor",
+                 "scoreModifiersLexical": {
                      "multiply_score_by": [
                          {"field_name": "mult_field_1", "weight": 1.0}
                      ]
                  },
              }, "can only be defined for 'lexical',"),
             ({
-                 "retrieval_method": "lexical",
-                 "ranking_method": "lexical",
-                 "score_modifiers_tensor": {
+                 "retrievalMethod": "lexical",
+                 "rankingMethod": "lexical",
+                 "scoreModifiersTensor": {
                     "multiply_score_by": [
                         {"field_name": "mult_field_1", "weight": 1.0}
                     ]
                  }
              }, "can only be defined for 'tensor',"),
             # Non-existent retrieval method
-            ({"retrieval_method": "something something"},
+            ({"retrievalMethod": "something something"},
                 "not a valid enumeration member"),
             # Non-existent ranking method
-            ({"ranking_method": "something something"},
+            ({"rankingMethod": "something something"},
                 "not a valid enumeration member")
         ]
 
@@ -493,8 +493,8 @@ class TestStructuredHybridSearch(MarqoTestCase):
 
     def test_hybrid_search_structured_invalid_fields_fails(self):
         """
-        If searching with HYBRID, searchable_attributes_lexical must only have lexical fields, and
-        searchable_attributes_tensor must only have tensor fields.
+        If searching with HYBRID, searchableAttributesLexical must only have lexical fields, and
+        searchableAttributesTensor must only have tensor fields.
         """
         # Non-lexical field
         test_cases = [
@@ -502,16 +502,16 @@ class TestStructuredHybridSearch(MarqoTestCase):
             ("lexical", "lexical"),
             ("lexical", "tensor")
         ]
-        for retrieval_method, ranking_method in test_cases:
-            with self.subTest(retrieval=retrieval_method, ranking=ranking_method):
+        for retrievalMethod, rankingMethod in test_cases:
+            with self.subTest(retrieval=retrievalMethod, ranking=rankingMethod):
                 with self.assertRaises(MarqoWebError) as e:
                     self.client.index(self.text_index_name).search(
                         "dogs",
                         search_method="HYBRID",
                         hybrid_parameters={
-                            "retrieval_method":retrieval_method,
-                            "ranking_method":ranking_method,
-                            "searchable_attributes_lexical":["text_field_1", "add_field_1"]
+                            "retrievalMethod":retrievalMethod,
+                            "rankingMethod":rankingMethod,
+                            "searchableAttributesLexical":["text_field_1", "add_field_1"]
                         }
                     )
                 self.assertIn("has no lexically searchable field add_field_1", str(e.exception))
@@ -522,16 +522,16 @@ class TestStructuredHybridSearch(MarqoTestCase):
             ("tensor", "tensor"),
             ("tensor", "lexical")
         ]
-        for retrieval_method, ranking_method in test_cases:
-            with self.subTest(retrieval=retrieval_method, ranking=ranking_method):
+        for retrievalMethod, rankingMethod in test_cases:
+            with self.subTest(retrieval=retrievalMethod, ranking=rankingMethod):
                 with self.assertRaises(MarqoWebError) as e:
                     self.client.index(self.text_index_name).search(
                         "dogs",
                         search_method="HYBRID",
                         hybrid_parameters={
-                            "retrieval_method": retrieval_method,
-                            "ranking_method": ranking_method,
-                            "searchable_attributes_tensor": ["mult_field_1", "text_field_1"]
+                            "retrievalMethod": retrievalMethod,
+                            "rankingMethod": rankingMethod,
+                            "searchableAttributesTensor": ["mult_field_1", "text_field_1"]
                         }
                     )
                 self.assertIn("has no tensor field mult_field_1", str(e.exception))
@@ -546,8 +546,8 @@ class TestStructuredHybridSearch(MarqoTestCase):
                 "dogs",
                 search_method="LEXICAL",
                 hybrid_parameters={
-                    "retrieval_method": "disjunction",
-                    "ranking_method": "rrf",
+                    "retrievalMethod": "disjunction",
+                    "rankingMethod": "rrf",
                 }
             )
         self.assertIn("can only be provided for 'HYBRID'", str(e.exception))
@@ -570,10 +570,10 @@ class TestStructuredHybridSearch(MarqoTestCase):
             "dogs",
             search_method="HYBRID",
             hybrid_parameters={
-                "retrieval_method": "disjunction",
-                "ranking_method": "rrf",
+                "retrievalMethod": "disjunction",
+                "rankingMethod": "rrf",
                 "alpha": 0.5,
-                "rrf_k": 60
+                "rrfK": 60
             },
             limit=10
         )
