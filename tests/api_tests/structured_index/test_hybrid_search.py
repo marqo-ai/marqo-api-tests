@@ -93,6 +93,32 @@ class TestStructuredHybridSearch(MarqoTestCase):
 
         return copied
 
+    def test_hybrid_search_with_custom_vector_query(self):
+        """
+        Custom Vectory q should work similar to None q with a context vector
+        """
+
+        self.client.index(self.text_index_name).add_documents(self.docs_list)
+        sample_vector = [0.5 for _ in range(384)]
+
+        res_custom_vector = self.client.index(self.text_index_name).search(
+            q={"customVector": {"content": None, "vector": sample_vector}},
+            search_method="HYBRID",
+            hybrid_parameters={
+                "retrievalMethod": "tensor",
+                "rankingMethod": "tensor"
+            }
+        )
+
+        res_context = self.client.index(self.text_index_name).search(
+            q=None,
+            search_method="TENSOR",
+            context={"tensor": [{"vector": sample_vector, "weight": 1}]}
+        )
+        self.assertEqual(len(res_custom_vector["hits"]), len(res_context["hits"]))
+        for i in range(len(res_custom_vector["hits"])):
+            self.assertEqual(res_custom_vector["hits"][i]["_id"], res_context["hits"][i]["_id"])
+
     def test_hybrid_search_disjunction_rrf_zero_alpha_same_as_lexical(self):
         """
         Tests that hybrid search with:
