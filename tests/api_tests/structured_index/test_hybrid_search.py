@@ -14,6 +14,8 @@ from tests.marqo_test import MarqoTestCase
 class TestStructuredHybridSearch(MarqoTestCase):
     text_index_name = "api_test_structured_index_text" + str(uuid.uuid4()).replace('-', '')
     image_index_name = "api_test_structured_image_index_image" + str(uuid.uuid4()).replace('-', '')
+    unstructured_text_index_name = "api_test_unstructured_index_text" + str(uuid.uuid4()).replace('-', '')
+    unstructured_image_index_name = "api_test_unstructured_image_index_image" + str(uuid.uuid4()).replace('-', '')
 
     @classmethod
     def setUpClass(cls):
@@ -50,10 +52,21 @@ class TestStructuredHybridSearch(MarqoTestCase):
                     {"name": "list_field_1", "type": "array<text>", "features": ["filter"]}
                 ],
                 "tensorFields": ["text_field_1", "text_field_2", "text_field_3", "image_field_1", "image_field_2"],
+            },
+            {
+                "indexName": cls.unstructured_text_index_name,
+                "type": "unstructured",
+                "model": "sentence-transformers/all-MiniLM-L6-v2",
+            },
+            {
+                "indexName": cls.unstructured_image_index_name,
+                "type": "unstructured",
+                "model": "open_clip/ViT-B-32/openai",
             }
         ])
 
-        cls.indexes_to_delete = [cls.text_index_name, cls.image_index_name]
+        cls.indexes_to_delete = [cls.text_index_name, cls.image_index_name, cls.unstructured_text_index_name,
+                                 cls.unstructured_image_index_name]
 
     def setUp(self):
         if self.indexes_to_delete:
@@ -97,27 +110,32 @@ class TestStructuredHybridSearch(MarqoTestCase):
         """
         Custom Vectory q should work similar to None q with a context vector
         """
+        for index_name in [self.text_index_name, self.unstructured_text_index_name]:
+            with self.subTest(index=index_name):
+                self.client.index(index_name).add_documents(
+                    self.docs_list,
+                    tensor_fields=["text_field_1", "text_field_2", "text_field_3"] \
+                    if "unstructured" in index_name else None
+                )
+                sample_vector = [0.5 for _ in range(384)]
 
-        self.client.index(self.text_index_name).add_documents(self.docs_list)
-        sample_vector = [0.5 for _ in range(384)]
+                res_custom_vector = self.client.index(index_name).search(
+                    q={"customVector": {"content": None, "vector": sample_vector}},
+                    search_method="HYBRID",
+                    hybrid_parameters={
+                        "retrievalMethod": "tensor",
+                        "rankingMethod": "tensor"
+                    }
+                )
 
-        res_custom_vector = self.client.index(self.text_index_name).search(
-            q={"customVector": {"content": None, "vector": sample_vector}},
-            search_method="HYBRID",
-            hybrid_parameters={
-                "retrievalMethod": "tensor",
-                "rankingMethod": "tensor"
-            }
-        )
-
-        res_context = self.client.index(self.text_index_name).search(
-            q=None,
-            search_method="TENSOR",
-            context={"tensor": [{"vector": sample_vector, "weight": 1}]}
-        )
-        self.assertEqual(len(res_custom_vector["hits"]), len(res_context["hits"]))
-        for i in range(len(res_custom_vector["hits"])):
-            self.assertEqual(res_custom_vector["hits"][i]["_id"], res_context["hits"][i]["_id"])
+                res_context = self.client.index(index_name).search(
+                    q=None,
+                    search_method="TENSOR",
+                    context={"tensor": [{"vector": sample_vector, "weight": 1}]}
+                )
+                self.assertEqual(len(res_custom_vector["hits"]), len(res_context["hits"]))
+                for i in range(len(res_custom_vector["hits"])):
+                    self.assertEqual(res_custom_vector["hits"][i]["_id"], res_context["hits"][i]["_id"])
 
     def test_hybrid_search_disjunction_rrf_zero_alpha_same_as_lexical(self):
         """
@@ -129,28 +147,34 @@ class TestStructuredHybridSearch(MarqoTestCase):
         is the same as a lexical search (in terms of result order).
         """
 
-        self.client.index(self.text_index_name).add_documents(self.docs_list)
+        for index_name in [self.text_index_name, self.unstructured_text_index_name]:
+            with self.subTest(index=index_name):
+                self.client.index(index_name).add_documents(
+                    self.docs_list,
+                    tensor_fields=["text_field_1", "text_field_2", "text_field_3"] \
+                        if "unstructured" in index_name else None
+                )
 
-        hybrid_res = self.client.index(self.text_index_name).search(
-            "dogs",
-            search_method="HYBRID",
-            hybrid_parameters={
-                "retrievalMethod": "disjunction",
-                "rankingMethod": "rrf",
-                "alpha": 0
-            },
-            limit=10
-        )
+                hybrid_res = self.client.index(index_name).search(
+                    "dogs",
+                    search_method="HYBRID",
+                    hybrid_parameters={
+                        "retrievalMethod": "disjunction",
+                        "rankingMethod": "rrf",
+                        "alpha": 0
+                    },
+                    limit=10
+                )
 
-        lexical_res = self.client.index(self.text_index_name).search(
-            "dogs",
-            search_method="LEXICAL",
-            limit=10
-        )
+                lexical_res = self.client.index(index_name).search(
+                    "dogs",
+                    search_method="LEXICAL",
+                    limit=10
+                )
 
-        self.assertEqual(len(hybrid_res["hits"]), len(lexical_res["hits"]))
-        for i in range(len(hybrid_res["hits"])):
-            self.assertEqual(hybrid_res["hits"][i]["_id"], lexical_res["hits"][i]["_id"])
+                self.assertEqual(len(hybrid_res["hits"]), len(lexical_res["hits"]))
+                for i in range(len(hybrid_res["hits"])):
+                    self.assertEqual(hybrid_res["hits"][i]["_id"], lexical_res["hits"][i]["_id"])
 
     def test_hybrid_search_disjunction_rrf_one_alpha_same_as_tensor(self):
         """
@@ -162,214 +186,229 @@ class TestStructuredHybridSearch(MarqoTestCase):
         is the same as a tensor search (in terms of result order).
         """
 
-        self.client.index(self.text_index_name).add_documents(self.docs_list)
+        for index_name in [self.text_index_name, self.unstructured_text_index_name]:
+            with self.subTest(index=index_name):
+                self.client.index(index_name).add_documents(
+                    self.docs_list,
+                    tensor_fields=["text_field_1", "text_field_2", "text_field_3"] \
+                        if "unstructured" in index_name else None
+                )
 
-        hybrid_res = self.client.index(self.text_index_name).search(
-            "dogs",
-            search_method="HYBRID",
-            hybrid_parameters={
-                "retrievalMethod": "disjunction",
-                "rankingMethod": "rrf",
-                "alpha": 1
-            },
-            limit=10
-        )
+                hybrid_res = self.client.index(index_name).search(
+                    "dogs",
+                    search_method="HYBRID",
+                    hybrid_parameters={
+                        "retrievalMethod": "disjunction",
+                        "rankingMethod": "rrf",
+                        "alpha": 1
+                    },
+                    limit=10
+                )
 
-        tensor_res = self.client.index(self.text_index_name).search(
-            "dogs",
-            search_method="TENSOR",
-            limit=10
-        )
+                tensor_res = self.client.index(index_name).search(
+                    "dogs",
+                    search_method="TENSOR",
+                    limit=10
+                )
 
-        self.assertEqual(len(hybrid_res["hits"]), len(tensor_res["hits"]))
-        for i in range(len(hybrid_res["hits"])):
-            self.assertEqual(hybrid_res["hits"][i]["_id"], tensor_res["hits"][i]["_id"])
+                self.assertEqual(len(hybrid_res["hits"]), len(tensor_res["hits"]))
+                for i in range(len(hybrid_res["hits"])):
+                    self.assertEqual(hybrid_res["hits"][i]["_id"], tensor_res["hits"][i]["_id"])
 
     def test_hybrid_search_searchable_attributes(self):
         """
         Tests that searchable attributes work as expected for all methods
         """
+        # TODO: Add unstructured test when unstructured searchable attributes are supported
+        for index_name in [self.text_index_name]:
+            with self.subTest(index=index_name):
+                self.client.index(index_name).add_documents(
+                    self.docs_list,
+                    tensor_fields=["text_field_1", "text_field_2", "text_field_3"] \
+                        if "unstructured" in index_name else None
+                )
 
-        self.client.index(self.text_index_name).add_documents(self.docs_list)
+                with self.subTest("retrieval: disjunction, ranking: rrf"):
+                    hybrid_res = self.client.index(index_name).search(
+                        "puppies",
+                        search_method="HYBRID",
+                        hybrid_parameters={
+                            "retrievalMethod": "disjunction",
+                            "rankingMethod": "rrf",
+                            "alpha": 0.5,
+                            "searchableAttributesLexical": ["text_field_2"],
+                            "searchableAttributesTensor": ["text_field_2"]
+                        },
+                        limit=10
+                    )
+                    self.assertEqual(len(hybrid_res["hits"]), 3)  # Only 3 documents have text_field_2 at all
+                    self.assertEqual(hybrid_res["hits"][0]["_id"], "doc12")  # puppies puppies in text field 2
+                    self.assertEqual(hybrid_res["hits"][1]["_id"], "doc13")
+                    self.assertEqual(hybrid_res["hits"][2]["_id"], "doc11")
 
-        with self.subTest("retrieval: disjunction, ranking: rrf"):
-            hybrid_res = self.client.index(self.text_index_name).search(
-                "puppies",
-                search_method="HYBRID",
-                hybrid_parameters={
-                    "retrievalMethod": "disjunction",
-                    "rankingMethod": "rrf",
-                    "alpha": 0.5,
-                    "searchableAttributesLexical": ["text_field_2"],
-                    "searchableAttributesTensor": ["text_field_2"]
-                },
-                limit=10
-            )
-            self.assertEqual(len(hybrid_res["hits"]), 3)  # Only 3 documents have text_field_2 at all
-            self.assertEqual(hybrid_res["hits"][0]["_id"], "doc12")  # puppies puppies in text field 2
-            self.assertEqual(hybrid_res["hits"][1]["_id"], "doc13")
-            self.assertEqual(hybrid_res["hits"][2]["_id"], "doc11")
+                with self.subTest("retrieval: lexical, ranking: tensor"):
+                    hybrid_res = self.client.index(index_name).search(
+                        "puppies",
+                        search_method="HYBRID",
+                        hybrid_parameters={
+                            "retrievalMethod": "lexical",
+                            "rankingMethod": "tensor",
+                            "searchableAttributesLexical": ["text_field_2"]
+                        },
+                        limit=10
+                    )
+                    self.assertEqual(len(hybrid_res["hits"]),
+                                        1)  # Only 1 document has puppies in text_field_2. Lexical retrieval will only get this one.
+                    self.assertEqual(hybrid_res["hits"][0]["_id"], "doc12")
 
-        with self.subTest("retrieval: lexical, ranking: tensor"):
-            hybrid_res = self.client.index(self.text_index_name).search(
-                "puppies",
-                search_method="HYBRID",
-                hybrid_parameters={
-                    "retrievalMethod": "lexical",
-                    "rankingMethod": "tensor",
-                    "searchableAttributesLexical": ["text_field_2"]
-                },
-                limit=10
-            )
-            self.assertEqual(len(hybrid_res["hits"]),
-                                1)  # Only 1 document has puppies in text_field_2. Lexical retrieval will only get this one.
-            self.assertEqual(hybrid_res["hits"][0]["_id"], "doc12")
-
-        with self.subTest("retrieval: tensor, ranking: lexical"):
-            hybrid_res = self.client.index(self.text_index_name).search(
-                "puppies",
-                search_method="HYBRID",
-                hybrid_parameters={
-                    "retrievalMethod": "tensor",
-                    "rankingMethod": "lexical",
-                    "searchableAttributesTensor": ["text_field_2"]
-                },
-                limit=10
-            )
-            self.assertEqual(len(hybrid_res["hits"]),
-                                3)  # Only 3 documents have text field 2. Tensor retrieval will get them all.
-            self.assertEqual(hybrid_res["hits"][0]["_id"], "doc12")
-            self.assertEqual(hybrid_res["hits"][1]["_id"], "doc11")
-            self.assertEqual(hybrid_res["hits"][2]["_id"], "doc13")
+                with self.subTest("retrieval: tensor, ranking: lexical"):
+                    hybrid_res = self.client.index(index_name).search(
+                        "puppies",
+                        search_method="HYBRID",
+                        hybrid_parameters={
+                            "retrievalMethod": "tensor",
+                            "rankingMethod": "lexical",
+                            "searchableAttributesTensor": ["text_field_2"]
+                        },
+                        limit=10
+                    )
+                    self.assertEqual(len(hybrid_res["hits"]),
+                                        3)  # Only 3 documents have text field 2. Tensor retrieval will get them all.
+                    self.assertEqual(hybrid_res["hits"][0]["_id"], "doc12")
+                    self.assertEqual(hybrid_res["hits"][1]["_id"], "doc11")
+                    self.assertEqual(hybrid_res["hits"][2]["_id"], "doc13")
 
     def test_hybrid_search_score_modifiers(self):
         """
         Tests that score modifiers work as expected for all methods
         """
-        # Add documents
-        self.client.index(self.text_index_name).add_documents(
-            [
-                {"_id": "doc6", "text_field_1": "HELLO WORLD"},
-                {"_id": "doc7", "text_field_1": "HELLO WORLD", "add_field_1": 1.0},  # third
-                {"_id": "doc8", "text_field_1": "HELLO WORLD", "mult_field_1": 2.0},  # second highest score
-                {"_id": "doc9", "text_field_1": "HELLO WORLD", "mult_field_1": 3.0},  # highest score
-                {"_id": "doc10", "text_field_1": "HELLO WORLD", "mult_field_2": 3.0},  # lowest score
-            ]
-        )
+        for index_name in [self.text_index_name, self.unstructured_text_index_name]:
+            with self.subTest(index=index_name):
+                # Add documents
+                self.client.index(index_name).add_documents(
+                    [
+                        {"_id": "doc6", "text_field_1": "HELLO WORLD"},
+                        {"_id": "doc7", "text_field_1": "HELLO WORLD", "add_field_1": 1.0},  # third
+                        {"_id": "doc8", "text_field_1": "HELLO WORLD", "mult_field_1": 2.0},  # second highest score
+                        {"_id": "doc9", "text_field_1": "HELLO WORLD", "mult_field_1": 3.0},  # highest score
+                        {"_id": "doc10", "text_field_1": "HELLO WORLD", "mult_field_2": 3.0},  # lowest score
+                    ],
+                    tensor_fields=["text_field_1"] if "unstructured" in index_name else None
+                )
 
-        with self.subTest("retrieval: lexical, ranking: tensor"):
-            hybrid_res = self.client.index(self.text_index_name).search(
-                "HELLO WORLD",
-                search_method="HYBRID",
-                hybrid_parameters={
-                    "retrievalMethod": "lexical",
-                    "rankingMethod": "tensor",
-                    "scoreModifiersTensor":{
-                        "multiply_score_by": [
-                            {"field_name": "mult_field_1", "weight": 10},
-                            {"field_name": "mult_field_2", "weight": -10}
-                        ],
-                        "add_to_score": [
-                            {"field_name": "add_field_1", "weight": 5}
-                        ]
-                    },
-                },
-                limit=10
-            )
-            self.assertIn("hits", hybrid_res)
-            self.assertEqual(hybrid_res["hits"][0]["_id"], "doc9")  # highest score (score*10*3)
-            self.assertEqual(hybrid_res["hits"][0]["_score"], 30.0)
-            self.assertEqual(hybrid_res["hits"][1]["_id"], "doc8")  # (score*10*2)
-            self.assertEqual(hybrid_res["hits"][1]["_score"], 20.0)
-            self.assertEqual(hybrid_res["hits"][2]["_id"], "doc7")  # (score + 5*1)
-            self.assertEqual(hybrid_res["hits"][2]["_score"], 6.0)
-            self.assertEqual(hybrid_res["hits"][3]["_id"], "doc6")  # (score)
-            self.assertEqual(hybrid_res["hits"][3]["_score"], 1.0)
-            self.assertEqual(hybrid_res["hits"][-1]["_id"], "doc10")  # lowest score (score*-10*3)
-            self.assertEqual(hybrid_res["hits"][-1]["_score"], -30.0)
+                with self.subTest("retrieval: lexical, ranking: tensor"):
+                    hybrid_res = self.client.index(index_name).search(
+                        "HELLO WORLD",
+                        search_method="HYBRID",
+                        hybrid_parameters={
+                            "retrievalMethod": "lexical",
+                            "rankingMethod": "tensor",
+                            "scoreModifiersTensor":{
+                                "multiply_score_by": [
+                                    {"field_name": "mult_field_1", "weight": 10},
+                                    {"field_name": "mult_field_2", "weight": -10}
+                                ],
+                                "add_to_score": [
+                                    {"field_name": "add_field_1", "weight": 5}
+                                ]
+                            },
+                        },
+                        limit=10
+                    )
+                    self.assertIn("hits", hybrid_res)
+                    self.assertEqual(hybrid_res["hits"][0]["_id"], "doc9")  # highest score (score*10*3)
+                    self.assertEqual(hybrid_res["hits"][0]["_score"], 30.0)
+                    self.assertEqual(hybrid_res["hits"][1]["_id"], "doc8")  # (score*10*2)
+                    self.assertEqual(hybrid_res["hits"][1]["_score"], 20.0)
+                    self.assertEqual(hybrid_res["hits"][2]["_id"], "doc7")  # (score + 5*1)
+                    self.assertEqual(hybrid_res["hits"][2]["_score"], 6.0)
+                    self.assertEqual(hybrid_res["hits"][3]["_id"], "doc6")  # (score)
+                    self.assertEqual(hybrid_res["hits"][3]["_score"], 1.0)
+                    self.assertEqual(hybrid_res["hits"][-1]["_id"], "doc10")  # lowest score (score*-10*3)
+                    self.assertEqual(hybrid_res["hits"][-1]["_score"], -30.0)
 
-        with self.subTest("retrieval: tensor, ranking: lexical"):
-            hybrid_res = self.client.index(self.text_index_name).search(
-                "HELLO WORLD",
-                search_method="HYBRID",
-                hybrid_parameters={
-                    "retrievalMethod": "tensor",
-                    "rankingMethod": "lexical",
-                    "scoreModifiersLexical":{
-                        "multiply_score_by": [
-                            {"field_name": "mult_field_1", "weight": 10},
-                            {"field_name": "mult_field_2", "weight": -10}
-                        ],
-                        "add_to_score": [
-                            {"field_name": "add_field_1", "weight": 2}
-                        ]
-                    },
-                },
-                limit=10
-            )
-            self.assertIn("hits", hybrid_res)
+                with self.subTest("retrieval: tensor, ranking: lexical"):
+                    hybrid_res = self.client.index(index_name).search(
+                        "HELLO WORLD",
+                        search_method="HYBRID",
+                        hybrid_parameters={
+                            "retrievalMethod": "tensor",
+                            "rankingMethod": "lexical",
+                            "scoreModifiersLexical":{
+                                "multiply_score_by": [
+                                    {"field_name": "mult_field_1", "weight": 10},
+                                    {"field_name": "mult_field_2", "weight": -10}
+                                ],
+                                "add_to_score": [
+                                    {"field_name": "add_field_1", "weight": 2}
+                                ]
+                            },
+                        },
+                        limit=10
+                    )
+                    self.assertIn("hits", hybrid_res)
 
-            base_lexical_score = hybrid_res["hits"][3]["_score"]
-            self.assertEqual(hybrid_res["hits"][0]["_id"], "doc9")  # highest score (score*10*3)
-            self.assertAlmostEqual(hybrid_res["hits"][0]["_score"], base_lexical_score * 10 * 3)
-            self.assertEqual(hybrid_res["hits"][1]["_id"], "doc8")  # second highest score (score*10*2)
-            self.assertAlmostEqual(hybrid_res["hits"][1]["_score"], base_lexical_score * 10 * 2)
-            self.assertEqual(hybrid_res["hits"][2]["_id"], "doc7")  # third highest score (score + 2*1)
-            self.assertAlmostEqual(hybrid_res["hits"][2]["_score"], base_lexical_score + 2 * 1)
-            self.assertEqual(hybrid_res["hits"][3]["_id"], "doc6")  # ORIGINAL SCORE
-            self.assertEqual(hybrid_res["hits"][-1]["_id"], "doc10")  # lowest score (score*-10*3)
-            self.assertAlmostEqual(hybrid_res["hits"][-1]["_score"], base_lexical_score * -10 * 3)
+                    base_lexical_score = hybrid_res["hits"][3]["_score"]
+                    self.assertEqual(hybrid_res["hits"][0]["_id"], "doc9")  # highest score (score*10*3)
+                    self.assertAlmostEqual(hybrid_res["hits"][0]["_score"], base_lexical_score * 10 * 3)
+                    self.assertEqual(hybrid_res["hits"][1]["_id"], "doc8")  # second highest score (score*10*2)
+                    self.assertAlmostEqual(hybrid_res["hits"][1]["_score"], base_lexical_score * 10 * 2)
+                    self.assertEqual(hybrid_res["hits"][2]["_id"], "doc7")  # third highest score (score + 2*1)
+                    self.assertAlmostEqual(hybrid_res["hits"][2]["_score"], base_lexical_score + 2 * 1)
+                    self.assertEqual(hybrid_res["hits"][3]["_id"], "doc6")  # ORIGINAL SCORE
+                    self.assertEqual(hybrid_res["hits"][-1]["_id"], "doc10")  # lowest score (score*-10*3)
+                    self.assertAlmostEqual(hybrid_res["hits"][-1]["_score"], base_lexical_score * -10 * 3)
 
-        with self.subTest("retrieval: disjunction, ranking: rrf"):
-            hybrid_res = self.client.index(self.text_index_name).search(
-                "HELLO WORLD",
-                search_method="HYBRID",
-                hybrid_parameters={
-                    "retrievalMethod": "disjunction",
-                    "rankingMethod": "rrf",
-                    "scoreModifiersLexical":{
-                        "multiply_score_by": [
-                            {"field_name": "mult_field_1", "weight": 10},
-                            {"field_name": "mult_field_2", "weight": -10}
-                        ],
-                        "add_to_score": [
-                            {"field_name": "add_field_1", "weight": 5}
-                        ]
-                    },
-                    "scoreModifiersTensor":{
-                        "multiply_score_by": [
-                            {"field_name": "mult_field_1", "weight": 10},
-                            {"field_name": "mult_field_2", "weight": -10}
-                        ],
-                        "add_to_score": [
-                            {"field_name": "add_field_1", "weight": 5}
-                        ]
-                    },
-                },
-                limit=10
-            )
-            self.assertIn("hits", hybrid_res)
+                with self.subTest("retrieval: disjunction, ranking: rrf"):
+                    hybrid_res = self.client.index(index_name).search(
+                        "HELLO WORLD",
+                        search_method="HYBRID",
+                        hybrid_parameters={
+                            "retrievalMethod": "disjunction",
+                            "rankingMethod": "rrf",
+                            "scoreModifiersLexical":{
+                                "multiply_score_by": [
+                                    {"field_name": "mult_field_1", "weight": 10},
+                                    {"field_name": "mult_field_2", "weight": -10}
+                                ],
+                                "add_to_score": [
+                                    {"field_name": "add_field_1", "weight": 5}
+                                ]
+                            },
+                            "scoreModifiersTensor":{
+                                "multiply_score_by": [
+                                    {"field_name": "mult_field_1", "weight": 10},
+                                    {"field_name": "mult_field_2", "weight": -10}
+                                ],
+                                "add_to_score": [
+                                    {"field_name": "add_field_1", "weight": 5}
+                                ]
+                            },
+                        },
+                        limit=10
+                    )
+                    self.assertIn("hits", hybrid_res)
 
-            # Score without score modifiers
-            self.assertEqual(hybrid_res["hits"][3]["_id"], "doc6")  # (score)
-            base_lexical_score = hybrid_res["hits"][3]["_lexical_score"]
-            base_tensor_score = hybrid_res["hits"][3]["_tensor_score"]
+                    # Score without score modifiers
+                    self.assertEqual(hybrid_res["hits"][3]["_id"], "doc6")  # (score)
+                    base_lexical_score = hybrid_res["hits"][3]["_lexical_score"]
+                    base_tensor_score = hybrid_res["hits"][3]["_tensor_score"]
 
-            self.assertEqual(hybrid_res["hits"][0]["_id"], "doc9")  # highest score (score*10*3)
-            self.assertAlmostEqual(hybrid_res["hits"][0]["_lexical_score"], base_lexical_score * 10 * 3)
-            self.assertEqual(hybrid_res["hits"][0]["_tensor_score"], base_tensor_score * 10 * 3)
+                    self.assertEqual(hybrid_res["hits"][0]["_id"], "doc9")  # highest score (score*10*3)
+                    self.assertAlmostEqual(hybrid_res["hits"][0]["_lexical_score"], base_lexical_score * 10 * 3)
+                    self.assertEqual(hybrid_res["hits"][0]["_tensor_score"], base_tensor_score * 10 * 3)
 
-            self.assertEqual(hybrid_res["hits"][1]["_id"], "doc8")  # (score*10*2)
-            self.assertAlmostEqual(hybrid_res["hits"][1]["_lexical_score"], base_lexical_score * 10 * 2)
-            self.assertAlmostEqual(hybrid_res["hits"][1]["_tensor_score"], base_tensor_score * 10 * 2)
+                    self.assertEqual(hybrid_res["hits"][1]["_id"], "doc8")  # (score*10*2)
+                    self.assertAlmostEqual(hybrid_res["hits"][1]["_lexical_score"], base_lexical_score * 10 * 2)
+                    self.assertAlmostEqual(hybrid_res["hits"][1]["_tensor_score"], base_tensor_score * 10 * 2)
 
-            self.assertEqual(hybrid_res["hits"][2]["_id"], "doc7")  # (score + 5*1)
-            self.assertAlmostEqual(hybrid_res["hits"][2]["_lexical_score"], base_lexical_score + 5 * 1)
-            self.assertAlmostEqual(hybrid_res["hits"][2]["_tensor_score"], base_tensor_score + 5 * 1)
+                    self.assertEqual(hybrid_res["hits"][2]["_id"], "doc7")  # (score + 5*1)
+                    self.assertAlmostEqual(hybrid_res["hits"][2]["_lexical_score"], base_lexical_score + 5 * 1)
+                    self.assertAlmostEqual(hybrid_res["hits"][2]["_tensor_score"], base_tensor_score + 5 * 1)
 
-            self.assertEqual(hybrid_res["hits"][-1]["_id"], "doc10")  # lowest score (score*-10*3)
-            self.assertAlmostEqual(hybrid_res["hits"][-1]["_lexical_score"], base_lexical_score * -10 * 3)
-            self.assertAlmostEqual(hybrid_res["hits"][-1]["_tensor_score"], base_tensor_score * -10 * 3)
+                    self.assertEqual(hybrid_res["hits"][-1]["_id"], "doc10")  # lowest score (score*-10*3)
+                    self.assertAlmostEqual(hybrid_res["hits"][-1]["_lexical_score"], base_lexical_score * -10 * 3)
+                    self.assertAlmostEqual(hybrid_res["hits"][-1]["_tensor_score"], base_tensor_score * -10 * 3)
 
     def test_hybrid_search_same_retrieval_and_ranking_matches_original_method(self):
         """
@@ -380,63 +419,75 @@ class TestStructuredHybridSearch(MarqoTestCase):
         Results must be the same as lexical search and tensor search respectively.
         """
 
-        self.client.index(self.text_index_name).add_documents(self.docs_list)
-
-        test_cases = [
-            ("lexical", "lexical"),
-            ("tensor", "tensor")
-        ]
-
-        for retrievalMethod, rankingMethod in test_cases:
-            with self.subTest(retrieval=retrievalMethod, ranking=rankingMethod):
-                hybrid_res = self.client.index(self.text_index_name).search(
-                    "dogs",
-                    search_method="HYBRID",
-                    hybrid_parameters={
-                        "retrievalMethod": retrievalMethod,
-                        "rankingMethod": rankingMethod
-                    },
-                    limit=10
+        for index_name in [self.text_index_name, self.unstructured_text_index_name]:
+            with self.subTest(index=index_name):
+                self.client.index(index_name).add_documents(
+                    self.docs_list,
+                    tensor_fields=["text_field_1", "text_field_2", "text_field_3"] \
+                        if "unstructured" in index_name else None
                 )
 
-                base_res = self.client.index(self.text_index_name).search(
-                    "dogs",
-                    search_method=retrievalMethod,     # will be either lexical or tensor
-                    limit=10
-                )
+                test_cases = [
+                    ("lexical", "lexical"),
+                    ("tensor", "tensor")
+                ]
 
-                self.assertEqual(len(hybrid_res["hits"]), len(base_res["hits"]))
-                for i in range(len(hybrid_res["hits"])):
-                    self.assertEqual(hybrid_res["hits"][i]["_id"], base_res["hits"][i]["_id"])
+                for retrievalMethod, rankingMethod in test_cases:
+                    with self.subTest(retrieval=retrievalMethod, ranking=rankingMethod):
+                        hybrid_res = self.client.index(index_name).search(
+                            "dogs",
+                            search_method="HYBRID",
+                            hybrid_parameters={
+                                "retrievalMethod": retrievalMethod,
+                                "rankingMethod": rankingMethod
+                            },
+                            limit=10
+                        )
+
+                        base_res = self.client.index(index_name).search(
+                            "dogs",
+                            search_method=retrievalMethod,     # will be either lexical or tensor
+                            limit=10
+                        )
+
+                        self.assertEqual(len(hybrid_res["hits"]), len(base_res["hits"]))
+                        for i in range(len(hybrid_res["hits"])):
+                            self.assertEqual(hybrid_res["hits"][i]["_id"], base_res["hits"][i]["_id"])
 
     def test_hybrid_search_with_filter(self):
         """
         Tests that filter is applied correctly in hybrid search.
         """
 
-        self.client.index(self.text_index_name).add_documents(self.docs_list)
-
-        test_cases = [
-            ("disjunction", "rrf"),
-            ("lexical", "lexical"),
-            ("tensor", "tensor")
-        ]
-
-        for retrievalMethod, rankingMethod in test_cases:
-            with self.subTest(retrieval=retrievalMethod, ranking=rankingMethod):
-                hybrid_res = self.client.index(self.text_index_name).search(
-                    "dogs",
-                    search_method="HYBRID",
-                    filter_string="text_field_1:(something something dogs)",
-                    hybrid_parameters={
-                        "retrievalMethod": retrievalMethod,
-                        "rankingMethod": rankingMethod
-                    },
-                    limit=10
+        for index_name in [self.text_index_name, self.unstructured_text_index_name]:
+            with self.subTest(index=index_name):
+                self.client.index(index_name).add_documents(
+                    self.docs_list,
+                    tensor_fields=["text_field_1", "text_field_2", "text_field_3"] \
+                        if "unstructured" in index_name else None
                 )
 
-                self.assertEqual(len(hybrid_res["hits"]), 1)
-                self.assertEqual(hybrid_res["hits"][0]["_id"], "doc8")
+                test_cases = [
+                    ("disjunction", "rrf"),
+                    ("lexical", "lexical"),
+                    ("tensor", "tensor")
+                ]
+
+                for retrievalMethod, rankingMethod in test_cases:
+                    with self.subTest(retrieval=retrievalMethod, ranking=rankingMethod):
+                        hybrid_res = self.client.index(index_name).search(
+                            "dogs",
+                            search_method="HYBRID",
+                            filter_string="text_field_1:(something something dogs)",
+                            hybrid_parameters={
+                                "retrievalMethod": retrievalMethod,
+                                "rankingMethod": rankingMethod
+                            },
+                            limit=10
+                        )
+
+                        self.assertEqual(len(hybrid_res["hits"]), 1)
+                        self.assertEqual(hybrid_res["hits"][0]["_id"], "doc8")
 
     def test_hybrid_search_invalid_parameters_fails(self):
         test_cases = [
@@ -507,15 +558,17 @@ class TestStructuredHybridSearch(MarqoTestCase):
                 "not a valid enumeration member")
         ]
 
-        for hybrid_parameters, error_message in test_cases:
-            with self.subTest(hybrid_parameters=hybrid_parameters):
-                with self.assertRaises(MarqoWebError) as e:
-                    res = self.client.index(self.text_index_name).search(
-                        "dogs",
-                        search_method="HYBRID",
-                        hybrid_parameters=hybrid_parameters
-                    )
-                self.assertIn(error_message, str(e.exception))
+        for index_name in [self.text_index_name, self.unstructured_text_index_name]:
+            with self.subTest(index=index_name):
+                for hybrid_parameters, error_message in test_cases:
+                    with self.subTest(hybrid_parameters=hybrid_parameters):
+                        with self.assertRaises(MarqoWebError) as e:
+                            res = self.client.index(index_name).search(
+                                "dogs",
+                                search_method="HYBRID",
+                                hybrid_parameters=hybrid_parameters
+                            )
+                        self.assertIn(error_message, str(e.exception))
 
     def test_hybrid_search_structured_invalid_fields_fails(self):
         """
@@ -528,6 +581,7 @@ class TestStructuredHybridSearch(MarqoTestCase):
             ("lexical", "lexical"),
             ("lexical", "tensor")
         ]
+
         for retrievalMethod, rankingMethod in test_cases:
             with self.subTest(retrieval=retrievalMethod, ranking=rankingMethod):
                 with self.assertRaises(MarqoWebError) as e:
@@ -567,47 +621,54 @@ class TestStructuredHybridSearch(MarqoTestCase):
         Tests that providing hybrid parameters with a wrong search method fails.
         """
 
-        with self.assertRaises(MarqoWebError) as e:
-            self.client.index(self.text_index_name).search(
-                "dogs",
-                search_method="LEXICAL",
-                hybrid_parameters={
-                    "retrievalMethod": "disjunction",
-                    "rankingMethod": "rrf",
-                }
-            )
-        self.assertIn("can only be provided for 'HYBRID'", str(e.exception))
+        for index_name in [self.text_index_name, self.unstructured_text_index_name]:
+            with self.subTest(index=index_name):
+                with self.assertRaises(MarqoWebError) as e:
+                    self.client.index(index_name).search(
+                        "dogs",
+                        search_method="LEXICAL",
+                        hybrid_parameters={
+                            "retrievalMethod": "disjunction",
+                            "rankingMethod": "rrf",
+                        }
+                    )
+                self.assertIn("can only be provided for 'HYBRID'", str(e.exception))
 
     def test_hybrid_search_default_parameters(self):
         """
         Test hybrid search when no hybrid parameters are provided.
         Search results should exactly match that of disjunction, rrf
         """
+        for index_name in [self.text_index_name, self.unstructured_text_index_name]:
+            with self.subTest(index=index_name):
+                self.client.index(index_name).add_documents(
+                    self.docs_list,
+                    tensor_fields=["text_field_1", "text_field_2", "text_field_3"] \
+                        if "unstructured" in index_name else None
+                )
 
-        self.client.index(self.text_index_name).add_documents(self.docs_list)
+                default_hybrid_res = self.client.index(index_name).search(
+                    "dogs",
+                    search_method="HYBRID",
+                    limit=10
+                )
 
-        default_hybrid_res = self.client.index(self.text_index_name).search(
-            "dogs",
-            search_method="HYBRID",
-            limit=10
-        )
+                disjunction_res = self.client.index(index_name).search(
+                    "dogs",
+                    search_method="HYBRID",
+                    hybrid_parameters={
+                        "retrievalMethod": "disjunction",
+                        "rankingMethod": "rrf",
+                        "alpha": 0.5,
+                        "rrfK": 60
+                    },
+                    limit=10
+                )
 
-        disjunction_res = self.client.index(self.text_index_name).search(
-            "dogs",
-            search_method="HYBRID",
-            hybrid_parameters={
-                "retrievalMethod": "disjunction",
-                "rankingMethod": "rrf",
-                "alpha": 0.5,
-                "rrfK": 60
-            },
-            limit=10
-        )
-
-        self.assertEqual(len(default_hybrid_res["hits"]), len(disjunction_res["hits"]))
-        for i in range(len(default_hybrid_res["hits"])):
-            self.assertEqual(default_hybrid_res["hits"][i]["_id"], disjunction_res["hits"][i]["_id"])
-            self.assertEqual(default_hybrid_res["hits"][i]["_score"], disjunction_res["hits"][i]["_score"])
+                self.assertEqual(len(default_hybrid_res["hits"]), len(disjunction_res["hits"]))
+                for i in range(len(default_hybrid_res["hits"])):
+                    self.assertEqual(default_hybrid_res["hits"][i]["_id"], disjunction_res["hits"][i]["_id"])
+                    self.assertEqual(default_hybrid_res["hits"][i]["_score"], disjunction_res["hits"][i]["_score"])
 
     # TODO: test_hybrid_search_with_images
     # TODO: test_hybrid_search_opposite_retrieval_and_ranking
