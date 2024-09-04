@@ -36,11 +36,14 @@ class TestCreateIndex(MarqoTestCase):
         expected_settings = {
             'type': 'unstructured',
             'treatUrlsAndPointersAsImages': False,
+            'treatUrlsAndPointersAsMedia': False,
             'filterStringMaxLength': 50,
             'model': 'hf/e5-base-v2',
             'normalizeEmbeddings': True,
             'textPreprocessing': {'splitLength': 2, 'splitOverlap': 0, 'splitMethod': 'sentence'},
             'imagePreprocessing': {},
+            'audioPreprocessing': {'splitLength': 20, 'splitOverlap': 3},
+            'videoPreprocessing': {'splitLength': 20, 'splitOverlap': 3},
             'vectorNumericType': 'float',
             'annParameters': {
                 'spaceType': 'prenormalized-angular', 'parameters': {
@@ -262,6 +265,8 @@ class TestCreateIndex(MarqoTestCase):
             'normalizeEmbeddings': True,
             'textPreprocessing': {'splitLength': 2, 'splitOverlap': 0, 'splitMethod': 'sentence'},
             'imagePreprocessing': {},
+            'audioPreprocessing': {'splitLength': 20, 'splitOverlap': 3},
+            'videoPreprocessing': {'splitLength': 20, 'splitOverlap': 3},
             'vectorNumericType': 'float',
             'annParameters': {'spaceType': 'prenormalized-angular', 'parameters': {'efConstruction': 512, 'm': 16}}}
         self.assertEqual(expected_index_settings, index_settings)
