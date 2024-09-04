@@ -118,6 +118,126 @@ class TestCreateIndex(MarqoTestCase):
         self.assertEqual("open_clip/ViT-B-16/laion400m_e31", index_settings['model'])
         self.assertEqual("simple", index_settings['imagePreprocessing']['patchMethod'])
 
+    def test_create_unstructured_index_with_languagebind(self):
+        self.client.create_index(
+            index_name=self.index_name,
+            type="unstructured",
+            model="LanguageBind/Video_V1.5_FT_Audio_FT_Image",
+            video_preprocessing={
+                "splitLength": 10,
+                "splitOverlap": 3
+            },
+            audio_preprocessing={
+                "splitLength": 10,
+                "splitOverlap": 3
+            },
+            treat_urls_and_pointers_as_media=True,
+            treat_urls_and_pointers_as_images=True
+        )
+
+        index_settings = self.client.index(self.index_name).get_settings()
+        print(index_settings)
+        expected_settings = {
+            "type": "unstructured",
+            "model": "LanguageBind/Video_V1.5_FT_Audio_FT_Image",
+            "normalizeEmbeddings": True,
+            "textPreprocessing": {
+                "splitLength": 2,
+                "splitMethod": "sentence",
+                "splitOverlap": 0
+            },
+            "imagePreprocessing": {},
+            "videoPreprocessing": {
+                "splitLength": 10,
+                "splitOverlap": 3
+            },
+            'filterStringMaxLength': 50,
+            "audioPreprocessing": {
+                "splitLength": 10,
+                "splitOverlap": 3
+            },
+            "treatUrlsAndPointersAsMedia": True,
+            "treatUrlsAndPointersAsImages": True,
+            "vectorNumericType": "float",
+            "annParameters": {
+                "spaceType": "prenormalized-angular",
+                "parameters": {
+                    "efConstruction": 512,
+                    "m": 16
+                }
+            }
+        }
+
+        self.assertEqual(expected_settings, index_settings)
+        
+    def test_create_structured_index_with_languagebind(self):
+        self.client.create_index(
+            index_name=self.index_name,
+            type="structured",
+            model="LanguageBind/Video_V1.5_FT_Audio_FT_Image",
+            all_fields=[
+                {"name": "text_field_1", "type": "text"},
+                {"name": "text_field_2", "type": "text"},
+                {"name": "video_field_1", "type": "video_pointer"},
+                {"name": "video_field_2", "type": "video_pointer"},
+                {"name": "audio_field", "type": "audio_pointer"},
+                {"name": "image_field", "type": "image_pointer"}
+            ],
+            tensor_fields=["text_field_1", "text_field_2",
+                        "video_field_1", "video_field_2", "audio_field", "image_field"],
+            audio_preprocessing={
+                "splitLength": 10,
+                "splitOverlap": 3
+            },
+            video_preprocessing={
+                "splitLength": 10,
+                "splitOverlap": 3
+            }
+        )
+
+        index_settings = self.client.index(self.index_name).get_settings()
+        print(index_settings)
+
+        expected_settings = {
+            "type": "structured",
+            "vectorNumericType": "float",
+            "model": "LanguageBind/Video_V1.5_FT_Audio_FT_Image",
+            "normalizeEmbeddings": True,
+            "textPreprocessing": {
+                "splitLength": 2,
+                "splitMethod": "sentence",
+                "splitOverlap": 0
+            },
+            "imagePreprocessing": {},
+            "audioPreprocessing": {
+                "splitLength": 10,
+                "splitOverlap": 3
+            },
+            "videoPreprocessing": {
+                "splitLength": 10,
+                "splitOverlap": 3
+            },
+            "annParameters": {
+                "spaceType": "prenormalized-angular",
+                "parameters": {
+                    "efConstruction": 512,
+                    "m": 16
+                }
+            },
+            "tensorFields": ["text_field_1", "text_field_2",
+                            "video_field_1", "video_field_2", "audio_field", "image_field"],
+            "allFields": [
+                {"features": [], "name": "text_field_1", "type": "text"},
+                {"features": [], "name": "text_field_2", "type": "text"},
+                {"features": [], "name": "video_field_1", "type": "video_pointer"},
+                {"features": [], "name": "video_field_2", "type": "video_pointer"},
+                {"features": [], "name": "audio_field", "type": "audio_pointer"},
+                {"features": [], "name": "image_field", "type": "image_pointer"},
+            ]
+        }
+
+        self.assertEqual(expected_settings, index_settings)
+
     def test_create_simple_structured_index(self):
         self.client.create_index(index_name=self.index_name, type="structured",
                                  model="hf/all_datasets_v4_MiniLM-L6",
