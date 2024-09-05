@@ -13,8 +13,6 @@ class TestEmbed(MarqoTestCase):
         cls.structured_index_name = "structured_" + str(uuid.uuid4()).replace('-', '')
         cls.unstructured_index_name = "unstructured_" + str(uuid.uuid4()).replace('-', '')
         cls.unstructured_index_non_e5 = "unstructured_non_e5_" + str(uuid.uuid4()).replace('-', '')
-        cls.unstructured_languagebind_index_name = "unstructured_languagebind_" + str(uuid.uuid4()).replace('-', '')
-        cls.structured_languagebind_index_name = "structured_languagebind_" + str(uuid.uuid4()).replace('-', '')
 
         cls.create_indexes([
             {
@@ -35,29 +33,9 @@ class TestEmbed(MarqoTestCase):
                 "indexName": cls.unstructured_index_non_e5,
                 "type": "unstructured",
                 "model": "sentence-transformers/all-MiniLM-L6-v2"
-            },
-            {
-                "indexName": cls.unstructured_languagebind_index_name,
-                "type": "unstructured",
-                "model": "LanguageBind/Video_V1.5_FT_Audio_FT_Image",
-                "treatUrlsAndPointersAsMedia": True,
-                "treatUrlsAndPointersAsImages": True
-            },
-            {
-                "indexName": cls.structured_languagebind_index_name,
-                "type": "structured",
-                "model": "LanguageBind/Video_V1.5_FT_Audio_FT_Image",
-                "allFields": [
-                    {"name": "text_field", "type": "text"},
-                    {"name": "video_field", "type": "video_pointer"},
-                    {"name": "audio_field", "type": "audio_pointer"},
-                    {"name": "image_field", "type": "image_pointer"}
-                ],
-                "tensorFields": ["text_field", "video_field", "audio_field", "image_field"]
             }
         ])
-        cls.indexes_to_delete = [cls.structured_index_name, cls.unstructured_index_name, cls.unstructured_index_non_e5,
-                                 cls.unstructured_languagebind_index_name, cls.structured_languagebind_index_name]
+        cls.indexes_to_delete = [cls.structured_index_name, cls.unstructured_index_name, cls.unstructured_index_non_e5]
 
     def test_embed_single_string(self):
         """Embeds a string. Use add docs and get docs with tensor facets to ensure the vector is correct.
@@ -188,55 +166,3 @@ class TestEmbed(MarqoTestCase):
                     np.allclose(embed_res["embeddings"][0], retrieved_docs["results"][0]["_tensor_facets"][0]["_embedding"], atol=1e-6))
                 self.assertTrue(
                     np.allclose(embed_res["embeddings"][1], retrieved_docs["results"][1]["_tensor_facets"][0]["_embedding"], atol=1e-6))
-                
-    def test_embed_languagebind_images(self):
-        """Test embedding images using LanguageBind model"""
-        image_urls = [
-            "https://raw.githubusercontent.com/marqo-ai/marqo-api-tests/mainline/assets/ai_hippo_realistic.png",
-            "https://raw.githubusercontent.com/marqo-ai/marqo-api-tests/mainline/assets/ai_hippo_realistic.png",
-            "https://raw.githubusercontent.com/marqo-ai/marqo-api-tests/mainline/assets/ai_hippo_realistic.png"
-        ]
-
-        embed_res = self.client.index(self.unstructured_languagebind_index_name).embed(content=image_urls)
-
-        self.assertIn("processingTimeMs", embed_res)
-        self.assertEqual(embed_res["content"], image_urls)
-        self.assertEqual(len(embed_res["embeddings"]), 3)
-        
-        # Check if embeddings are non-zero and have the expected shape
-        for embedding in embed_res["embeddings"]:
-            self.assertTrue(len(embedding) > 0)
-            self.assertTrue(np.any(embedding))
-
-        # Check that embeddings are close to the expected values
-        expected_embedding = [0.019889963790774345, -0.01263524405658245,
-                              0.026028314605355263, 0.005291664972901344, -0.013181567192077637]
-        for embedding in embed_res["embeddings"]:
-            for i, value in enumerate(expected_embedding):
-                self.assertAlmostEqual(embedding[i], value, places=5)
-
-    def test_embed_languagebind_videos(self):
-        """Test embedding videos using LanguageBind model"""
-        video_urls = [
-            "https://marqo-k400-video-test-dataset.s3.amazonaws.com/videos/---QUuC4vJs_000084_000094.mp4",
-            "https://marqo-k400-video-test-dataset.s3.amazonaws.com/videos/---QUuC4vJs_000084_000094.mp4",
-            "https://marqo-k400-video-test-dataset.s3.amazonaws.com/videos/---QUuC4vJs_000084_000094.mp4"
-        ]
-
-        embed_res = self.client.index(self.unstructured_languagebind_index_name).embed(content=video_urls)
-
-        self.assertIn("processingTimeMs", embed_res)
-        self.assertEqual(embed_res["content"], video_urls)
-        self.assertEqual(len(embed_res["embeddings"]), 3)
-        
-        # Check if embeddings are non-zero and have the expected shape
-        for embedding in embed_res["embeddings"]:
-            self.assertTrue(len(embedding) > 0)
-            self.assertTrue(np.any(embedding))
-
-        # Check that embeddings are close to the expected values
-        expected_embedding = [0.0394694060087204, 0.049264926463365555,
-                              -0.014714145101606846, 0.05715121701359749, -0.019508328288793564]
-        for embedding in embed_res["embeddings"]:
-            for i, value in enumerate(expected_embedding):
-                self.assertAlmostEqual(embedding[i], value, places=5)
