@@ -121,6 +121,20 @@ class TestCreateIndex(MarqoTestCase):
         self.assertEqual("open_clip/ViT-B-16/laion400m_e31", index_settings['model'])
         self.assertEqual("simple", index_settings['imagePreprocessing']['patchMethod'])
 
+    def test_create_invalid_unstructured_languagebind_index(self):
+        with self.assertRaises(MarqoWebError) as e:
+            res = self.client.create_index(
+                index_name=self.index_name,
+                type="unstructured",
+                model="LanguageBind/Video_V1.5_FT_Audio_FT_Image",
+                video_preprocessing={
+                    "splitLength": 10,
+                    "splitOverlap": 3
+                },
+                treat_urls_and_pointers_as_media=True,
+                treat_urls_and_pointers_as_images=False
+            )
+
     def test_create_unstructured_index_with_languagebind(self):
         self.client.create_index(
             index_name=self.index_name,
