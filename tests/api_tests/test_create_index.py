@@ -213,7 +213,6 @@ class TestCreateIndex(MarqoTestCase):
         )
 
         index_settings = self.client.index(self.index_name).get_settings()
-        print(index_settings)
 
         expected_settings = {
             "type": "structured",
