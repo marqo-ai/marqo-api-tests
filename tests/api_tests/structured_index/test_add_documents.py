@@ -381,3 +381,109 @@ class TestStructuredAddDocuments(MarqoTestCase):
             tensor_facets = doc['_tensor_facets']
             self.assertIn('_embedding', tensor_facets[0])
             self.assertEqual(len(tensor_facets[0]['_embedding']), 768)
+
+    def test_add_documents_with_invalid_media_fields(self):
+        documents = [
+            {
+                "video_field_3": "This is text, not a video URL",
+                "_id": "1"
+            },
+            {
+                "audio_field_2": "This is text, not an audio URL",
+                "_id": "2"
+            },
+            {
+                "image_field_2": "https://raw.githubusercontent.com/marqo-ai/marqo-api-tests/mainline/assets/ai_hippo_realistic.png",
+                "_id": "3"
+            },
+            {
+                "text_field_3": "This is a valid text field",
+                "_id": "4"
+            },
+        ]
+        
+        res = self.client.index(self.structured_languagebind_index_name).add_documents(documents)
+
+        # Check that the batch operation didn't fail
+        self.assertTrue(res['errors'])
+        
+        # Check individual document statuses
+        self.assertEqual(400, res['items'][0]['status'])  # Invalid video field
+        self.assertEqual(400, res['items'][1]['status'])  # Invalid audio field
+        self.assertEqual(200, res['items'][2]['status'])  # Valid image field
+        self.assertEqual(200, res['items'][3]['status'])  # Valid text field
+        
+        # Verify that valid documents were added
+        get_res = self.client.index(self.structured_languagebind_index_name).get_documents(
+            document_ids=["3", "4"],
+            expose_facets=True
+        )
+        
+        self.assertEqual(2, len(get_res['results']))
+        
+        for doc in get_res['results']:
+            tensor_facets = doc['_tensor_facets']
+            self.assertIn('_embedding', tensor_facets[0])
+            self.assertEqual(len(tensor_facets[0]['_embedding']), 768)
+        
+        # Verify that invalid documents were not added
+        with self.assertRaises(MarqoWebError):
+            self.client.index(self.structured_languagebind_index_name).get_document(document_id="1")
+        
+        with self.assertRaises(MarqoWebError):
+            self.client.index(self.structured_languagebind_index_name).get_document(document_id="2")
+
+    def test_add_documents_with_mismatched_media_fields(self):
+        documents = [
+            {
+                "video_field_3": "https://marqo-ecs-50-audio-test-dataset.s3.amazonaws.com/audios/marqo-audio-test.mp3",
+                "_id": "1"
+            },
+            {
+                "audio_field_2": "https://marqo-k400-video-test-dataset.s3.amazonaws.com/videos/---QUuC4vJs_000084_000094.mp4",
+                "_id": "2"
+            },
+            {
+                "image_field_2": "https://raw.githubusercontent.com/marqo-ai/marqo-api-tests/mainline/assets/ai_hippo_realistic.png",
+                "_id": "3"
+            },
+            {
+                "text_field_3": "This is a valid text field",
+                "_id": "4"
+            },
+        ]
+        
+        res = self.client.index(self.structured_languagebind_index_name).add_documents(documents)
+
+        # Check that the batch operation had errors
+        self.assertTrue(res['errors'])
+        
+        # Check individual document statuses and error messages
+        self.assertEqual(400, res['items'][0]['status'])  # Audio in video field
+        self.assertIn("Invalid video file", res['items'][0]['error'])
+        
+        self.assertEqual(400, res['items'][1]['status'])  # Video in audio field
+        self.assertIn("Invalid audio file", res['items'][1]['error'])
+        
+        self.assertEqual(200, res['items'][2]['status'])  # Valid image field
+        self.assertEqual(200, res['items'][3]['status'])  # Valid text field
+        
+        # Verify that valid documents were added
+        get_res = self.client.index(self.structured_languagebind_index_name).get_documents(
+            document_ids=["3", "4"],
+            expose_facets=True
+        )
+        
+        self.assertEqual(2, len(get_res['results']))
+        
+        for doc in get_res['results']:
+            tensor_facets = doc['_tensor_facets']
+            self.assertIn('_embedding', tensor_facets[0])
+            self.assertEqual(len(tensor_facets[0]['_embedding']), 768)
+        
+        # Verify that invalid documents were not added
+        with self.assertRaises(MarqoWebError):
+            self.client.index(self.structured_languagebind_index_name).get_document(document_id="1")
+        
+        with self.assertRaises(MarqoWebError):
+            self.client.index(self.structured_languagebind_index_name).get_document(document_id="2")
