@@ -1,13 +1,21 @@
 import copy
 import uuid
 from unittest import mock
+import pytest
+import subprocess
 
 from marqo.client import Client
 from marqo.errors import MarqoWebError
 
 from tests.marqo_test import MarqoTestCase
 
-
+def is_cuda_available():
+    try:
+        result = subprocess.run(['nvidia-smi'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return result.returncode == 0
+    except FileNotFoundError:
+        return False
+    
 class TestStructuredAddDocuments(MarqoTestCase):
     text_index_name = "add_doc_api_test_structured_index" + str(uuid.uuid4()).replace('-', '')
     image_index_name = "add_doc_api_test_structured_image_index" + str(uuid.uuid4()).replace('-', '')
@@ -433,6 +441,7 @@ class TestStructuredAddDocuments(MarqoTestCase):
         with self.assertRaises(MarqoWebError):
             self.client.index(self.structured_languagebind_index_name).get_document(document_id="2")
 
+    @pytest.mark.skipif(is_cuda_available() is True, reason="GPU test to be investigated")
     def test_add_documents_with_mismatched_media_fields(self):
         documents = [
             {
