@@ -11,6 +11,7 @@ from tests.marqo_test import MarqoTestCase
 class TestStructuredAddDocuments(MarqoTestCase):
     text_index_name = "add_doc_api_test_structured_index" + str(uuid.uuid4()).replace('-', '')
     image_index_name = "add_doc_api_test_structured_image_index" + str(uuid.uuid4()).replace('-', '')
+    structured_languagebind_index_name = "add_doc_api_test_structured_languagebind_index" + str(uuid.uuid4()).replace('-', '')
 
     @classmethod
     def setUpClass(cls):
@@ -47,11 +48,41 @@ class TestStructuredAddDocuments(MarqoTestCase):
                     {"name": "image_content", "type": "image_pointer"},
                 ],
                 "tensorFields": ["title", "image_content"],
+            },
+            {
+                "indexName": cls.structured_languagebind_index_name,
+                "type": "structured",
+                "model": "LanguageBind/Video_V1.5_FT_Audio_FT_Image",
+                "allFields": [
+                    {"name": "text_field_1", "type": "text"},
+                    {"name": "text_field_2", "type": "text"},
+                    {"name": "text_field_3", "type": "text"},
+                    {"name": "video_field_1", "type": "video_pointer"},
+                    {"name": "video_field_2", "type": "video_pointer"},
+                    {"name": "video_field_3", "type": "video_pointer"},
+                    {"name": "audio_field_1", "type": "audio_pointer"},
+                    {"name": "audio_field_2", "type": "audio_pointer"},
+                    {"name": "image_field_1", "type": "image_pointer"},
+                    {"name": "image_field_2", "type": "image_pointer"},
+                    {
+                        "name": "multimodal_field", 
+                        "type": "multimodal_combination",
+                        "dependentFields": {
+                            "text_field_1": 0.1,
+                            "text_field_2": 0.1,
+                            "image_field_1": 0.5,
+                            "video_field_1": 0.1,
+                            "video_field_2": 0.1,
+                            "audio_field_1": 0.1
+                        }
+                    },
+                ],
+                "tensorFields": ["multimodal_field", "text_field_3", "video_field_3", "audio_field_2", "image_field_2"]
             }
         ]
         )
 
-        cls.indexes_to_delete = [cls.text_index_name, cls.image_index_name]
+        cls.indexes_to_delete = [cls.text_index_name, cls.image_index_name, cls.structured_languagebind_index_name]
 
     def tearDown(self):
         if self.indexes_to_delete:
@@ -317,3 +348,36 @@ class TestStructuredAddDocuments(MarqoTestCase):
         assert doc_res["custom_vector_field_1"] == "custom vector text"
         assert doc_res['_tensor_facets'][0]["custom_vector_field_1"] == "custom vector text"
         assert doc_res['_tensor_facets'][0]['_embedding'] == [1.0 for _ in range(DEFAULT_DIMENSIONS)]
+
+    def test_add_multimodal_single_documents(self):
+        documents = [
+            {
+                "video_field_3": "https://marqo-k400-video-test-dataset.s3.amazonaws.com/videos/---QUuC4vJs_000084_000094.mp4",
+                "_id": "1"
+            },
+            {
+                "audio_field_2": "https://marqo-ecs-50-audio-test-dataset.s3.amazonaws.com/audios/marqo-audio-test.mp3",
+                "_id": "2"
+            },
+            {
+                "image_field_2": "https://raw.githubusercontent.com/marqo-ai/marqo-api-tests/mainline/assets/ai_hippo_realistic.png",
+                "_id": "3"
+            },
+            {
+                "text_field_3": "hello there padawan. Today you will begin your training to be a Jedi",
+                "_id": "4"
+            },
+        ]
+        
+        res = self.client.index(self.structured_languagebind_index_name).add_documents(documents)
+        for item in res['items']:
+            self.assertEqual(200, item['status'])
+
+        get_res = self.client.index(self.structured_languagebind_index_name).get_documents(
+            document_ids=["1", "2", "3", "4"],
+            expose_facets=True
+        )
+        for doc in get_res['results']:
+            tensor_facets = doc['_tensor_facets']
+            self.assertIn('_embedding', tensor_facets[0])
+            self.assertEqual(len(tensor_facets[0]['_embedding']), 768)

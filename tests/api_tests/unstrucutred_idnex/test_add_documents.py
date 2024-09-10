@@ -18,6 +18,7 @@ class TestUnstructuredAddDocuments(MarqoTestCase):
 
         cls.text_index_name = "api_test_unstructured_index" + str(uuid.uuid4()).replace('-', '')
         cls.image_index_name = "api_test_unstructured_image_index" + str(uuid.uuid4()).replace('-', '')
+        cls.unstructured_languagebind_index_name = "api_test_unstructured_languagebind_index" + str(uuid.uuid4()).replace('-', '')
 
         cls.create_indexes([
             {
@@ -30,10 +31,17 @@ class TestUnstructuredAddDocuments(MarqoTestCase):
                 "type": "unstructured",
                 "model": "open_clip/ViT-B-32/openai",
                 "treatUrlsAndPointersAsImages": True,
-            }
+            },
+            {
+                "indexName": cls.unstructured_languagebind_index_name,
+                "type": "unstructured",
+                "model": "LanguageBind/Video_V1.5_FT_Audio_FT_Image",
+                "treatUrlsAndPointersAsMedia": True,
+                "treatUrlsAndPointersAsImages": True
+            },
             ])
         
-        cls.indexes_to_delete = [cls.text_index_name, cls.image_index_name]
+        cls.indexes_to_delete = [cls.text_index_name, cls.image_index_name, cls.unstructured_languagebind_index_name]
         
         
     def tearDown(self):
@@ -265,3 +273,43 @@ class TestUnstructuredAddDocuments(MarqoTestCase):
                         [test_document], tensor_fields=[]
                     )
                 self.assertEqual(res['errors'], error)
+
+    def test_add_multimodal_single_documents(self):
+        documents = [
+            {
+                "video_field_3": "https://marqo-k400-video-test-dataset.s3.amazonaws.com/videos/---QUuC4vJs_000084_000094.mp4",
+                "_id": "1"
+            },
+            {
+                "audio_field_2": "https://marqo-ecs-50-audio-test-dataset.s3.amazonaws.com/audios/marqo-audio-test.mp3",
+                "_id": "2"
+            },
+            {
+                "image_field_2": "https://raw.githubusercontent.com/marqo-ai/marqo-api-tests/mainline/assets/ai_hippo_realistic.png",
+                "_id": "3"
+            },
+            {
+                "text_field_3": "hello there padawan. Today you will begin your training to be a Jedi",
+                "_id": "4"
+            },
+        ]
+        
+        tensor_fields = ["text_field_3", "image_field_2", "video_field_3", "audio_field_2"]
+        
+        res = self.client.index(self.unstructured_languagebind_index_name).add_documents(
+            documents, 
+            tensor_fields=tensor_fields
+        )
+        
+        for item in res['items']:
+            self.assertEqual(200, item['status'])
+
+        get_res = self.client.index(self.unstructured_languagebind_index_name).get_documents(
+            document_ids=["1", "2", "3", "4"],
+            expose_facets=True
+        )
+
+        for doc in get_res['results']:
+            tensor_facets = doc['_tensor_facets']
+            self.assertIn('_embedding', tensor_facets[0])
+            self.assertEqual(len(tensor_facets[0]['_embedding']), 768)
