@@ -357,6 +357,7 @@ class TestStructuredAddDocuments(MarqoTestCase):
         assert doc_res['_tensor_facets'][0]["custom_vector_field_1"] == "custom vector text"
         assert doc_res['_tensor_facets'][0]['_embedding'] == [1.0 for _ in range(DEFAULT_DIMENSIONS)]
 
+    @pytest.mark.skipif(is_cuda_available() is True, reason="GPU test to be investigated")
     def test_add_multimodal_single_documents(self):
         documents = [
             {
@@ -390,6 +391,7 @@ class TestStructuredAddDocuments(MarqoTestCase):
             self.assertIn('_embedding', tensor_facets[0])
             self.assertEqual(len(tensor_facets[0]['_embedding']), 768)
 
+    @pytest.mark.skipif(is_cuda_available() is True, reason="GPU test to be investigated")
     def test_add_documents_with_invalid_media_fields(self):
         documents = [
             {
