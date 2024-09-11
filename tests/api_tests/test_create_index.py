@@ -42,7 +42,7 @@ class TestCreateIndex(MarqoTestCase):
             'normalizeEmbeddings': True,
             'textPreprocessing': {'splitLength': 2, 'splitOverlap': 0, 'splitMethod': 'sentence'},
             'imagePreprocessing': {},
-            'audioPreprocessing': {'splitLength': 10, 'splitOverlap': 3},
+            'audioPreprocessing': {'splitLength': 20, 'splitOverlap': 3},
             'videoPreprocessing': {'splitLength': 20, 'splitOverlap': 3},
             'vectorNumericType': 'float',
             'annParameters': {
@@ -170,7 +170,7 @@ class TestCreateIndex(MarqoTestCase):
             },
             'filterStringMaxLength': 50,
             "audioPreprocessing": {
-                "splitLength": 10,
+                "splitLength": 20,
                 "splitOverlap": 3
             },
             "treatUrlsAndPointersAsMedia": True,
@@ -226,7 +226,7 @@ class TestCreateIndex(MarqoTestCase):
             },
             "imagePreprocessing": {},
             "audioPreprocessing": {
-                "splitLength": 10,
+                "splitLength": 20,
                 "splitOverlap": 3
             },
             "videoPreprocessing": {
@@ -278,7 +278,7 @@ class TestCreateIndex(MarqoTestCase):
             'normalizeEmbeddings': True,
             'textPreprocessing': {'splitLength': 2, 'splitOverlap': 0, 'splitMethod': 'sentence'},
             'imagePreprocessing': {},
-            'audioPreprocessing': {'splitLength': 10, 'splitOverlap': 3},
+            'audioPreprocessing': {'splitLength': 20, 'splitOverlap': 3},
             'videoPreprocessing': {'splitLength': 20, 'splitOverlap': 3},
             'vectorNumericType': 'float',
             'annParameters': {'spaceType': 'prenormalized-angular', 'parameters': {'efConstruction': 512, 'm': 16}}}
