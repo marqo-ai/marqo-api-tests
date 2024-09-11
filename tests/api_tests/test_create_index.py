@@ -170,7 +170,7 @@ class TestCreateIndex(MarqoTestCase):
             },
             'filterStringMaxLength': 50,
             "audioPreprocessing": {
-                "splitLength": 20,
+                "splitLength": 10,
                 "splitOverlap": 3
             },
             "treatUrlsAndPointersAsMedia": True,
@@ -226,7 +226,7 @@ class TestCreateIndex(MarqoTestCase):
             },
             "imagePreprocessing": {},
             "audioPreprocessing": {
-                "splitLength": 20,
+                "splitLength": 10,
                 "splitOverlap": 3
             },
             "videoPreprocessing": {
