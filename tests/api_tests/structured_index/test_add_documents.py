@@ -357,13 +357,25 @@ class TestStructuredAddDocuments(MarqoTestCase):
         assert doc_res['_tensor_facets'][0]["custom_vector_field_1"] == "custom vector text"
         assert doc_res['_tensor_facets'][0]['_embedding'] == [1.0 for _ in range(DEFAULT_DIMENSIONS)]
 
-    #@pytest.mark.skipif(is_cuda_available() is True, reason="GPU test to be investigated")
+    @pytest.mark.skipif(is_cuda_available() is True, reason="GPU test to be investigated")
     def test_add_multimodal_single_documents(self):
         documents = [
             {
                 "video_field_3": "https://marqo-k400-video-test-dataset.s3.amazonaws.com/videos/---QUuC4vJs_000084_000094.mp4",
                 "_id": "1"
-            }
+            },
+            {
+                "audio_field_2": "https://marqo-ecs-50-audio-test-dataset.s3.amazonaws.com/audios/marqo-audio-test.mp3",
+                "_id": "2"
+            },
+            {
+                "image_field_2": "https://raw.githubusercontent.com/marqo-ai/marqo-api-tests/mainline/assets/ai_hippo_realistic.png",
+                "_id": "3"
+            },
+            {
+                "text_field_3": "hello there padawan. Today you will begin your training to be a Jedi",
+                "_id": "4"
+            },
         ]
         
         res = self.client.index(self.structured_languagebind_index_name).add_documents(documents)
