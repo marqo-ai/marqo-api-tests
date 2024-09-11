@@ -17,7 +17,7 @@ docker rm -f marqo 2>/dev/null || true
 
 set -x
 docker run -d --name marqo --privileged -p 8882:8882 --add-host host.docker.internal:host-gateway \
-    -e MARQO_MAX_CPU_MODEL_MEMORY=1.6 \
+    -e MARQO_MAX_CPU_MODEL_MEMORY=15 \
     -e MARQO_ENABLE_BATCH_APIS=true \
     -e VESPA_CONFIG_URL="http://host.docker.internal:19071" \
     -e VESPA_DOCUMENT_URL="http://host.docker.internal:8080" \

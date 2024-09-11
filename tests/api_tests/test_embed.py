@@ -35,7 +35,6 @@ class TestEmbed(MarqoTestCase):
                 "model": "sentence-transformers/all-MiniLM-L6-v2"
             }
         ])
-
         cls.indexes_to_delete = [cls.structured_index_name, cls.unstructured_index_name, cls.unstructured_index_non_e5]
 
     def test_embed_single_string(self):
