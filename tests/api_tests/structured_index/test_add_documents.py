@@ -2,7 +2,6 @@ import copy
 import uuid
 from unittest import mock
 import pytest
-import subprocess
 
 from marqo.client import Client
 from marqo.errors import MarqoWebError
@@ -14,6 +13,7 @@ class TestStructuredAddDocuments(MarqoTestCase):
     text_index_name = "add_doc_api_test_structured_index" + str(uuid.uuid4()).replace('-', '')
     image_index_name = "add_doc_api_test_structured_image_index" + str(uuid.uuid4()).replace('-', '')
     structured_languagebind_index_name = "add_doc_api_test_structured_languagebind_index" + str(uuid.uuid4()).replace('-', '')
+    text_index_with_normalize_embeddings_true = "add_doc_api_test_structured_index_with_normalize_embeddings_true" + str(uuid.uuid4()).replace('-', '')
 
     @classmethod
     def setUpClass(cls):
@@ -26,6 +26,7 @@ class TestStructuredAddDocuments(MarqoTestCase):
                 "indexName": cls.text_index_name,
                 "type": "structured",
                 "model": "sentence-transformers/all-MiniLM-L6-v2",
+                "normalizeEmbeddings": False,
                 "allFields": [
                     {"name": "title", "type": "text"},
                     {"name": "content", "type": "text"},
@@ -80,11 +81,32 @@ class TestStructuredAddDocuments(MarqoTestCase):
                     },
                 ],
                 "tensorFields": ["multimodal_field", "text_field_3", "video_field_3", "audio_field_2", "image_field_2"]
-            }
+            },
+            {
+                "indexName": cls.text_index_with_normalize_embeddings_true,
+                "type": "structured",
+                "model": "sentence-transformers/all-MiniLM-L6-v2",
+                "normalizeEmbeddings": True,
+                "allFields": [
+                    {"name": "title", "type": "text"},
+                    {"name": "content", "type": "text"},
+                    {"name": "int_field_1", "type": "int"},
+                    {"name": "float_field_1", "type": "float"},
+                    {"name": "long_field_1", "type": "long"},
+                    {"name": "double_field_1", "type": "double"},
+                    {"name": "array_int_field_1", "type": "array<int>"},
+                    {"name": "array_float_field_1", "type": "array<float>"},
+                    {"name": "array_long_field_1", "type": "array<long>"},
+                    {"name": "array_double_field_1", "type": "array<double>"},
+                    {"name": "custom_vector_field_1", "type": "custom_vector",
+                     "features": ["lexical_search", "filter"]},
+                ],
+                "tensorFields": ["title", "content", "custom_vector_field_1"],
+            },
         ]
         )
 
-        cls.indexes_to_delete = [cls.text_index_name, cls.image_index_name, cls.structured_languagebind_index_name]
+        cls.indexes_to_delete = [cls.text_index_name, cls.image_index_name, cls.structured_languagebind_index_name, cls.text_index_with_normalize_embeddings_true]
 
     def tearDown(self):
         if self.indexes_to_delete:
@@ -492,3 +514,65 @@ class TestStructuredAddDocuments(MarqoTestCase):
         
         with self.assertRaises(MarqoWebError):
             self.client.index(self.structured_languagebind_index_name).get_document(document_id="2")
+
+    def test_custom_vector_doc_in_normalized_embedding_true(self):
+
+        DEFAULT_DIMENSIONS = 384
+        custom_vector = [1.0 for _ in range(DEFAULT_DIMENSIONS)]
+        expected_custom_vector_after_normalization = [0.05103103816509247 for _ in range(DEFAULT_DIMENSIONS)]
+
+        add_docs_res_normalized = self.client.index(index_name=self.text_index_with_normalize_embeddings_true).add_documents(
+            documents=[
+                {
+                    "custom_vector_field_1": {
+                        "content": "custom vector text",
+                        "vector": custom_vector,
+                    },
+                    "content": "normal text",
+                    "_id": "doc1",
+                },
+                {
+                    "content": "second doc",
+                    "_id": "doc2"
+                }
+            ])
+
+        doc_res_normalized = self.client.index(self.text_index_with_normalize_embeddings_true).get_document(
+            document_id="doc1",
+            expose_facets=True
+        )
+
+        assert doc_res_normalized["custom_vector_field_1"] == "custom vector text"
+        assert doc_res_normalized['_tensor_facets'][0]["custom_vector_field_1"] == "custom vector text"
+        assert doc_res_normalized['_tensor_facets'][0]['_embedding'] == expected_custom_vector_after_normalization
+
+
+    def test_custom_zero_vector_doc_in_normalized_embedding_true(self):
+
+        DEFAULT_DIMENSIONS = 384
+        custom_vector = [0 for _ in range(DEFAULT_DIMENSIONS)]
+
+        add_docs_res_normalized = self.client.index(index_name=self.text_index_with_normalize_embeddings_true).add_documents(
+            documents=[
+                {
+                    "custom_vector_field_1": {
+                        "content": "custom vector text",
+                        "vector": custom_vector,
+                    },
+                    "content": "normal text",
+                    "_id": "doc1",
+                },
+                {
+                    "content": "second doc",
+                    "_id": "doc2"
+                }
+            ])
+
+        self.assertEqual(add_docs_res_normalized["errors"], True)
+        self.assertEqual(add_docs_res_normalized["items"][0]["status"], 400)
+        self.assertIn("Zero magnitude vector detected, cannot normalize. Zero magnitude vector found while normalizing custom vector field", add_docs_res_normalized["items"][0]["message"])
+        self.assertEqual(add_docs_res_normalized["items"][0]["code"], "invalid_argument")
+        self.assertEqual(add_docs_res_normalized["items"][0]["_id"], "doc1")
+
+        self.assertEqual(add_docs_res_normalized["items"][1]["status"], 200)
+        self.assertEqual(add_docs_res_normalized["items"][1]["_id"], "doc2")

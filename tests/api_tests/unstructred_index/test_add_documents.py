@@ -19,12 +19,15 @@ class TestUnstructuredAddDocuments(MarqoTestCase):
         cls.text_index_name = "api_test_unstructured_index" + str(uuid.uuid4()).replace('-', '')
         cls.image_index_name = "api_test_unstructured_image_index" + str(uuid.uuid4()).replace('-', '')
         cls.unstructured_languagebind_index_name = "api_test_unstructured_languagebind_index" + str(uuid.uuid4()).replace('-', '')
+        cls.text_index_with_normalize_embeddings_true = "api_test_unstructured_index_with_normalize_embeddings_true" + str(
+            uuid.uuid4()).replace('-', '')
 
         cls.create_indexes([
             {
                 "indexName": cls.text_index_name,
                 "type": "unstructured",
                 "model": "sentence-transformers/all-MiniLM-L6-v2",
+                "normalizeEmbeddings": False,
             },
             {
                 "indexName": cls.image_index_name,
@@ -39,9 +42,15 @@ class TestUnstructuredAddDocuments(MarqoTestCase):
                 "treatUrlsAndPointersAsMedia": True,
                 "treatUrlsAndPointersAsImages": True
             },
+            {
+                "indexName": cls.text_index_with_normalize_embeddings_true,
+                "type": "unstructured",
+                "model": "sentence-transformers/all-MiniLM-L6-v2",
+                "normalizeEmbeddings": True,
+            }
             ])
         
-        cls.indexes_to_delete = [cls.text_index_name, cls.image_index_name, cls.unstructured_languagebind_index_name]
+        cls.indexes_to_delete = [cls.text_index_name, cls.image_index_name, cls.unstructured_languagebind_index_name, cls.text_index_with_normalize_embeddings_true]
         
         
     def tearDown(self):
@@ -273,3 +282,77 @@ class TestUnstructuredAddDocuments(MarqoTestCase):
                         [test_document], tensor_fields=[]
                     )
                 self.assertEqual(res['errors'], error)
+
+    def test_custom_vector_doc_in_normalized_embedding_true(self):
+
+        DEFAULT_DIMENSIONS = 384
+        custom_vector = [1.0 for _ in range(DEFAULT_DIMENSIONS)]
+        expected_custom_vector_after_normalization = [0.05103103816509247 for _ in range(DEFAULT_DIMENSIONS)]
+
+        add_docs_res_normalized = self.client.index(index_name=self.text_index_with_normalize_embeddings_true).add_documents(
+            documents=[
+                {
+                    "custom_vector_field_1": {
+                        "content": "custom vector text",
+                        "vector": custom_vector,
+                    },
+                    "content": "normal text",
+                    "_id": "doc1",
+                },
+                {
+                    "content": "second doc",
+                    "_id": "doc2"
+                }
+            ],
+            tensor_fields=["custom_vector_field_1"],
+            mappings = {
+                "custom_vector_field_1": {
+                    "type": "custom_vector"
+                }
+            }
+        )
+        doc_res_normalized = self.client.index(self.text_index_with_normalize_embeddings_true).get_document(
+            document_id="doc1",
+            expose_facets=True
+        )
+
+        assert doc_res_normalized["custom_vector_field_1"] == "custom vector text"
+        assert doc_res_normalized['_tensor_facets'][0]["custom_vector_field_1"] == "custom vector text"
+        assert doc_res_normalized['_tensor_facets'][0]['_embedding'] == expected_custom_vector_after_normalization
+
+
+    def test_custom_zero_vector_doc_in_normalized_embedding_true(self):
+
+        DEFAULT_DIMENSIONS = 384
+        custom_vector = [0 for _ in range(DEFAULT_DIMENSIONS)]
+
+        add_docs_res_normalized = self.client.index(index_name=self.text_index_with_normalize_embeddings_true).add_documents(
+            documents=[
+                {
+                    "custom_vector_field_1": {
+                        "content": "custom vector text",
+                        "vector": custom_vector,
+                    },
+                    "content": "normal text",
+                    "_id": "doc1",
+                },
+                {
+                    "content": "second doc",
+                    "_id": "doc2"
+                }
+            ],
+            tensor_fields=["custom_vector_field_1"],
+            mappings = {
+                "custom_vector_field_1": {
+                    "type": "custom_vector"
+                }
+            }
+        )
+        self.assertEqual(add_docs_res_normalized["errors"], True)
+        self.assertEqual(add_docs_res_normalized["items"][0]["status"], 400)
+        self.assertIn("Zero magnitude vector detected, cannot normalize. Zero magnitude vector found while normalizing custom vector field", add_docs_res_normalized["items"][0]["message"])
+        self.assertEqual(add_docs_res_normalized["items"][0]["code"], "invalid_argument")
+        self.assertEqual(add_docs_res_normalized["items"][0]["_id"], "doc1")
+
+        self.assertEqual(add_docs_res_normalized["items"][1]["status"], 200)
+        self.assertEqual(add_docs_res_normalized["items"][1]["_id"], "doc2")
