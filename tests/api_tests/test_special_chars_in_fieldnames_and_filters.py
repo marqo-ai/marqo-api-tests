@@ -109,7 +109,7 @@ class TestSpecialCharacterInValue(MarqoTestCase):
                 self.assertEqual(True, res["errors"])
                 for item in res["items"]:
                     self.assertEqual(400, item["status"])
-                    self.assertIn("could not parse field", item["message"])
+                    self.assertIn("The document contains invalid characters in the fields.", item["message"])
 
 
 class TestSpecialCharsFieldNamesUnstructured(MarqoTestCase):
