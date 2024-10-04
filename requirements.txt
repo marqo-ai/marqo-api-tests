@@ -1,6 +1,6 @@
 # marqo client:
 urllib3
-requests
+pydantic==2.9.2
 # testing
 pillow
 numpy
