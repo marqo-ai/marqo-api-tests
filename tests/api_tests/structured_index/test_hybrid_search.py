@@ -219,8 +219,7 @@ class TestStructuredHybridSearch(MarqoTestCase):
         """
         Tests that searchable attributes work as expected for all methods
         """
-        # TODO: Add unstructured test when unstructured searchable attributes are supported
-        for index_name in [self.text_index_name]:
+        for index_name in [self.text_index_name, self.unstructured_text_index_name]:
             with self.subTest(index=index_name):
                 self.client.index(index_name).add_documents(
                     self.docs_list,

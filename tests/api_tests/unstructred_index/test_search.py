@@ -24,11 +24,17 @@ class TestUnstructuredSearch(MarqoTestCase):
         cls.client = Client(**cls.client_settings)
 
         cls.text_index_name = "api_test_unstructured_index" + str(uuid.uuid4()).replace('-', '')
+        cls.text_index_2_name = "api_test_unstructured_index_2_" + str(uuid.uuid4()).replace('-', '')
         cls.image_index_name = "api_test_unstructured_image_index" + str(uuid.uuid4()).replace('-', '')
 
         cls.create_indexes([
             {
                 "indexName": cls.text_index_name,
+                "type": "unstructured",
+                "model": "sentence-transformers/all-MiniLM-L6-v2",
+            },
+            {
+                "indexName": cls.text_index_2_name,
                 "type": "unstructured",
                 "model": "sentence-transformers/all-MiniLM-L6-v2",
             },
@@ -39,7 +45,7 @@ class TestUnstructuredSearch(MarqoTestCase):
             }
         ])
 
-        cls.indexes_to_delete = [cls.text_index_name, cls.image_index_name]
+        cls.indexes_to_delete = [cls.text_index_name, cls.text_index_2_name, cls.image_index_name]
 
     def tearDown(self):
         if self.indexes_to_delete:
@@ -366,3 +372,82 @@ class TestUnstructuredSearch(MarqoTestCase):
                     self.assertEqual(len(search_res["hits"]), len(expected),
                                      f"Failed count check for filter '{filter_string}'.")
                     self.assertEqual(actual_ids, set(expected), f"Failed ID match for filter '{filter_string}'")
+
+    def test_searchable_attributes(self):
+        docs_batch_1 = [
+            {
+                "title": "Cool Document 1",
+                "content": "some extra info",
+                "_id": "1"
+            },
+            {
+                "title": "Just Your Average Doc",
+                "content": "this is a solid doc",
+                "_id": "2"
+            }
+        ]
+        self.client.index(self.text_index_2_name).add_documents(docs_batch_1, tensor_fields=["title", "content"])
+
+        docs_batch_2 = [
+            {
+                "desc": "Cool Document 2",
+                "content": "some extra info",
+                "_id": "3"
+            },
+            {
+                "desc": "Just Your Average Doc 2",
+                "content": "this is a solid doc",
+                "_id": "4"
+            }
+        ]
+        self.client.index(self.text_index_2_name).add_documents(docs_batch_2, tensor_fields=["desc", "content"])
+
+        # Tensor search for title fields should only return the first 2 docs
+        search_res = self.client.index(self.text_index_2_name).search(q="Cool", search_method=SearchMethods.TENSOR,
+                                                                      searchable_attributes=["title"])
+        self.assertEqual(len(search_res["hits"]), 2)
+        self.assertEqual(search_res["hits"][0]["_id"], "1")
+        self.assertEqual(search_res["hits"][1]["_id"], "2")
+
+        # Lexical search for desc field should only return the matching doc 3
+        search_res = self.client.index(self.text_index_2_name).search(q="Cool", search_method=SearchMethods.LEXICAL,
+                                                                      searchable_attributes=["desc"])
+        self.assertEqual(len(search_res["hits"]), 1)
+        self.assertEqual(search_res["hits"][0]["_id"], "3")
+
+        # Hybrid search on content fields should return matching docs from both batches
+        search_res = self.client.index(self.text_index_2_name).search(
+            q="Solid", search_method="HYBRID",
+            hybrid_parameters={
+                  "retrievalMethod": "disjunction",
+                  "rankingMethod": "rrf",
+                  "alpha": 0.5,
+                  "searchableAttributesLexical": ["content"],
+                  "searchableAttributesTensor": ["title"]
+            }
+        )
+        # lexical returns 2 and 4, tensor returns 1 and 2, after rrf ranking, we return 2 results
+        self.assertEqual(len(search_res["hits"]), 2)
+        self.assertEqual(search_res["hits"][0]["_id"], "2")
+        self.assertEqual(search_res["hits"][1]["_id"], "1")
+
+        # in batch 3, we reindex doc 1 but remove title as a tensor field
+        docs_batch_3 = [
+            {
+                "title": "Cool Document 1",
+                "content": "some extra info",
+                "_id": "1"
+            },
+        ]
+        self.client.index(self.text_index_2_name).add_documents(docs_batch_3, tensor_fields=["content"])
+        # Now we should only able to see doc 2 in the result when tensor search on title
+        search_res = self.client.index(self.text_index_2_name).search(q="Cool", search_method=SearchMethods.TENSOR,
+                                                                      searchable_attributes=["title"])
+        self.assertEqual(len(search_res["hits"]), 1)
+        self.assertEqual(search_res["hits"][0]["_id"], "2")
+
+        # But Lexical search on title can still find doc 1
+        search_res = self.client.index(self.text_index_2_name).search(q="Cool", search_method=SearchMethods.LEXICAL,
+                                                                      searchable_attributes=["title"])
+        self.assertEqual(len(search_res["hits"]), 1)
+        self.assertEqual(search_res["hits"][0]["_id"], "1")

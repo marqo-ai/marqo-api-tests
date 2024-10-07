@@ -100,7 +100,7 @@ class TestRecommend(MarqoTestCase):
         for index_name in [self.structured_index_name, self.unstructured_index_name]:
             with self.subTest(index_name):
                 tensor_fields = ["title"] if index_name == self.unstructured_index_name else None
-                searchable_attributes = ["title"] if index_name == self.structured_index_name else None
+                searchable_attributes = ["title"]
                 add_docs_results = self.client.index(index_name).add_documents(docs, tensor_fields=tensor_fields)
 
                 if add_docs_results["errors"]:

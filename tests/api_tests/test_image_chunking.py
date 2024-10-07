@@ -106,8 +106,8 @@ class TestUnstructuredImageChunking(MarqoTestCase):
         temp_file_name = 'https://avatars.githubusercontent.com/u/13092433?v=4'
 
         test_case = [
-            (self.unstructured_no_image_processing_index_name, {"tensor_fields": ["image_content"]}, {},
-             "unstructured_index, no image preprocessing"),
+            (self.unstructured_no_image_processing_index_name, {"tensor_fields": ["image_content"]},
+             {"searchable_attributes": ["image_content"]}, "unstructured_index, no image preprocessing"),
             (self.structured_no_image_processing_index_name, {}, {"searchable_attributes": ["image_content"]},
              "structured_index, no image preprocessing"),
         ]
@@ -133,8 +133,8 @@ class TestUnstructuredImageChunking(MarqoTestCase):
         temp_file_name = 'https://avatars.githubusercontent.com/u/13092433?v=4'
 
         test_case = [
-            (self.unstructured_simple_image_processing_index_name, {"tensor_fields": ["image_content"]}, {},
-             "unstructured_index, simple image preprocessing"),
+            (self.unstructured_simple_image_processing_index_name, {"tensor_fields": ["image_content"]},
+             {"searchable_attributes": ["image_content"]}, "unstructured_index, simple image preprocessing"),
             (self.structured_simple_image_processing_index_name, {}, {"searchable_attributes": ["image_content"]},
              "structured_index, simple image preprocessing"),
         ]
@@ -163,8 +163,8 @@ class TestUnstructuredImageChunking(MarqoTestCase):
         temp_file_name = 'https://avatars.githubusercontent.com/u/13092433?v=4'
 
         test_case = [
-            (self.unstructured_frcnn_image_processing_index_name, {"tensor_fields": ["image_content"]}, {},
-             "unstructured_index, frcnn image preprocessing"),
+            (self.unstructured_frcnn_image_processing_index_name, {"tensor_fields": ["image_content"]},
+             {"searchable_attributes": ["image_content"]}, "unstructured_index, frcnn image preprocessing"),
             (self.structured_frcnn_image_processing_index_name, {}, {"searchable_attributes": ["image_content"]},
              "structured_index, frcnn image preprocessing"),
         ]
@@ -193,8 +193,8 @@ class TestUnstructuredImageChunking(MarqoTestCase):
         temp_file_name = 'https://avatars.githubusercontent.com/u/13092433?v=4'
 
         test_case = [
-            (self.unstructured_dino_v1_image_processing_index_name, {"tensor_fields": ["image_content"]}, {},
-             "unstructured_index, dino_v1 image preprocessing"),
+            (self.unstructured_dino_v1_image_processing_index_name, {"tensor_fields": ["image_content"]},
+             {"searchable_attributes": ["image_content"]}, "unstructured_index, dino_v1 image preprocessing"),
             (self.structured_dino_v1_image_processing_index_name, {}, {"searchable_attributes": ["image_content"]},
              "structured_index, dino_v1 image preprocessing"),
         ]
@@ -223,8 +223,8 @@ class TestUnstructuredImageChunking(MarqoTestCase):
         temp_file_name = 'https://avatars.githubusercontent.com/u/13092433?v=4'
 
         test_case = [
-            (self.unstructured_dino_v2_image_processing_index_name, {"tensor_fields": ["image_content"]}, {},
-             "unstructured_index, dino_v2 image preprocessing"),
+            (self.unstructured_dino_v2_image_processing_index_name, {"tensor_fields": ["image_content"]},
+             {"searchable_attributes": ["image_content"]}, "unstructured_index, dino_v2 image preprocessing"),
             (self.structured_dino_v2_image_processing_index_name, {}, {"searchable_attributes": ["image_content"]},
              "structured_index, dino_v2 image preprocessing"),
         ]
@@ -254,8 +254,8 @@ class TestUnstructuredImageChunking(MarqoTestCase):
         temp_file_name = 'https://avatars.githubusercontent.com/u/13092433?v=4'
 
         test_case = [
-            (self.unstructured_marqo_yolo_image_processing_index_name, {"tensor_fields": ["image_content"]}, {},
-             "unstructured_index, marqo_yolo image preprocessing"),
+            (self.unstructured_marqo_yolo_image_processing_index_name, {"tensor_fields": ["image_content"]},
+             {"searchable_attributes": ["image_content"]}, "unstructured_index, marqo_yolo image preprocessing"),
             (self.structured_marqo_yolo_image_processing_index_name, {}, {"searchable_attributes": ["image_content"]},
              "structured_index, marqo_yolo image preprocessing"),
         ]
