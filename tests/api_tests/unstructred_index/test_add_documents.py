@@ -350,7 +350,7 @@ class TestUnstructuredAddDocuments(MarqoTestCase):
         )
         self.assertEqual(add_docs_res_normalized["errors"], True)
         self.assertEqual(add_docs_res_normalized["items"][0]["status"], 400)
-        self.assertIn("Zero magnitude vector detected, cannot normalize. Zero magnitude vector found while normalizing custom vector field", add_docs_res_normalized["items"][0]["message"])
+        self.assertIn("Field custom_vector_field_1 has zero magnitude vector, cannot normalize.", add_docs_res_normalized["items"][0]["message"])
         self.assertEqual(add_docs_res_normalized["items"][0]["code"], "invalid_argument")
         self.assertEqual(add_docs_res_normalized["items"][0]["_id"], "doc1")
 
