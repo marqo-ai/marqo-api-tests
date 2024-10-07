@@ -396,6 +396,8 @@ class TestStructuredAddDocuments(MarqoTestCase):
         
         res = self.client.index(self.structured_languagebind_index_name).add_documents(documents)
         for item in res['items']:
+            print("This is the added item")
+            print(item)
             self.assertEqual(200, item['status'])
 
         get_res = self.client.index(self.structured_languagebind_index_name).get_documents(
