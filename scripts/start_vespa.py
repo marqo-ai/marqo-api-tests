@@ -21,6 +21,8 @@ import sys
 
 import requests
 
+VESPA_VERSION=os.getenv('VESPA_VERSION', '8.396.18')  # default version baked into marqo-base:30
+
 
 def start_vespa() -> None:
     os.system("docker rm -f vespa 2>/dev/null || true")
@@ -28,7 +30,7 @@ def start_vespa() -> None:
               "--name vespa "
               "--hostname vespa-container "
               "--publish 8080:8080 --publish 19071:19071 --publish 2181:2181 "
-              "vespaengine/vespa")
+              f"vespaengine/vespa:{VESPA_VERSION}")
 
 
 def get_services_xml_content() -> str:
