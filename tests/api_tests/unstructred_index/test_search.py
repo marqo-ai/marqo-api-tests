@@ -69,18 +69,18 @@ class TestUnstructuredSearch(MarqoTestCase):
         """Searches an index of a single doc.
         Checks the basic functionality and response structure"""
         d1 = {
-            "Title": "This is a title about some doc. ",
-            "Description": """The Guardian is a British daily newspaper. It was founded in 1821 as The Manchester Guardian, and changed its name in 1959.[5] Along with its sister papers The Observer and The Guardian Weekly, The Guardian is part of the Guardian Media Group, owned by the Scott Trust.[6] The trust was created in 1936 to "secure the financial and editorial independence of The Guardian in perpetuity and to safeguard the journalistic freedom and liberal values of The Guardian free from commercial or political interference".[7] The trust was converted into a limited company in 2008, with a constitution written so as to maintain for The Guardian the same protections as were built into the structure of the Scott Trust by its creators. Profits are reinvested in journalism rather than distributed to owners or shareholders.[7] It is considered a newspaper of record in the UK.[8][9]
+            "title": "This is a title about some doc. ",
+            "description": """The Guardian is a British daily newspaper. It was founded in 1821 as The Manchester Guardian, and changed its name in 1959.[5] Along with its sister papers The Observer and The Guardian Weekly, The Guardian is part of the Guardian Media Group, owned by the Scott Trust.[6] The trust was created in 1936 to "secure the financial and editorial independence of The Guardian in perpetuity and to safeguard the journalistic freedom and liberal values of The Guardian free from commercial or political interference".[7] The trust was converted into a limited company in 2008, with a constitution written so as to maintain for The Guardian the same protections as were built into the structure of the Scott Trust by its creators. Profits are reinvested in journalism rather than distributed to owners or shareholders.[7] It is considered a newspaper of record in the UK.[8][9]
             The editor-in-chief Katharine Viner succeeded Alan Rusbridger in 2015.[10][11] Since 2018, the paper's main newsprint sections have been published in tabloid format. As of July 2021, its print edition had a daily circulation of 105,134.[4] The newspaper has an online edition, TheGuardian.com, as well as two international websites, Guardian Australia (founded in 2013) and Guardian US (founded in 2011). The paper's readership is generally on the mainstream left of British political opinion,[12][13][14][15] and the term "Guardian reader" is used to imply a stereotype of liberal, left-wing or "politically correct" views.[3] Frequent typographical errors during the age of manual typesetting led Private Eye magazine to dub the paper the "Grauniad" in the 1960s, a nickname still used occasionally by the editors for self-mockery.[16]
             """
         }
-        add_doc_res = self.client.index(self.text_index_name).add_documents([d1], tensor_fields=["Title", "Description"])
+        add_doc_res = self.client.index(self.text_index_name).add_documents([d1], tensor_fields=["title", "description"])
         search_res = self.client.index(self.text_index_name).search(
             "title about some doc")
         assert len(search_res["hits"]) == 1
         assert self.strip_marqo_fields(search_res["hits"][0]) == d1
         assert len(search_res["hits"][0]["_highlights"]) > 0
-        assert ("Title" in search_res["hits"][0]["_highlights"][0]) or ("Description" in search_res["hits"][0]["_highlights"][0])
+        assert ("title" in search_res["hits"][0]["_highlights"][0]) or ("description" in search_res["hits"][0]["_highlights"][0])
 
     def test_search_empty_index(self):
         search_res = self.client.index(self.text_index_name).search(
