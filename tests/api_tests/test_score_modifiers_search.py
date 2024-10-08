@@ -50,7 +50,7 @@ class TestScoreModifierSearch(MarqoTestCase):
                     np.round(np.random.uniform(-10, 10, 8), 2)
 
                 doc = {
-                    "image_field": "https://marqo-assets.s3.amazonaws.com/tests/images/ai_hippo_statue.png",
+                    "image_field": "https://raw.githubusercontent.com/marqo-ai/marqo-api-tests/mainline/assets/ai_hippo_statue_small.png",
                     "text_field": "Marqo can support vector search",
                     "multiply_1": multiply_1_value,
                     "multiply_2": multiply_2_value,
