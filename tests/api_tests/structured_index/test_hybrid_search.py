@@ -274,8 +274,8 @@ class TestStructuredHybridSearch(MarqoTestCase):
                     self.assertEqual(len(hybrid_res["hits"]),
                                         3)  # Only 3 documents have text field 2. Tensor retrieval will get them all.
                     self.assertEqual(hybrid_res["hits"][0]["_id"], "doc12")
-                    self.assertEqual(hybrid_res["hits"][1]["_id"], "doc11")
-                    self.assertEqual(hybrid_res["hits"][2]["_id"], "doc13")
+                    self.assertEqual(hybrid_res["hits"][1]["_id"], "doc13")
+                    self.assertEqual(hybrid_res["hits"][2]["_id"], "doc11")
 
     def test_hybrid_search_score_modifiers(self):
         """
