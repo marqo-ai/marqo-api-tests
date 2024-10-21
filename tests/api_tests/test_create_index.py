@@ -241,7 +241,7 @@ class TestCreateIndex(MarqoTestCase):
                 }
             },
             "tensorFields": ["text_field_1", "text_field_2",
-                            "video_field_1", "video_field_2", "audio_field", "image_field"],
+                             "video_field_1", "video_field_2", "audio_field", "image_field"],
             "allFields": [
                 {"features": [], "name": "text_field_1", "type": "text"},
                 {"features": [], "name": "text_field_2", "type": "text"},
@@ -335,6 +335,64 @@ class TestCreateIndex(MarqoTestCase):
                           "dimensions": 384,
                           "tokens": 128,
                           "type": "sbert"}, index_settings['modelProperties'])
+
+    def test_index_settings_should_hide_model_internal_data_if_model_is_marqtune_model(self):
+        self.client.create_index(index_name=self.index_name,
+                                 type="structured",
+                                 model="marqtune/model-id/checkpoint",
+                                 model_properties={
+                                     "isMarqtuneModel": True,
+                                     "name": "ViT-B-32",
+                                     "dimensions": 512,
+                                     "model_location": {
+                                         "s3": {
+                                             "Bucket": "marqtune-public-bucket",
+                                             "Key": "marqo-test-open-clip-model/epoch_2.pt",
+                                         },
+                                         "auth_required": False
+                                     },
+                                     "type": "open_clip",
+                                 },
+                                 all_fields=[{"name": "test", "type": "text", "features": ["lexical_search"]}],
+                                 tensor_fields=["test"])
+
+        index_settings = self.client.index(self.index_name).get_settings()
+        self.assertEqual("marqtune/model-id/checkpoint", index_settings['model'])
+        self.assertEqual({'isMarqtuneModel': True}, index_settings['modelProperties'])
+
+    def test_index_settings_should_not_hide_model_internal_data_if_model_is_not_marqtune_model(self):
+        self.client.create_index(index_name=self.index_name,
+                                 type="structured",
+                                 model="marqtune/model-id/checkpoint",
+                                 model_properties={
+                                     "name": "ViT-B-32",
+                                     "dimensions": 512,
+                                     "model_location": {
+                                         "s3": {
+                                             "Bucket": "marqtune-public-bucket",
+                                             "Key": "marqo-test-open-clip-model/epoch_1.pt",
+                                         },
+                                         "auth_required": False
+                                     },
+                                     "type": "open_clip",
+                                 },
+                                 all_fields=[{"name": "test", "type": "text", "features": ["lexical_search"]}],
+                                 tensor_fields=["test"])
+
+        index_settings = self.client.index(self.index_name).get_settings()
+        self.assertEqual("marqtune/model-id/checkpoint", index_settings['model'])
+        self.assertEqual({
+            "name": "ViT-B-32",
+            "dimensions": 512,
+            "model_location": {
+                "s3": {
+                    "Bucket": "marqtune-public-bucket",
+                    "Key": "marqo-test-open-clip-model/epoch_1.pt",
+                },
+                "auth_required": False
+            },
+            "type": "open_clip",
+        }, index_settings['modelProperties'])
 
     def test_create_structured_image_index_with_preprocessing(self):
         self.client.create_index(index_name=self.index_name,
