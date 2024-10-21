@@ -469,12 +469,12 @@ class TestCreateIndex(MarqoTestCase):
         try:
             with self.assertRaises(MarqoWebError) as e:
                 self.client.create_index(index_name=index_name_2)
-            self.assertIn("Another index creation/deletion operation is in progress",
+            self.assertIn("Your indexes are being updated. Please try again shortly.",
                           str(e.exception))
 
             with self.assertRaises(MarqoWebError) as e:
                 self.client.delete_index(index_name=index_name_1)
-            self.assertIn("Another index creation/deletion operation is in progress",
+            self.assertIn("Your indexes are being updated. Please try again shortly.",
                           str(e.exception))
         finally:
             t1.join()
@@ -497,12 +497,12 @@ class TestCreateIndex(MarqoTestCase):
         try:
             with self.assertRaises(MarqoWebError) as e:
                 self.client.create_index(index_name=index_name_2)
-            self.assertIn("Another index creation/deletion operation is in progress",
+            self.assertIn("Your indexes are being updated. Please try again shortly.",
                           str(e.exception))
 
             with self.assertRaises(MarqoWebError) as e:
                 self.client.delete_index(index_name=index_name_1)
-            self.assertIn("Another index creation/deletion operation is in progress",
+            self.assertIn("Your indexes are being updated. Please try again shortly.",
                           str(e.exception))
         finally:
             t1.join()
