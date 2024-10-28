@@ -1,13 +1,12 @@
 import uuid
 
 from marqo.client import Client
-from marqo.errors import MarqoWebError
 
 from tests.marqo_test import MarqoTestCase
 
 
-class TestSearchCommon(MarqoTestCase):
-    """A class to test common search functionalities for structured and unstructured indexes.
+class TestAddDocumentsCommon(MarqoTestCase):
+    """A class to test common add_documents functionalities for structured and unstructured indexes.
 
     We should test the shared functionalities between structured and unstructured indexes here to avoid code duplication
     and branching in the test cases."""
@@ -58,7 +57,6 @@ class TestSearchCommon(MarqoTestCase):
                 "allFields": [
                     {"name": "title", "type": "text", "features": ["filter", "lexical_search"]},
                     {"name": "content", "type": "text", "features": ["filter", "lexical_search"]},
-                    {"name": "text_field_1", "type": "text", "features": ["filter", "lexical_search"]},
                     {"name": "image_content", "type": "image_pointer"},
                     {"name": "image_field_1", "type": "image_pointer"},
                 ],
@@ -83,29 +81,8 @@ class TestSearchCommon(MarqoTestCase):
                                  cls.structured_text_index_name, cls.unstructured_image_index_name,
                                  cls.unstructured_text_index_name]
 
-    def test_lexical_query_can_not_be_none(self):
-        context = {"tensor": [{"vector": [1, ] * 384, "weight": 1},
-                          {"vector": [2, ] * 384, "weight": 2}]}
-
-        test_case = [
-            (None, context, "with context"),
-            (None, None, "without context")
-        ]
-        for index_name in [self.structured_text_index_name, self.unstructured_image_index_name]:
-            for query, context, msg in test_case:
-                with self.subTest(f"{index_name} - {msg}"):
-                    with self.assertRaises(MarqoWebError) as e:
-                        res = self.client.index(index_name).search(q=None, context=context, search_method="LEXICAL")
-                    self.assertIn("Query(q) is required for lexical search", str(e.exception.message))
-
-    def test_tensor_search_query_can_be_none(self):
-        context = {"tensor": [{"vector": [1, ] * 384, "weight": 1},
-                          {"vector": [2, ] * 384, "weight": 2}]}
-        for index_name in [self.structured_text_index_name, self.unstructured_text_index_name]:
-            res = self.client.index(index_name).search(q=None, context=context)
-            self.assertIn("hits", res)
-
-    def test_add_document_and_search_for_private_images(self):
+    def test_add_documents_for_private_images(self):
+        """A test to add documents with private images using media_download_headers and image_download_headers."""
         documents = [
             {
                 "image_field_1": "https://d2k91vq0avo7lq.cloudfront.net/ai_hippo_realistic_small.png",
@@ -119,30 +96,20 @@ class TestSearchCommon(MarqoTestCase):
             }
         ]
 
-
         kwargs_list = [
             {"media_download_headers": {"marqo_media_header": "media_header_test_key"}},
             {"image_download_headers": {"marqo_media_header": "media_header_test_key"}}
         ]
 
-        for index_name in [self.unstructured_image_index_name, self.structured_image_index_name]:
+        for index_name in [self.unstructured_image_index_name]:
             tensor_fields = ["image_field_1"] if (
                     index_name == self.unstructured_image_index_name) else None
-            res = self.client.index(index_name).add_documents(
-                documents, tensor_fields=tensor_fields,
-                media_download_headers={"marqo_media_header": "media_header_test_key"}
-            )
-
             for kwargs in kwargs_list:
-                for query in [
-                    "https://d2k91vq0avo7lq.cloudfront.net/ai_hippo_realistic_small",
-                    {
-                        "https://d2k91vq0avo7lq.cloudfront.net/ai_hippo_realistic_small.png": 1,
-                        "A private image without an extension": 1
-                    }
-                ]:
-
-                    with self.subTest(f"{index_name} - {kwargs} - {query}"):
-                        res = self.client.index(index_name).search(query, **kwargs)
-                        self.assertIn("hits", res, res)
-                        self.assertEqual(2, len(res["hits"]), res)
+                with self.subTest(f"{index_name} - {kwargs}"):
+                    res = self.client.index(index_name).add_documents(
+                        documents, tensor_fields=tensor_fields,
+                        **kwargs
+                    )
+                    self.assertEqual(False, res["errors"], res)
+                    self.assertEqual(2, self.client.index(index_name).get_stats()["numberOfDocuments"])
+                    self.assertEqual(2, self.client.index(index_name).get_stats()["numberOfVectors"])
