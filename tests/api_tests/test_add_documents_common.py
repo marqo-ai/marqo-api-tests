@@ -59,6 +59,7 @@ class TestAddDocumentsCommon(MarqoTestCase):
                     {"name": "content", "type": "text", "features": ["filter", "lexical_search"]},
                     {"name": "image_content", "type": "image_pointer"},
                     {"name": "image_field_1", "type": "image_pointer"},
+                    {"name": "text_field_1", "type": "text", "features": ["filter", "lexical_search"]},
                 ],
                 "tensorFields": ["title", "image_content", "image_field_1"],
             }
@@ -73,7 +74,8 @@ class TestAddDocumentsCommon(MarqoTestCase):
             {
                 "indexName": cls.unstructured_image_index_name,
                 "type": "unstructured",
-                "model": "open_clip/ViT-B-32/openai"
+                "model": "open_clip/ViT-B-32/openai",
+                "treatUrlsAndPointersAsMedia": True
             }
         ])
 
@@ -101,7 +103,7 @@ class TestAddDocumentsCommon(MarqoTestCase):
             {"image_download_headers": {"marqo_media_header": "media_header_test_key"}}
         ]
 
-        for index_name in [self.unstructured_image_index_name]:
+        for index_name in [self.unstructured_image_index_name, self.structured_image_index_name]:
             tensor_fields = ["image_field_1"] if (
                     index_name == self.unstructured_image_index_name) else None
             for kwargs in kwargs_list:
@@ -113,3 +115,30 @@ class TestAddDocumentsCommon(MarqoTestCase):
                     self.assertEqual(False, res["errors"], res)
                     self.assertEqual(2, self.client.index(index_name).get_stats()["numberOfDocuments"])
                     self.assertEqual(2, self.client.index(index_name).get_stats()["numberOfVectors"])
+
+    def test_proper_error_when_adding_documents_with_private_image_without_access(self):
+        """A test to check that the proper error is raised when adding documents with private images without access."""
+        documents = [
+            {
+                "image_field_1": "https://d2k91vq0avo7lq.cloudfront.net/ai_hippo_realistic_small.png",
+                "text_field_1": "A private image with a png extension",
+                "_id": "1"
+            },
+            {
+                "image_field_1": "https://d2k91vq0avo7lq.cloudfront.net/ai_hippo_realistic_small",
+                "text_field_1": "A private image without an extension",
+                "_id": "2"
+            }
+        ]
+        for index_name in [self.unstructured_image_index_name, self.structured_image_index_name]:
+            tensor_fields = ["image_field_1"] if (
+                    index_name == self.unstructured_image_index_name
+            ) else None
+            with self.subTest(f"{index_name}"):
+                res = self.client.index(index_name).add_documents(
+                    documents, tensor_fields=tensor_fields,
+                )
+                self.assertEqual(True, res["errors"], res)
+                for item in res["items"]:
+                    self.assertEqual(400, item["status"], item)
+                    self.assertIn("Could not process the media file found at", item["error"], item)

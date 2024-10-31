@@ -1,8 +1,10 @@
 import uuid
+from marqo.errors import MarqoWebError
 
 import numpy as np
 
 from tests.marqo_test import MarqoTestCase
+
 
 
 class TestEmbed(MarqoTestCase):
@@ -14,6 +16,9 @@ class TestEmbed(MarqoTestCase):
         cls.unstructured_index_name = "unstructured_" + str(uuid.uuid4()).replace('-', '')
         cls.unstructured_index_non_e5 = "unstructured_non_e5_" + str(uuid.uuid4()).replace('-', '')
 
+        cls.structured_image_index_name = "structured_image_index" + str(uuid.uuid4()).replace('-', '')
+        cls.unstructured_image_index_name = "unstructured_image_index" + str(uuid.uuid4()).replace('-', '')
+
         cls.create_indexes([
             {
                 "indexName": cls.structured_index_name,
@@ -24,6 +29,23 @@ class TestEmbed(MarqoTestCase):
                     {"name": "text_field_2", "type": "text"}
                 ],
                 "tensorFields": ["text_field_1", "text_field_2"]
+            },
+            {
+                "indexName": cls.structured_image_index_name,
+                "type": "structured",
+                "model": "open_clip/ViT-B-32/openai",
+                "allFields": [
+                    {"name": "title", "type": "text", "features": ["filter", "lexical_search"]},
+                    {"name": "content", "type": "text", "features": ["filter", "lexical_search"]},
+                    {"name": "image_content", "type": "image_pointer"},
+                    {"name": "image_field_1", "type": "image_pointer"},
+                ],
+                "tensorFields": ["title", "image_content", "image_field_1"],
+            },
+            {
+                "indexName": cls.unstructured_image_index_name,
+                "type": "unstructured",
+                "model": "open_clip/ViT-B-32/openai"
             },
             {
                 "indexName": cls.unstructured_index_name,
@@ -166,3 +188,29 @@ class TestEmbed(MarqoTestCase):
                     np.allclose(embed_res["embeddings"][0], retrieved_docs["results"][0]["_tensor_facets"][0]["_embedding"], atol=1e-6))
                 self.assertTrue(
                     np.allclose(embed_res["embeddings"][1], retrieved_docs["results"][1]["_tensor_facets"][0]["_embedding"], atol=1e-6))
+
+    def test_embed_documents_for_private_images(self):
+        """Both image_download_headers and media_download_headers work in embed for private images."""
+        content = ["https://d2k91vq0avo7lq.cloudfront.net/ai_hippo_realistic_small.png",
+                   "https://d2k91vq0avo7lq.cloudfront.net/ai_hippo_realistic_small"]
+        kwargs_list = [
+            {"media_download_headers": {"marqo_media_header": "media_header_test_key"}},
+            {"image_download_headers": {"marqo_media_header": "media_header_test_key"}}
+        ]
+        for index_name in [self.structured_image_index_name, self.unstructured_image_index_name]:
+            for kwargs in kwargs_list:
+                with self.subTest(f"{index_name} - {kwargs}"):
+                    res = self.client.index(index_name).embed(
+                        content,
+                        **kwargs
+                    )
+                    self.assertEqual(2, len(res["embeddings"]))
+
+    def test_invalidArgError_is_raised_when_embed_a_private_image(self):
+        content = "https://d2k91vq0avo7lq.cloudfront.net/ai_hippo_realistic_small"
+        for index_name in [self.structured_image_index_name, self.unstructured_image_index_name]:
+            with self.subTest(f"{index_name}"):
+                with self.assertRaises(MarqoWebError) as e:
+                    self.client.index(index_name).embed(content)
+                self.assertIn("Error downloading media file", str(e.exception))
+

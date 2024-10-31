@@ -146,3 +146,11 @@ class TestSearchCommon(MarqoTestCase):
                         res = self.client.index(index_name).search(query, **kwargs)
                         self.assertIn("hits", res, res)
                         self.assertEqual(2, len(res["hits"]), res)
+
+    def test_invalidArgError_is_raised_when_searching_a_private_image(self):
+        query= "https://d2k91vq0avo7lq.cloudfront.net/ai_hippo_realistic_small"
+        for index_name in [self.structured_image_index_name, self.unstructured_image_index_name]:
+            with self.subTest(f"{index_name}"):
+                with self.assertRaises(MarqoWebError) as e:
+                    self.client.index(index_name).search(query)
+                self.assertIn("Error downloading media file", str(e.exception))
