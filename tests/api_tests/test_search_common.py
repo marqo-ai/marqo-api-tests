@@ -154,3 +154,15 @@ class TestSearchCommon(MarqoTestCase):
                 with self.assertRaises(MarqoWebError) as e:
                     self.client.index(index_name).search(query)
                 self.assertIn("Error downloading media file", str(e.exception))
+
+    def test_proper_error_if_both_imageDownloadHeaders_and_mediaDownloadHeaders_are_provided(self):
+        """Test that an error is raised if both imageDownloadHeaders and mediaDownloadHeaders are provided."""
+        for index_name in [self.unstructured_image_index_name, self.structured_image_index_name]:
+            with self.assertRaises(MarqoWebError) as cm:
+                res = self.client.index(index_name).search(
+                    "test",
+                    image_download_headers={"marqo_media_header": "media_header_test_key"},
+                    media_download_headers={"marqo_media_header": "media_header_test_key"}
+                )
+                self.assertIn("Cannot set both imageDownloadHeaders and mediaDownloadHeaders.",
+                              str(cm.exception.message))

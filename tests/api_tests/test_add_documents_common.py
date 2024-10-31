@@ -3,6 +3,7 @@ import uuid
 from marqo.client import Client
 
 from tests.marqo_test import MarqoTestCase
+from marqo.errors import MarqoWebError
 
 
 class TestAddDocumentsCommon(MarqoTestCase):
@@ -142,3 +143,29 @@ class TestAddDocumentsCommon(MarqoTestCase):
                 for item in res["items"]:
                     self.assertEqual(400, item["status"], item)
                     self.assertIn("403", item["error"], item)
+
+    def test_proper_error_if_both_imageDownloadHeaders_and_mediaDownloadHeaders_are_provided(self):
+        """Test that an error is raised if both imageDownloadHeaders and mediaDownloadHeaders are provided."""
+        documents = [
+            {
+                "image_field_1": "https://d2k91vq0avo7lq.cloudfront.net/ai_hippo_realistic_small.png",
+                "text_field_1": "A private image with a png extension",
+                "_id": "1"
+            },
+            {
+                "image_field_1": "https://d2k91vq0avo7lq.cloudfront.net/ai_hippo_realistic_small",
+                "text_field_1": "A private image without an extension",
+                "_id": "2"
+            }
+        ]
+        for index_name in [self.unstructured_image_index_name, self.structured_image_index_name]:
+            tensor_fields = ["image_field_1"] if (
+                    index_name == self.unstructured_image_index_name) else None
+            with self.assertRaises(MarqoWebError) as cm:
+                res = self.client.index(index_name).add_documents(
+                    documents, tensor_fields=tensor_fields,
+                    image_download_headers={"marqo_media_header": "media_header_test_key"},
+                    media_download_headers={"marqo_media_header": "media_header_test_key"}
+                )
+                self.assertIn("Cannot set both imageDownloadHeaders and mediaDownloadHeaders.",
+                              str(cm.exception.message))
