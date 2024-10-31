@@ -141,4 +141,4 @@ class TestAddDocumentsCommon(MarqoTestCase):
                 self.assertEqual(True, res["errors"], res)
                 for item in res["items"]:
                     self.assertEqual(400, item["status"], item)
-                    self.assertIn("Could not process the media file found at", item["error"], item)
+                    self.assertIn("403", item["error"], item)
