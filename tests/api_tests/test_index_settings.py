@@ -27,9 +27,7 @@ class TestIndexSettings(MarqoTestCase):
                         "auth_required": False
                     },
                     "type": "open_clip",
-                },
-                "all_fields": [{"name": "test", "type": "text", "features": ["lexical_search"]}],
-                "tensor_fields": ["test"]
+                }
             },
             {
                 "indexName": cls.non_marqtuned_index_name,
@@ -46,9 +44,7 @@ class TestIndexSettings(MarqoTestCase):
                         "auth_required": False
                     },
                     "type": "open_clip",
-                },
-                "all_fields": [{"name": "test", "type": "text", "features": ["lexical_search"]}],
-                "tensor_fields": ["test"]
+                }
             }
         ])
 
