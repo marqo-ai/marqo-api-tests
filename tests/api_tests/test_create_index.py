@@ -241,7 +241,7 @@ class TestCreateIndex(MarqoTestCase):
                 }
             },
             "tensorFields": ["text_field_1", "text_field_2",
-                            "video_field_1", "video_field_2", "audio_field", "image_field"],
+                             "video_field_1", "video_field_2", "audio_field", "image_field"],
             "allFields": [
                 {"features": [], "name": "text_field_1", "type": "text"},
                 {"features": [], "name": "text_field_2", "type": "text"},
