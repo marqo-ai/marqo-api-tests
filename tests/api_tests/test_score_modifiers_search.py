@@ -26,7 +26,7 @@ class TestScoreModifierSearch(MarqoTestCase):
                 "type": "structured",
                 "model": "open_clip/ViT-B-32/laion400m_e31",
                 "allFields": [
-                    {"name": "text_field", "type": "text"},
+                    {"name": "text_field", "type": "text", "features": ["lexical_search"]},
                     {"name": "image_field", "type": "image_pointer"},
                     {"name": "multiply_1", "type": "float", "features": ["score_modifier"]},
                     {"name": "multiply_2", "type": "float", "features": ["score_modifier"]},
@@ -133,3 +133,56 @@ class TestScoreModifierSearch(MarqoTestCase):
             for valid_score_modifiers in valid_score_modifiers_list:
                 with self.subTest(f"{index_name} - {valid_score_modifiers}"):
                     self.client.index(index_name).search("test", score_modifiers=valid_score_modifiers)
+
+    def test_hybrid_search_rrf_score_modifiers_with_rerank_count(self):
+        """
+        Test that hybrid search with RRF can use root level score_modifiers and rerank_count
+        """
+
+        docs_list = [
+            {"_id": "both1", "text_field": "dogs", "multiply_1": -1, "add_1": -1},           # HIGH tensor, LOW lexical
+            {"_id": "tensor1", "text_field": "puppies", "multiply_1": 2, "add_1": 2},         # MID tensor
+            {"_id": "tensor2", "text_field": "random words", "multiply_1": 3, "add_1": 3},    # LOW tensor
+        ]
+
+        for test_index_name in [self.unstructured_score_modifier_index_name, self.structured_score_modifier_index_name]:
+            with self.subTest(index=test_index_name):
+                self.client.index(test_index_name).add_documents(
+                    docs_list,
+                    tensor_fields=["text_field"] if "unstr" in test_index_name else None)
+
+                # Get unmodified scores
+                # Unmodified result order should be: both1, tensor1, tensor2
+                unmodified_results = self.client.index(test_index_name).search(q="dogs", search_method="HYBRID",limit=3)
+                unmodified_scores = {hit["_id"]: hit["_score"] for hit in unmodified_results["hits"]}
+                self.assertEqual(["both1", "tensor1", "tensor2"], [hit["_id"] for hit in unmodified_results["hits"]])
+
+                # Get modified scores (rank all 3)
+                # Modified result order should be: tensor2, tensor1, both1
+                score_modifiers = {
+                    "multiply_score_by": [
+                        {"field_name": "multiply_1", "weight": 1}
+                    ],
+                    "add_to_score": [
+                        {"field_name": "add_1", "weight": 1}
+                    ]
+                }
+                modified_results = self.client.index(test_index_name).search(
+                    q="dogs", search_method="HYBRID",
+                    limit=3, rerank_count=3, score_modifiers=score_modifiers
+                )
+                self.assertEqual(["tensor2", "tensor1", "both1"], [hit["_id"] for hit in modified_results["hits"]])
+                self.assertAlmostEqual(modified_results["hits"][0]["_score"], 3*unmodified_scores["tensor2"] + 3)
+                self.assertAlmostEqual(modified_results["hits"][1]["_score"], 2*unmodified_scores["tensor1"] + 2)
+                self.assertAlmostEqual(modified_results["hits"][2]["_score"], -1*unmodified_scores["both1"] - 1)
+
+                # Get modified scores (rank only 1). Only both1 should be rescored (goes to the bottom)
+                # Modified result order should be: tensor1, tensor2, both1
+                modified_results = self.client.index(test_index_name).search(
+                    q="dogs", search_method="HYBRID",
+                    limit=3, rerank_count=1, score_modifiers=score_modifiers
+                )
+                self.assertEqual(["tensor1", "tensor2", "both1"], [hit["_id"] for hit in modified_results["hits"]])
+                self.assertAlmostEqual(modified_results["hits"][0]["_score"], unmodified_scores["tensor1"])     # unmodified
+                self.assertAlmostEqual(modified_results["hits"][1]["_score"], unmodified_scores["tensor2"])     # unmodified
+                self.assertAlmostEqual(modified_results["hits"][2]["_score"], -1*unmodified_scores["both1"] - 1)    # modified
