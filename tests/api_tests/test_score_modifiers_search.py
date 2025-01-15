@@ -284,7 +284,7 @@ class TestScoreModifierSearch(MarqoTestCase):
                         q="dogs", search_method="HYBRID",
                         rerank_count=-5
                     )
-            self.assertEqual(400, e.exception.status_code)
+            self.assertEqual(422, e.exception.status_code)
             self.assertIn("rerankCount cannot be negative",
                           str(e.exception.message))
 
