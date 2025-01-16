@@ -134,9 +134,9 @@ class TestScoreModifierSearch(MarqoTestCase):
                 with self.subTest(f"{index_name} - {valid_score_modifiers}"):
                     self.client.index(index_name).search("test", score_modifiers=valid_score_modifiers)
 
-    def test_hybrid_search_rrf_score_modifiers_with_rerank_count(self):
+    def test_hybrid_search_rrf_score_modifiers_with_rerank_depth(self):
         """
-        Test that hybrid search with RRF can use root level score_modifiers and rerank_count
+        Test that hybrid search with RRF can use root level score_modifiers and rerank_depth
         """
 
         docs_list = [
@@ -170,7 +170,7 @@ class TestScoreModifierSearch(MarqoTestCase):
                 with self.subTest(f"Case 1: limit == rerankCount == hits.size()"):
                     modified_results = self.client.index(test_index_name).search(
                         q="dogs", search_method="HYBRID",
-                        limit=3, rerank_count=3, score_modifiers=score_modifiers
+                        limit=3, rerank_depth=3, score_modifiers=score_modifiers
                     )
                     self.assertEqual(["tensor2", "tensor1", "both1"], [hit["_id"] for hit in modified_results["hits"]])
                     self.assertAlmostEqual(modified_results["hits"][0]["_score"], 3*unmodified_scores["tensor2"] + 3)
@@ -181,7 +181,7 @@ class TestScoreModifierSearch(MarqoTestCase):
                     # Modified result order should be: tensor1, tensor2, both1
                     modified_results = self.client.index(test_index_name).search(
                         q="dogs", search_method="HYBRID",
-                        limit=3, rerank_count=1, score_modifiers=score_modifiers
+                        limit=3, rerank_depth=1, score_modifiers=score_modifiers
                     )
                     self.assertEqual(["tensor1", "tensor2", "both1"], [hit["_id"] for hit in modified_results["hits"]])
                     self.assertAlmostEqual(modified_results["hits"][0]["_score"], unmodified_scores["tensor1"])     # unmodified
@@ -191,7 +191,7 @@ class TestScoreModifierSearch(MarqoTestCase):
                 with self.subTest(f"Case 2: limit < rerankCount < hits.size()"):
                     modified_results = self.client.index(test_index_name).search(
                         q="dogs", search_method="HYBRID",
-                        limit=1, rerank_count=2, score_modifiers=score_modifiers
+                        limit=1, rerank_depth=2, score_modifiers=score_modifiers
                     )
                     self.assertEqual(["both1"], [hit["_id"] for hit in modified_results["hits"]])
                     self.assertAlmostEqual(modified_results["hits"][0]["_score"], -1*unmodified_scores["both1"] - 1)
@@ -200,7 +200,7 @@ class TestScoreModifierSearch(MarqoTestCase):
                     # tensor2 never appears, because it is the 3rd result out of tensor
                     modified_results = self.client.index(test_index_name).search(
                         q="dogs", search_method="HYBRID",
-                        limit=2, rerank_count=2, score_modifiers=score_modifiers
+                        limit=2, rerank_depth=2, score_modifiers=score_modifiers
                     )
                     self.assertEqual(["tensor1", "both1"], [hit["_id"] for hit in modified_results["hits"]])
                     self.assertAlmostEqual(modified_results["hits"][0]["_score"], 2*unmodified_scores["tensor1"] + 2)
@@ -209,7 +209,7 @@ class TestScoreModifierSearch(MarqoTestCase):
                 with self.subTest(f"Case 4: limit < hits.size() < rerankCount"):
                     modified_results = self.client.index(test_index_name).search(
                         q="dogs", search_method="HYBRID",
-                        limit=2, rerank_count=10, score_modifiers=score_modifiers
+                        limit=2, rerank_depth=10, score_modifiers=score_modifiers
                     )
                     self.assertEqual(["tensor1", "both1"], [hit["_id"] for hit in modified_results["hits"]])
                     self.assertAlmostEqual(modified_results["hits"][0]["_score"], 2 * unmodified_scores["tensor1"] + 2)
@@ -219,7 +219,7 @@ class TestScoreModifierSearch(MarqoTestCase):
                     # tensor2 remains unmodified.
                     modified_results = self.client.index(test_index_name).search(
                         q="dogs", search_method="HYBRID",
-                        limit=10, rerank_count=2, score_modifiers=score_modifiers
+                        limit=10, rerank_depth=2, score_modifiers=score_modifiers
                     )
                     self.assertEqual(["tensor1", "tensor2", "both1"], [hit["_id"] for hit in modified_results["hits"]])
                     self.assertAlmostEqual(modified_results["hits"][0]["_score"], 2 * unmodified_scores["tensor1"] + 2)
@@ -229,7 +229,7 @@ class TestScoreModifierSearch(MarqoTestCase):
                 with self.subTest("Case 6: rerankCount == 0"):
                     modified_results = self.client.index(test_index_name).search(
                         q="dogs", search_method="HYBRID", hybrid_parameters={"verbose": True},
-                        limit=3, rerank_count=0, score_modifiers=score_modifiers
+                        limit=3, rerank_depth=0, score_modifiers=score_modifiers
                     )
                     self.assertEqual(["both1", "tensor1", "tensor2"], [hit["_id"] for hit in modified_results["hits"]])
                     self.assertAlmostEqual(modified_results["hits"][0]["_score"], unmodified_scores["both1"])
@@ -272,9 +272,9 @@ class TestScoreModifierSearch(MarqoTestCase):
                     self.assertEqual(400, e.exception.status_code)
                     self.assertIn("only supported for hybrid search if \\'rankingMethod\\' is \\'RRF\\'", str(e.exception.message))
 
-    def test_negative_rerank_count_fails(self):
+    def test_negative_rerank_depth_fails(self):
         """
-        Tests that creating a search query with rerank_count fails if the value is negative.
+        Tests that creating a search query with rerank_depth fails if the value is negative.
         """
         for test_index_name in [self.unstructured_score_modifier_index_name,
                                 self.structured_score_modifier_index_name]:
@@ -282,9 +282,9 @@ class TestScoreModifierSearch(MarqoTestCase):
                 with self.subTest(index=test_index_name):
                     self.client.index(test_index_name).search(
                         q="dogs", search_method="HYBRID",
-                        rerank_count=-5
+                        rerank_depth=-5
                     )
             self.assertEqual(422, e.exception.status_code)
-            self.assertIn("rerankCount cannot be negative",
+            self.assertIn("rerankDepth cannot be negative",
                           str(e.exception.message))
 
