@@ -285,6 +285,6 @@ class TestScoreModifierSearch(MarqoTestCase):
                         rerank_depth=-5
                     )
             self.assertEqual(422, e.exception.status_code)
-            self.assertIn("rerankCount cannot be negative",
+            self.assertIn("rerankDepth cannot be negative",
                           str(e.exception.message))
 
